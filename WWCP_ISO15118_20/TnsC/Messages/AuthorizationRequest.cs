@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class AuthorizationRequest : V2GRequestType
+    public class AuthorizationRequest : AV2GRequest
     {
 
         public AuthorizationTypes SelectedAuthorizationService { get; }

@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsA
 {
 
-    public class ACDP_ConnectRequest : V2GRequestType
+    public class ACDP_ConnectRequest : AV2GRequest
     {
 
         public ElectricalChargingDeviceStatusTypes  EVElectricalChargingDeviceStatus    { get; }

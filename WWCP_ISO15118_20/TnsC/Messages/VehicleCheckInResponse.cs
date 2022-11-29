@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class VehicleCheckInResponse : V2GResponseType
+    public class VehicleCheckInResponse : AV2GResponse
     {
 
         public Int16?  ParkingSpace      { get; }

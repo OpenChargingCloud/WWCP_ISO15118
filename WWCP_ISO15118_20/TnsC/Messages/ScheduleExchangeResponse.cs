@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class ScheduleExchangeResponse : V2GResponseType
+    public class ScheduleExchangeResponse : AV2GResponse
     {
 
         public Dynamic_SEResControlModeType?    Dynamic_SEResControlMode      { get; }

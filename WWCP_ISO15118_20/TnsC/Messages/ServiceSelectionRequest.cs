@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class ServiceSelectionRequest : V2GRequestType
+    public class ServiceSelectionRequest : AV2GRequest
     {
 
         public SelectedServiceType       SelectedEnergyTransferService    { get; }

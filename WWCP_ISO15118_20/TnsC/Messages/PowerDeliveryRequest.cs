@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class PowerDeliveryRequest : V2GRequestType
+    public class PowerDeliveryRequest : AV2GRequest
     {
 
         public ProcessingTypes         EVProcessing            { get; }

@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public abstract class MeteringConfirmationRequest : V2GRequestType
+    public abstract class MeteringConfirmationRequest : AV2GRequest
     {
 
         public SignedMeteringDataType  SignedMeteringData    { get; }

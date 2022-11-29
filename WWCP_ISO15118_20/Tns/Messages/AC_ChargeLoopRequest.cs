@@ -24,10 +24,10 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.Tns
 {
 
-    public class AC_ChargeLoopRequest : ChargeLoopRequest
+    public class AC_ChargeLoopRequest : AChargeLoopRequest
     {
 
-        public CLReqControlModeType?  CLReqControlMode    { get; }
+        public ACLReqControlModeType?  CLReqControlMode    { get; }
 
 
     }

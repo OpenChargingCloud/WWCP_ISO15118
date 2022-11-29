@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.Tns
 {
 
-    public class AC_ChargeParameterDiscoveryResponse : ChargeParameterDiscoveryResponse
+    public class AC_ChargeParameterDiscoveryResponse : AChargeParameterDiscoveryResponse
     {
 
         public AC_CPDResEnergyTransferModeType? AC_CPDResEnergyTransferMode { get; }

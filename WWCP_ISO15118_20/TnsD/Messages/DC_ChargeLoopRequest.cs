@@ -24,11 +24,11 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsD
 {
 
-    public class DC_ChargeLoopRequest : ChargeLoopRequest
+    public class DC_ChargeLoopRequest : AChargeLoopRequest
     {
 
-        public RationalNumberType     EVPresentVoltage    { get; }
-        public CLReqControlModeType?  CLReqControlMode    { get; }
+        public RationalNumberType      EVPresentVoltage    { get; }
+        public ACLReqControlModeType?  CLReqControlMode    { get; }
 
     }
 

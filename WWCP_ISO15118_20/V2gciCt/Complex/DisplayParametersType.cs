@@ -31,10 +31,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.V2gciCt
     public class DisplayParametersType
     {
 
-        public SByte?               PresentSOC                   { get; }
-        public SByte?               MinimumSOC                   { get; }
-        public SByte?               TargetSOC                    { get; }
-        public SByte?               MaximumSOC                   { get; }
+        public PercentValueType?    PresentSOC                   { get; }
+        public PercentValueType?    MinimumSOC                   { get; }
+        public PercentValueType?    TargetSOC                    { get; }
+        public PercentValueType?    MaximumSOC                   { get; }
         public UInt32?              RemainingTimeToMinimumSOC    { get; }
         public UInt32?              RemainingTimeToTargetSOC     { get; }
         public UInt32?              RemainingTimeToMaximumSOC    { get; }

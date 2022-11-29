@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsA
 {
 
-    public class Scheduled_DC_CLReqControlModeType : Scheduled_CLReqControlModeType
+    public class Scheduled_DC_CLReqControlModeType : AScheduled_CLReqControlModeType
     {
 
         public RationalNumberType   EVTargetCurrent           { get; }

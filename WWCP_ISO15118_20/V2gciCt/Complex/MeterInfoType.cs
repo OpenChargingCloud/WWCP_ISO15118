@@ -31,21 +31,21 @@ namespace cloud.charging.open.protocols.ISO15118_20.V2gciCt
     public class MeterInfoType
     {
 
-        public String   MeterID                           { get; }
+        public MeterIDType          MeterID                           { get; }
 
-        public UInt64   ChargedEnergyReadingWh            { get; }
+        public UInt64               ChargedEnergyReadingWh            { get; }
 
-        public UInt64?  BPT_DischargedEnergyReadingWh     { get; }
+        public UInt64?              BPT_DischargedEnergyReadingWh     { get; }
 
-        public UInt64?  CapacitiveEnergyReadingVARh       { get; }
+        public UInt64?              CapacitiveEnergyReadingVARh       { get; }
 
-        public UInt64?  BPT_InductiveEnergyReadingVARh    { get; }
+        public UInt64?              BPT_InductiveEnergyReadingVARh    { get; }
 
-        public Byte[]?  MeterSignature                    { get; }
+        public MeterSignatureType?  MeterSignature                    { get; }
 
-        public Int16?   MeterStatus                       { get; }
+        public Int16?               MeterStatus                       { get; }
 
-        public UInt64?  MeterTimestamp                    { get; }
+        public UInt64?              MeterTimestamp                    { get; }
 
 
     }

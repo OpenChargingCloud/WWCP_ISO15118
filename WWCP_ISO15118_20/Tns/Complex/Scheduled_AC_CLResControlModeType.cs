@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.Tns
 {
 
-    public class Scheduled_AC_CLResControlModeType : Scheduled_CLResControlModeType
+    public class Scheduled_AC_CLResControlModeType : AScheduled_CLResControlModeType
     {
 
         public RationalNumberType?  EVSETargetActivePower        { get; }

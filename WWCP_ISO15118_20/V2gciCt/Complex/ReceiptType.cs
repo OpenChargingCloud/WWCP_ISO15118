@@ -17,11 +17,7 @@
 
 #region Usings
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -41,6 +37,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.V2gciCt
 
         public DetailedCostType?             OverstayCosts              { get; }
 
+        /// <summary>
+        /// Optional: 0..10
+        /// </summary>
+        [Optional]
         public IEnumerable<DetailedTaxType>  TaxCosts                   { get; }
 
 

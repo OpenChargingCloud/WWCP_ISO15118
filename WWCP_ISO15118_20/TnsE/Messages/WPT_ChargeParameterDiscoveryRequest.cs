@@ -25,7 +25,7 @@ using System.Collections.ObjectModel;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsE
 {
 
-    public class WPT_ChargeParameterDiscoveryRequest : ChargeParameterDiscoveryRequest
+    public class WPT_ChargeParameterDiscoveryRequest : AChargeParameterDiscoveryRequest
     {
 
         public RationalNumberType   EVPCMaxReceivablePower         { get; }

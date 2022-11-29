@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsD
 {
 
-    public class DC_ChargeParameterDiscoveryRequest : ChargeParameterDiscoveryRequest
+    public class DC_ChargeParameterDiscoveryRequest : AChargeParameterDiscoveryRequest
     {
 
         public DC_CPDReqEnergyTransferModeType?  DC_CPDReqEnergyTransferMode    { get; }

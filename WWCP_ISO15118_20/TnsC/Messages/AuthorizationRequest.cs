@@ -37,11 +37,40 @@ namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 
         #region Documentation
 
+        //<?xml version="1.0" encoding="utf-8"?>
+        //<ns:AuthorizationReq xmlns:v2gci_ct="urn:iso:std:iso:15118:-20:CommonTypes"
+        //                     xmlns:xmlsig="http://www.w3.org/2000/09/xmldsig#"
+        //                     xmlns:ns="urn:iso:std:iso:15118:-20:CommonMessages"
+        //                     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        //                     xsi:schemaLocation="urn:iso:std:iso:15118:-20:CommonMessages file:///V2G_CI_CommonMessages.xsd">
+        //    <v2gci_ct:Header>
+        //        <v2gci_ct:SessionID>212D322D33212D32</v2gci_ct:SessionID>
+        //        <v2gci_ct:TimeStamp>9506</v2gci_ct:TimeStamp>
+        //        <xmlsig:Signature>
+        //            <xmlsig:SignedInfo>
+        //                <xmlsig:CanonicalizationMethod Algorithm="https://www.liquid-technologies.com" />
+        //                <xmlsig:SignatureMethod Algorithm="https://www.liquid-technologies.com" />
+        //                <xmlsig:Reference>
+        //                    <xmlsig:DigestMethod Algorithm="https://www.liquid-technologies.com" />
+        //                    <xmlsig:DigestValue>YTM0NZomIzI2OTsmIzM0NTueYQ==</xmlsig:DigestValue>
+        //                </xmlsig:Reference>
+        //            </xmlsig:SignedInfo>
+        //            <xmlsig:SignatureValue>YTM0NZomIzI2OTsmIzM0NTueYQ==</xmlsig:SignatureValue>
+        //        </xmlsig:Signature>
+        //    </v2gci_ct:Header>
+        //
+        //    <ns:SelectedAuthorizationService>EIM</ns:SelectedAuthorizationService>
+        //    <ns:EIM_AReqAuthorizationMode />
+        //
+        //</ns:AuthorizationReq>
+
+
+        //<?xml version="1.0" encoding="utf-8"?>
         // <ns:AuthorizationReq xmlns:v2gci_ct="urn:iso:std:iso:15118:-20:CommonTypes"
         //                      xmlns:xmlsig="http://www.w3.org/2000/09/xmldsig#"
         //                      xmlns:ns="urn:iso:std:iso:15118:-20:CommonMessages"
         //                      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        //                      xsi:schemaLocation="urn:iso:std:iso:15118:-20:CommonMessages file://V2G_CI_CommonMessages.xsd">
+        //                      xsi:schemaLocation="urn:iso:std:iso:15118:-20:CommonMessages file:///V2G_CI_CommonMessages.xsd">
         //
         //     <v2gci_ct:Header>
         //         [...]
@@ -60,6 +89,44 @@ namespace cloud.charging.open.protocols.ISO15118_20.TnsC
         //     </ns:PnC_AReqAuthorizationMode>
         //
         // </ns:AuthorizationReq>
+
+
+        //<?xml version="1.0" encoding="utf-8"?>
+        //<AuthorizationReq xmlns:ns="http://www.w3.org/2000/09/xmldsig#"
+        //                  xmlns:nsA="urn:iso:std:iso:15118:-20:CommonTypes"
+        //                  xmlns="urn:iso:std:iso:15118:-20:CommonMessages"
+        //                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        //                  xsi:schemaLocation="urn:iso:std:iso:15118:-20:CommonMessages file:///C:/Users/achim/ownCloud/Open%20Charging%20Cloud/Protocols/ISO15118/15118-20/V2G_CI_CommonMessages.xsd">
+        //
+        //    <nsA:Header>
+        //        <nsA:SessionID>212D322D33212D32</nsA:SessionID>
+        //        <nsA:TimeStamp>4523</nsA:TimeStamp>
+        //        <ns:Signature>
+        //            <ns:SignedInfo>
+        //                <ns:CanonicalizationMethod Algorithm="https://www.liquid-technologies.com" />
+        //                <ns:SignatureMethod Algorithm="https://www.liquid-technologies.com" />
+        //                <ns:Reference>
+        //                    <ns:DigestMethod Algorithm="https://www.liquid-technologies.com" />
+        //                    <ns:DigestValue>YTM0NZomIzI2OTsmIzM0NTueYQ==</ns:DigestValue>
+        //                </ns:Reference>
+        //            </ns:SignedInfo>
+        //            <ns:SignatureValue>YTM0NZomIzI2OTsmIzM0NTueYQ==</ns:SignatureValue>
+        //        </ns:Signature>
+        //    </nsA:Header>
+        //
+        //    <SelectedAuthorizationService>PnC</SelectedAuthorizationService>
+        //
+        //    <PnC_AReqAuthorizationMode p5:Id="AAAAA" xmlns:p5="urn:iso:std:iso:15118:-20:CommonMessages">
+        //        <GenChallenge>YTM0NZomIzI2OTsmIzM0NTueYQ==</GenChallenge>
+        //        <ContractCertificateChain>
+        //            <Certificate>YTM0NZomIzI2OTsmIzM0NTueYQ==</Certificate>
+        //            <SubCertificates>
+        //                <Certificate>YTM0NZomIzI2OTsmIzM0NTueYQ==</Certificate>
+        //            </SubCertificates>
+        //        </ContractCertificateChain>
+        //    </PnC_AReqAuthorizationMode>
+        //
+        //</AuthorizationReq>
 
         #endregion
 

@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.Tns
 {
 
-    public class Scheduled_AC_CLReqControlModeType : Scheduled_CLReqControlModeType
+    public class Scheduled_AC_CLReqControlModeType : AScheduled_CLReqControlModeType
     {
 
         public RationalNumberType?  EVMaximumChargePower         { get; }

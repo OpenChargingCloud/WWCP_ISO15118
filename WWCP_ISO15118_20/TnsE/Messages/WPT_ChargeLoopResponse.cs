@@ -24,7 +24,7 @@ using System.Collections.ObjectModel;
 
 namespace cloud.charging.open.protocols.ISO15118_20.TnsE
 {
-    public class WPT_ChargeLoopResponse : ChargeLoopResponse
+    public class WPT_ChargeLoopResponse : AChargeLoopResponse
     {
 
         public RationalNumberType                 EVPCPowerRequest                     { get; }

@@ -43,6 +43,15 @@ namespace cloud.charging.open.protocols.ISO15118_20.V2gciCt
 
         #region Documentation
 
+        // <xs:complexType name="MessageHeaderType">
+        //     <xs:sequence>
+        //         <xs:element name="SessionID" type="sessionIDType"/>
+        //         <xs:element name="TimeStamp" type="xs:unsignedLong"/>
+        //         <xs:element ref="xmlsig:Signature" minOccurs="0"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+
         // <ns:AuthorizationReq xmlns:v2gci_ct="urn:iso:std:iso:15118:-20:CommonTypes"
         //                      xmlns:xmlsig="http://www.w3.org/2000/09/xmldsig#"
         //                      xmlns:ns="urn:iso:std:iso:15118:-20:CommonMessages"

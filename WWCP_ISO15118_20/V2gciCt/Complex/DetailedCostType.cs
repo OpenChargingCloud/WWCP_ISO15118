@@ -31,8 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.V2gciCt
     public class DetailedCostType
     {
 
-        public RationalNumberType Amount      { get; }
-        public RationalNumberType CostPerUnit { get; }
+        public RationalNumberType  Amount         { get; }
+        public RationalNumberType  CostPerUnit    { get; }
 
 
     }

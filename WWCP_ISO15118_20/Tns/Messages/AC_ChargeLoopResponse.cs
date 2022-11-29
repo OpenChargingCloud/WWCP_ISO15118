@@ -24,11 +24,11 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.Tns
 {
 
-    public class AC_ChargeLoopResponse : ChargeLoopResponse
+    public class AC_ChargeLoopResponse : AChargeLoopResponse
     {
 
-        public RationalNumberType?    EVSETargetFrequency    { get; }
-        public CLResControlModeType?  CLResControlMode       { get; }
+        public RationalNumberType?     EVSETargetFrequency    { get; }
+        public ACLResControlModeType?  CLResControlMode       { get; }
 
 
     }

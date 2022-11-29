@@ -31,8 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.V2gciCt
     public class RationalNumberType
     {
 
-        public SByte Exponent { get; }
-        public Int16 Value    { get; }
+        public SByte  Exponent    { get; }
+        public Int16  Value       { get; }
 
 
     }

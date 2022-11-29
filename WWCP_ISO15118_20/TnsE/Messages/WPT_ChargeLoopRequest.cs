@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsE
 {
 
-    public class WPT_ChargeLoopRequest : ChargeLoopRequest
+    public class WPT_ChargeLoopRequest : AChargeLoopRequest
     {
 
         public WPT_EVResultTypes                   EVResultCode                         { get; }

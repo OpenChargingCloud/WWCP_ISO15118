@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsD
 {
 
-    public class Dynamic_DC_CLResControlModeType : Dynamic_CLResControlModeType
+    public class Dynamic_DC_CLResControlModeType : ADynamic_CLResControlModeType
     {
 
         public RationalNumberType  EVSEMaximumChargePower      { get; }

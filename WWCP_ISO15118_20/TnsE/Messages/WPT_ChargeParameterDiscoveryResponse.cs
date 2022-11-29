@@ -23,7 +23,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 
 namespace cloud.charging.open.protocols.ISO15118_20.TnsE
 {
-    public class WPT_ChargeParameterDiscoveryResponse : ChargeParameterDiscoveryResponse
+    public class WPT_ChargeParameterDiscoveryResponse : AChargeParameterDiscoveryResponse
     {
 
         WPT_PowerClassTypes  PDInputPowerClass                      { get; }

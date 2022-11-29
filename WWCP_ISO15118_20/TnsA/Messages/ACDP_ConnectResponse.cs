@@ -25,7 +25,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsA
 {
 
-    public class ACDP_ConnectResponse : V2GResponseType
+    public class ACDP_ConnectResponse : AV2GResponse
     {
 
         public ProcessingTypes                      EVSEProcessing                        { get; }

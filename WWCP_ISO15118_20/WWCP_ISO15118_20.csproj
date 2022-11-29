@@ -8,4 +8,8 @@
     <RootNamespace>cloud.charging.open.protocols.ISO15118_20</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Styx\Styx\Styx.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class VehicleCheckOutRequest : V2GRequestType
+    public class VehicleCheckOutRequest : AV2GRequest
     {
 
         public EvCheckOutStatusTypes  EVCheckOutStatus    { get; }

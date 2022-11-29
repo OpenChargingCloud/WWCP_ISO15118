@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public abstract class MeteringConfirmationResponse : V2GResponseType
+    public abstract class MeteringConfirmationResponse : AV2GResponse
     {
 
 

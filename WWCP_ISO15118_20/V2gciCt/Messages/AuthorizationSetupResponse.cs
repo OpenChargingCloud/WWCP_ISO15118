@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class AuthorizationSetupResponse : V2GResponseType
+    public class AuthorizationSetupResponse : AV2GResponse
     {
 
         public EIM_ASResAuthorizationModeType?  EIM_ASResAuthorizationMode    { get; }

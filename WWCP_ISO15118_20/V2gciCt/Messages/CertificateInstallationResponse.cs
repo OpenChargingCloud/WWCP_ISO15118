@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class CertificateInstallationResponse : V2GResponseType
+    public class CertificateInstallationResponse : AV2GResponse
     {
 
         public ProcessingTypes             EVSEProcessing                        { get; }

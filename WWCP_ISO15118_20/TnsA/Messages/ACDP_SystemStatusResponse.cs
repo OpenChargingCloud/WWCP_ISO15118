@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsA
 {
 
-    public class ACDP_SystemStatusResponse : V2GResponseType
+    public class ACDP_SystemStatusResponse : AV2GResponse
     {
 
         public MechanicalChargingDeviceStatusTypes  EVSEMechanicalChargingDeviceStatus    { get; }

@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class ScheduleExchangeRequest : V2GRequestType
+    public class ScheduleExchangeRequest : AV2GRequest
     {
 
         public Dynamic_SEReqControlModeType?    Dynamic_SEReqControlMode      { get; }

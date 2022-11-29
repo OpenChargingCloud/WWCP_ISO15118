@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class ServiceSelectionResponse : V2GResponseType
+    public class ServiceSelectionResponse : AV2GResponse
     {
 
    

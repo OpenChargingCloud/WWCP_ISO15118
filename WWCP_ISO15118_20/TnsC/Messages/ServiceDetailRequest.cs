@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class ServiceDetailRequest : V2GRequestType
+    public class ServiceDetailRequest : AV2GRequest
     {
 
         public UInt16  ServiceID    { get; }

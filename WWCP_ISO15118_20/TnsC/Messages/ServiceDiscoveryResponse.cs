@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.V2gciCt;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class ServiceDiscoveryResponse : V2GResponseType
+    public class ServiceDiscoveryResponse : AV2GResponse
     {
 
         public Boolean           ServiceRenegotiationSupported    { get; }

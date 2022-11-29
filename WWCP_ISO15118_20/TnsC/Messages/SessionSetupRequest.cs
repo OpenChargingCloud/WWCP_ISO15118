@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.TnsC
 {
 
-    public class SessionSetupRequest : V2GRequestType
+    public class SessionSetupRequest : AV2GRequest
     {
 
         public String  EVCCID    { get; }

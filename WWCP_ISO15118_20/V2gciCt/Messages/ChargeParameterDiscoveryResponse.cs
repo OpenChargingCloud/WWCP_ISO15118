@@ -28,7 +28,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.V2gciCt
 {
 
-    public abstract class ChargeParameterDiscoveryResponse : V2GResponseType
+    public abstract class ChargeParameterDiscoveryResponse : AV2GResponse
     {
 
 

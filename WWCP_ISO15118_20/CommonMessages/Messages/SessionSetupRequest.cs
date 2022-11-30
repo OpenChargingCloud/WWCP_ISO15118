@@ -17,23 +17,50 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
+    /// <summary>
+    /// The session setup request message.
+    /// </summary>
     public class SessionSetupRequest : AV2GRequest
     {
 
-        public String  EVCCID    { get; }
+        #region Properties
 
+        /// <summary>
+        /// The EV charge controller identification.
+        /// </summary>
+        [Mandatory]
+        public IdentifierType  EVCCID    { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new session setup request message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        /// <param name="EVCCID">An EV charge controller identification.</param>
+        public SessionSetupRequest(MessageHeaderType  Header,
+                                   IdentifierType     EVCCID)
+
+            : base(Header)
+
+        {
+
+            this.EVCCID = EVCCID;
+
+        }
+
+        #endregion
 
     }
 

@@ -27,6 +27,10 @@ using System.Threading.Tasks;
 
 namespace cloud.charging.open.protocols.ISO15118_20
 {
+
+    /// <summary>
+    /// An identifier.
+    /// </summary>
     public readonly struct IdentifierType
     {
 

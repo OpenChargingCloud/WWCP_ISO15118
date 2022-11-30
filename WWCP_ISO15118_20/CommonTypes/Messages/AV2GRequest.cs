@@ -17,8 +17,27 @@
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
+
+    /// <summary>
+    /// An abstract request message.
+    /// </summary>
     public abstract class AV2GRequest : AV2GMessage
     {
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new abstract request message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        public AV2GRequest(MessageHeaderType Header)
+
+            : base(Header)
+
+        { }
+
+        #endregion
+
     }
 
 }

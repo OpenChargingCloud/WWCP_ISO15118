@@ -17,6 +17,8 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Illias;
+
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
 #endregion
@@ -24,9 +26,44 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
+    /// <summary>
+    /// The session setup response message.
+    /// </summary>
     public class SessionSetupResponse : AV2GResponse
     {
-        public String  EVSEID    { get; }
+
+        #region Properties
+
+        /// <summary>
+        /// The EVSE identification.
+        /// </summary>
+        [Mandatory]
+        public IdentifierType  EVSEID    { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new session setup response message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        /// <param name="ResponseCode">A message response code.</param>
+        /// <param name="EVSEID">An EVSE identification.</param>
+        public SessionSetupResponse(MessageHeaderType  Header,
+                                    ResponseCodeTypes  ResponseCode,
+                                    IdentifierType     EVSEID)
+
+            : base(Header,
+                   ResponseCode)
+
+        {
+
+            this.EVSEID = EVSEID;
+
+        }
+
+        #endregion
 
     }
 

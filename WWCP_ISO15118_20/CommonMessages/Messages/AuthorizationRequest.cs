@@ -18,21 +18,112 @@
 #region Usings
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
+    /// <summary>
+    /// The authorization request message.
+    /// </summary>
     public class AuthorizationRequest : AV2GRequest
     {
 
-        public AuthorizationTypes SelectedAuthorizationService { get; }
+        #region Properties
 
+        /// <summary>
+        /// 
+        /// </summary>
+        [Mandatory]
+        public AuthorizationTypes              SelectedAuthorizationService    { get; }
 
-        // Choose one of the following...
-        public EIM_AReqAuthorizationModeType? EIM_AReqAuthorizationMode { get; }
-        public PnC_AReqAuthorizationModeType? PnC_AReqAuthorizationMode { get; }
+        /// <summary>
+        /// 
+        /// </summary>
+        [MandatoryChoice("AReqAuthorizationMode")]
+        public EIM_AReqAuthorizationModeType?  EIM_AReqAuthorizationMode       { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [MandatoryChoice("AReqAuthorizationMode")]
+        public PnC_AReqAuthorizationModeType?  PnC_AReqAuthorizationMode       { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region (private) AuthorizationRequest(..., EIM_AReqAuthorizationMode, PnC_AReqAuthorizationMode)
+
+        /// <summary>
+        /// Create a new authorization request message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        /// <param name="SelectedAuthorizationService"></param>
+        /// <param name="EIM_AReqAuthorizationMode"></param>
+        /// <param name="PnC_AReqAuthorizationMode"></param>
+        private AuthorizationRequest(MessageHeaderType               Header,
+                                     AuthorizationTypes              SelectedAuthorizationService,
+                                     EIM_AReqAuthorizationModeType?  EIM_AReqAuthorizationMode,
+                                     PnC_AReqAuthorizationModeType?  PnC_AReqAuthorizationMode)
+
+            : base(Header)
+
+        {
+
+            this.SelectedAuthorizationService  = SelectedAuthorizationService;
+            this.EIM_AReqAuthorizationMode     = EIM_AReqAuthorizationMode;
+            this.PnC_AReqAuthorizationMode     = PnC_AReqAuthorizationMode;
+
+        }
+
+        #endregion
+
+        #region AuthorizationRequest(..., EIM_AReqAuthorizationMode)
+
+        /// <summary>
+        /// Create a new authorization request message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        /// <param name="SelectedAuthorizationService"></param>
+        /// <param name="EIM_AReqAuthorizationMode"></param>
+        public AuthorizationRequest(MessageHeaderType              Header,
+                                    AuthorizationTypes             SelectedAuthorizationService,
+                                    EIM_AReqAuthorizationModeType  EIM_AReqAuthorizationMode)
+
+            : this(Header,
+                   SelectedAuthorizationService,
+                   EIM_AReqAuthorizationMode,
+                   null)
+
+        { }
+
+        #endregion
+
+        #region AuthorizationRequest(..., PnC_AReqAuthorizationMode)
+
+        /// <summary>
+        /// Create a new authorization request message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        /// <param name="SelectedAuthorizationService"></param>
+        /// <param name="PnC_AReqAuthorizationMode"></param>
+        public AuthorizationRequest(MessageHeaderType              Header,
+                                    AuthorizationTypes             SelectedAuthorizationService,
+                                    PnC_AReqAuthorizationModeType  PnC_AReqAuthorizationMode)
+
+            : this(Header,
+                   SelectedAuthorizationService,
+                   null,
+                   PnC_AReqAuthorizationMode)
+
+        { }
+
+        #endregion
+
+        #endregion
 
 
         #region Documentation
@@ -129,6 +220,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         //</AuthorizationReq>
 
         #endregion
+
 
     }
 

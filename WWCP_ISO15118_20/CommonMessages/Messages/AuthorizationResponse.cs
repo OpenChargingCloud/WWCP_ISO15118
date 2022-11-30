@@ -24,9 +24,43 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
+    /// <summary>
+    /// The authorization response message.
+    /// </summary>
     public class AuthorizationResponse : AV2GResponse
     {
+
+        #region Properties
+
+        /// <summary>
+        /// The EVSE processing type.
+        /// </summary>
         public ProcessingTypes  EVSEProcessing    { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new authorization response message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        /// <param name="ResponseCode">A message response code.</param>
+        /// <param name="EVSEProcessing">An EVSE processing type..</param>
+        public AuthorizationResponse(MessageHeaderType  Header,
+                                     ResponseCodeTypes  ResponseCode,
+                                     ProcessingTypes    EVSEProcessing)
+
+            : base(Header,
+                   ResponseCode)
+
+        {
+
+            this.EVSEProcessing = EVSEProcessing;
+
+        }
+
+        #endregion
 
     }
 

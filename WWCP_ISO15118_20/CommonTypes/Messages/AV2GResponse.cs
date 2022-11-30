@@ -17,12 +17,41 @@
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
+
+    /// <summary>
+    /// An abstract response message.
+    /// </summary>
     public abstract class AV2GResponse : AV2GMessage
     {
 
+        #region Properties
+
+        /// <summary>
+        /// The message response code.
+        /// </summary>
         public ResponseCodeTypes  ResponseCode    { get; }
 
+        #endregion
 
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new abstract response message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        /// <param name="ResponseCode">A message response code.</param>
+        public AV2GResponse(MessageHeaderType  Header,
+                            ResponseCodeTypes  ResponseCode)
+
+            : base(Header)
+
+        {
+
+            this.ResponseCode = ResponseCode;
+
+        }
+
+        #endregion
 
     }
 

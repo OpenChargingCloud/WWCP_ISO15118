@@ -15,13 +15,45 @@
  * limitations under the License.
  */
 
+#region Usings
+
+using org.GraphDefined.Vanaheimr.Illias;
+
+#endregion
+
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
+
+    /// <summary>
+    /// An abstract ISO 15118-20 V2G message.
+    /// </summary>
     public abstract class AV2GMessage
     {
 
+        #region Properties
+
+        /// <summary>
+        /// The message header.
+        /// </summary>
+        [Mandatory]
         public MessageHeaderType  Header    { get; }
 
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new abstract message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        public AV2GMessage(MessageHeaderType Header)
+        {
+
+            this.Header = Header;
+
+        }
+
+        #endregion
 
     }
 

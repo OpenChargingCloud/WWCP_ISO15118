@@ -24,11 +24,25 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class AuthorizationSetupResponse : AV2GResponse
+    /// <summary>
+    /// The authorization setup request message.
+    /// </summary>
+    public class AuthorizationSetupRequest : AV2GRequest
     {
 
-        public EIM_ASResAuthorizationModeType?  EIM_ASResAuthorizationMode    { get; }
-        public PnC_ASResAuthorizationModeType?  PnC_ASResAuthorizationMode    { get; }
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new authorization setup request message.
+        /// </summary>
+        /// <param name="Header">A message header.</param>
+        public AuthorizationSetupRequest(MessageHeaderType  Header)
+
+            : base(Header)
+
+        { }
+
+        #endregion
 
     }
 

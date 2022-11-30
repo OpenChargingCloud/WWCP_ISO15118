@@ -2,8 +2,9 @@
 
 This software will allow the communication between World Wide Charging
 Protocol (WWCP) entities and entities implementing
-_ISO/IEC 15118-20_. The focus of this protocol are the communication
-aspects between an electric vehicle and an e-mobility charging station.
+_ISO/IEC 15118-20_ and _ISO/IEC 15118-8_ for wireless communication.
+The focus of this protocol are the communication aspects between an
+electric vehicle and an e-mobility charging station.
 
 
 ## Differences to the official protocol specification

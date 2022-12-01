@@ -32,9 +32,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     {
 
         public UInt32?             DepartureTime             { get; }
-        public RationalNumberType  EVTargetEnergyRequest     { get; }
-        public RationalNumberType  EVMaximumEnergyRequest    { get; }
-        public RationalNumberType  EVMinimumEnergyRequest    { get; }
+        public RationalNumber  EVTargetEnergyRequest     { get; }
+        public RationalNumber  EVMaximumEnergyRequest    { get; }
+        public RationalNumber  EVMinimumEnergyRequest    { get; }
 
 
     }

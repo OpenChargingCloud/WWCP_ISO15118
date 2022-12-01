@@ -17,8 +17,11 @@
 
 #region Usings
 
-using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using Newtonsoft.Json.Linq;
+
 using org.GraphDefined.Vanaheimr.Illias;
+
+using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
 #endregion
 
@@ -26,9 +29,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// The authorization request message.
+    /// The authorization request.
     /// </summary>
-    public class AuthorizationRequest : AV2GRequest
+    public class AuthorizationRequest : AV2GRequest<AuthorizationRequest>
     {
 
         #region Properties
@@ -58,13 +61,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region (private) AuthorizationRequest(..., EIM_AReqAuthorizationMode, PnC_AReqAuthorizationMode)
 
         /// <summary>
-        /// Create a new authorization request message.
+        /// Create a new authorization request.
         /// </summary>
         /// <param name="Header">A message header.</param>
-        /// <param name="SelectedAuthorizationService"></param>
+        /// <param name="SelectedAuthorizationService">A selected authorization service.</param>
         /// <param name="EIM_AReqAuthorizationMode"></param>
         /// <param name="PnC_AReqAuthorizationMode"></param>
-        private AuthorizationRequest(MessageHeaderType               Header,
+        private AuthorizationRequest(MessageHeader                   Header,
                                      AuthorizationTypes              SelectedAuthorizationService,
                                      EIM_AReqAuthorizationModeType?  EIM_AReqAuthorizationMode,
                                      PnC_AReqAuthorizationModeType?  PnC_AReqAuthorizationMode)
@@ -84,17 +87,15 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region AuthorizationRequest(..., EIM_AReqAuthorizationMode)
 
         /// <summary>
-        /// Create a new authorization request message.
+        /// Create a new authorization request.
         /// </summary>
         /// <param name="Header">A message header.</param>
-        /// <param name="SelectedAuthorizationService"></param>
         /// <param name="EIM_AReqAuthorizationMode"></param>
-        public AuthorizationRequest(MessageHeaderType              Header,
-                                    AuthorizationTypes             SelectedAuthorizationService,
+        public AuthorizationRequest(MessageHeader                  Header,
                                     EIM_AReqAuthorizationModeType  EIM_AReqAuthorizationMode)
 
             : this(Header,
-                   SelectedAuthorizationService,
+                   AuthorizationTypes.EIM,
                    EIM_AReqAuthorizationMode,
                    null)
 
@@ -105,17 +106,15 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region AuthorizationRequest(..., PnC_AReqAuthorizationMode)
 
         /// <summary>
-        /// Create a new authorization request message.
+        /// Create a new authorization request.
         /// </summary>
         /// <param name="Header">A message header.</param>
-        /// <param name="SelectedAuthorizationService"></param>
         /// <param name="PnC_AReqAuthorizationMode"></param>
-        public AuthorizationRequest(MessageHeaderType              Header,
-                                    AuthorizationTypes             SelectedAuthorizationService,
+        public AuthorizationRequest(MessageHeader                  Header,
                                     PnC_AReqAuthorizationModeType  PnC_AReqAuthorizationMode)
 
             : this(Header,
-                   SelectedAuthorizationService,
+                   AuthorizationTypes.PnC,
                    null,
                    PnC_AReqAuthorizationMode)
 
@@ -221,6 +220,315 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
+        #region (static) Parse   (JSON, CustomAuthorizationRequestParser = null)
+
+        /// <summary>
+        /// Parse the given JSON representation of an authorization request.
+        /// </summary>
+        /// <param name="JSON">The JSON to be parsed.</param>
+        /// <param name="CustomAuthorizationRequestParser">A delegate to parse custom authorization requests.</param>
+        public static AuthorizationRequest Parse(JObject                                             JSON,
+                                                 CustomJObjectParserDelegate<AuthorizationRequest>?  CustomAuthorizationRequestParser   = null)
+        {
+
+            if (TryParse(JSON,
+                         out var authorizationRequest,
+                         out var errorResponse,
+                         CustomAuthorizationRequestParser))
+            {
+                return authorizationRequest!;
+            }
+
+            throw new ArgumentException("The given JSON representation of an authorization request is invalid: " + errorResponse,
+                                        nameof(JSON));
+
+        }
+
+        #endregion
+
+        #region (static) TryParse(JSON, out AuthorizationRequest, out ErrorResponse, CustomAuthorizationRequestParser = null)
+
+        // Note: The following is needed to satisfy pattern matching delegates! Do not refactor it!
+
+        /// <summary>
+        /// Try to parse the given JSON representation of an authorization request.
+        /// </summary>
+        /// <param name="JSON">The JSON to be parsed.</param>
+        /// <param name="AuthorizationRequest">The parsed authorization request.</param>
+        /// <param name="ErrorResponse">An optional error response.</param>
+        public static Boolean TryParse(JObject                    JSON,
+                                       out AuthorizationRequest?  AuthorizationRequest,
+                                       out String?                ErrorResponse)
+
+            => TryParse(JSON,
+                        out AuthorizationRequest,
+                        out ErrorResponse,
+                        null);
+
+
+        /// <summary>
+        /// Try to parse the given JSON representation of an authorization request.
+        /// </summary>
+        /// <param name="JSON">The JSON to be parsed.</param>
+        /// <param name="AuthorizationRequest">The parsed authorization request.</param>
+        /// <param name="ErrorResponse">An optional error response.</param>
+        /// <param name="CustomAuthorizationRequestParser">A delegate to parse custom BootNotification requests.</param>
+        public static Boolean TryParse(JObject                                             JSON,
+                                       out AuthorizationRequest?                           AuthorizationRequest,
+                                       out String?                                         ErrorResponse,
+                                       CustomJObjectParserDelegate<AuthorizationRequest>?  CustomAuthorizationRequestParser)
+        {
+
+            try
+            {
+
+                AuthorizationRequest = null;
+
+                #region MessageHeader                   [mandatory]
+
+                if (!JSON.ParseMandatoryJSON("messageHeader",
+                                             "message header",
+                                             CommonTypes.MessageHeader.TryParse,
+                                             out MessageHeader? MessageHeader,
+                                             out ErrorResponse))
+                {
+                    return false;
+                }
+
+                if (MessageHeader is null)
+                    return false;
+
+                #endregion
+
+                #region SelectedAuthorizationService    [mandatory]
+
+                if (!JSON.ParseMandatory("selectedAuthorizationService",
+                                         "selected authorization service",
+                                         AuthorizationTypesExtensions.TryParse,
+                                         out AuthorizationTypes SelectedAuthorizationService,
+                                         out ErrorResponse))
+                {
+                    return false;
+                }
+
+                #endregion
+
+                #region EIM_AReqAuthorizationMode        [optional]
+
+                if (JSON.ParseOptionalJSON("EIM_AReqAuthorizationMode",
+                                           "EIM AReq authorization mode",
+                                           EIM_AReqAuthorizationModeType.TryParse,
+                                           out EIM_AReqAuthorizationModeType? EIM_AReqAuthorizationMode,
+                                           out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
+                #region PnC_AReqAuthorizationMode        [optional]
+
+                if (JSON.ParseOptionalJSON("PnC_AReqAuthorizationMode",
+                                           "PnC AReq authorization mode",
+                                           PnC_AReqAuthorizationModeType.TryParse,
+                                           out PnC_AReqAuthorizationModeType? PnC_AReqAuthorizationMode,
+                                           out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
+
+                AuthorizationRequest = new AuthorizationRequest(MessageHeader,
+                                                                SelectedAuthorizationService,
+                                                                EIM_AReqAuthorizationMode,
+                                                                PnC_AReqAuthorizationMode);
+
+                if (CustomAuthorizationRequestParser is not null)
+                    AuthorizationRequest = CustomAuthorizationRequestParser(JSON,
+                                                                            AuthorizationRequest);
+
+                return true;
+
+            }
+            catch (Exception e)
+            {
+                AuthorizationRequest  = null;
+                ErrorResponse         = "The given JSON representation of an authorization request is invalid: " + e.Message;
+                return false;
+            }
+
+        }
+
+        #endregion
+
+        #region ToJSON(CustomAuthorizationRequestSerializer = null, CustomMessageHeaderSerializer = null)
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomAuthorizationRequestSerializer">A delegate to serialize custom authorization requests.</param>
+        /// <param name="CustomMessageHeaderSerializer">A delegate to serialize custom message headers.</param>
+        public JObject ToJSON(CustomJObjectSerializerDelegate<AuthorizationRequest>?  CustomAuthorizationRequestSerializer   = null,
+                              CustomJObjectSerializerDelegate<MessageHeader>?         CustomMessageHeaderSerializer          = null)
+        {
+
+            var json = JSONObject.Create(
+
+                                 new JProperty("messageHeader",                 MessageHeader.ToJSON(CustomMessageHeaderSerializer)),
+                                 new JProperty("selectedAuthorizationService",  SelectedAuthorizationService.AsText()),
+
+                           EIM_AReqAuthorizationMode is not null
+                               ? new JProperty("EIM_AReqAuthorizationMode",     EIM_AReqAuthorizationMode.ToJSON())
+                               : null,
+
+                           PnC_AReqAuthorizationMode is not null
+                               ? new JProperty("PnC_AReqAuthorizationMode",     PnC_AReqAuthorizationMode.ToJSON())
+                               : null
+
+                       );
+
+            return CustomAuthorizationRequestSerializer is not null
+                       ? CustomAuthorizationRequestSerializer(this, json)
+                       : json;
+
+        }
+
+        #endregion
+
+
+        #region Operator overloading
+
+        #region Operator == (AuthorizationRequest1, AuthorizationRequest2)
+
+        /// <summary>
+        /// Compares two authorization requests for equality.
+        /// </summary>
+        /// <param name="AuthorizationRequest1">An authorization request.</param>
+        /// <param name="AuthorizationRequest2">Another authorization request.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator == (AuthorizationRequest? AuthorizationRequest1,
+                                           AuthorizationRequest? AuthorizationRequest2)
+        {
+
+            // If both are null, or both are same instance, return true.
+            if (ReferenceEquals(AuthorizationRequest1, AuthorizationRequest2))
+                return true;
+
+            // If one is null, but not both, return false.
+            if (AuthorizationRequest1 is null || AuthorizationRequest2 is null)
+                return false;
+
+            return AuthorizationRequest1.Equals(AuthorizationRequest2);
+
+        }
+
+        #endregion
+
+        #region Operator != (AuthorizationRequest1, AuthorizationRequest2)
+
+        /// <summary>
+        /// Compares two authorization requests for inequality.
+        /// </summary>
+        /// <param name="AuthorizationRequest1">An authorization request.</param>
+        /// <param name="AuthorizationRequest2">Another authorization request.</param>
+        /// <returns>False if both match; True otherwise.</returns>
+        public static Boolean operator != (AuthorizationRequest? AuthorizationRequest1,
+                                           AuthorizationRequest? AuthorizationRequest2)
+
+            => !(AuthorizationRequest1 == AuthorizationRequest2);
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<AuthorizationRequest> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two authorization requests for equality.
+        /// </summary>
+        /// <param name="Object">An authorization request to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is AuthorizationRequest authorizationRequest &&
+                   Equals(authorizationRequest);
+
+        #endregion
+
+        #region Equals(AuthorizationRequest)
+
+        /// <summary>
+        /// Compares two authorization requests for equality.
+        /// </summary>
+        /// <param name="AuthorizationRequest">An authorization request to compare with.</param>
+        public override Boolean Equals(AuthorizationRequest? AuthorizationRequest)
+
+            => AuthorizationRequest is not null &&
+
+               SelectedAuthorizationService.Equals(AuthorizationRequest.SelectedAuthorizationService) &&
+
+             ((EIM_AReqAuthorizationMode is     null && AuthorizationRequest.EIM_AReqAuthorizationMode is     null) ||
+              (EIM_AReqAuthorizationMode is not null && AuthorizationRequest.EIM_AReqAuthorizationMode is not null && EIM_AReqAuthorizationMode.Equals(AuthorizationRequest.EIM_AReqAuthorizationMode))) &&
+
+             ((PnC_AReqAuthorizationMode is     null && AuthorizationRequest.PnC_AReqAuthorizationMode is     null) ||
+              (PnC_AReqAuthorizationMode is not null && AuthorizationRequest.PnC_AReqAuthorizationMode is not null && PnC_AReqAuthorizationMode.Equals(AuthorizationRequest.PnC_AReqAuthorizationMode))) &&
+
+               base.GenericEquals(AuthorizationRequest);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return SelectedAuthorizationService.GetHashCode()       * 7 ^
+                      (EIM_AReqAuthorizationMode?.  GetHashCode() ?? 0) * 5 ^
+                      (PnC_AReqAuthorizationMode?.  GetHashCode() ?? 0) * 3 ^
+
+                       base.                        GetHashCode();
+
+            }
+        }
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   SelectedAuthorizationService.AsText(),
+                   ": ",
+
+                   EIM_AReqAuthorizationMode is not null
+                       ? EIM_AReqAuthorizationMode.ToString()
+                       : "",
+
+                   PnC_AReqAuthorizationMode is not null
+                       ? PnC_AReqAuthorizationMode.ToString()
+                       : ""
+
+               );
+
+        #endregion
 
     }
 

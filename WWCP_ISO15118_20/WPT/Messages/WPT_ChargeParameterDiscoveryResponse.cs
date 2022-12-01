@@ -27,12 +27,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     {
 
         WPT_PowerClassTypes  PDInputPowerClass                      { get; }
-        RationalNumberType   SDMinOutputPower                       { get; }
-        RationalNumberType   SDMaxOutputPower                       { get; }
+        RationalNumber   SDMinOutputPower                       { get; }
+        RationalNumber   SDMaxOutputPower                       { get; }
         UInt16               SDMaxGroundClearanceSupport            { get; }
         UInt16               SDMinGroundClearanceSupport            { get; }
-        RationalNumberType   PDMinCoilCurrent                       { get; }
-        RationalNumberType   PDMaxCoilCurrent                       { get; }
+        RationalNumber   PDMinCoilCurrent                       { get; }
+        RationalNumber   PDMaxCoilCurrent                       { get; }
         IEnumerable<Byte[]>  SDManufacturerSpecificDataContainer    { get; }
 
 

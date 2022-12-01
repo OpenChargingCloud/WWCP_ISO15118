@@ -27,13 +27,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
     public class BPT_AC_CPDResEnergyTransferModeType : AC_CPDResEnergyTransferModeType
     {
 
-        public RationalNumberType   EVSEMaximumDischargePower       { get; }
-        public RationalNumberType?  EVSEMaximumDischargePower_L2    { get; }
-        public RationalNumberType?  EVSEMaximumDischargePower_L3    { get; }
+        public RationalNumber   EVSEMaximumDischargePower       { get; }
+        public RationalNumber?  EVSEMaximumDischargePower_L2    { get; }
+        public RationalNumber?  EVSEMaximumDischargePower_L3    { get; }
 
-        public RationalNumberType   EVSEMinimumDischargePower       { get; }
-        public RationalNumberType?  EVSEMinimumDischargePower_L2    { get; }
-        public RationalNumberType?  EVSEMinimumDischargePower_L3    { get; }
+        public RationalNumber   EVSEMinimumDischargePower       { get; }
+        public RationalNumber?  EVSEMinimumDischargePower_L2    { get; }
+        public RationalNumber?  EVSEMinimumDischargePower_L3    { get; }
 
 
     }

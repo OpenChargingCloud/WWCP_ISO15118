@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     {
 
         public Byte                               NumberOfTransmitters    { get; }
-        public RationalNumberType                 SignalFrequency         { get; }
+        public RationalNumber                 SignalFrequency         { get; }
         public IEnumerable<WPT_TxRxSpecDataType>  TxSpecData              { get; }
         public WPT_TxRxPackageSpecDataType?       TxPackageSpecData       { get; }
 

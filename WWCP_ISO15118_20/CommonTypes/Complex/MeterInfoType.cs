@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     public class MeterInfoType
     {
 
-        public MeterIDType          MeterID                           { get; }
+        public Meter_Id             MeterID                           { get; }
 
         public UInt64               ChargedEnergyReadingWh            { get; }
 

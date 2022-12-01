@@ -32,8 +32,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class ServiceType
     {
 
-        public UInt16   ServiceID      { get; }
-        public Boolean  FreeService    { get; }
+        public Service_Id  ServiceID      { get; }
+        public Boolean     FreeService    { get; }
 
 
     }

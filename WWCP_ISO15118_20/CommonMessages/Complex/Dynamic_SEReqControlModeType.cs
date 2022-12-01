@@ -30,11 +30,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public UInt32               DepartureTime                { get; }
         public SByte?               MinimumSOC                   { get; }
         public SByte?               TargetSOC                    { get; }
-        public RationalNumberType   EVTargetEnergyRequest        { get; }
-        public RationalNumberType   EVMaximumEnergyRequest       { get; }
-        public RationalNumberType   EVMinimumEnergyRequest       { get; }
-        public RationalNumberType?  EVMaximumV2XEnergyRequest    { get; }
-        public RationalNumberType?  EVMinimumV2XEnergyRequest    { get; }
+        public RationalNumber   EVTargetEnergyRequest        { get; }
+        public RationalNumber   EVMaximumEnergyRequest       { get; }
+        public RationalNumber   EVMinimumEnergyRequest       { get; }
+        public RationalNumber?  EVMaximumV2XEnergyRequest    { get; }
+        public RationalNumber?  EVMinimumV2XEnergyRequest    { get; }
 
     }
 

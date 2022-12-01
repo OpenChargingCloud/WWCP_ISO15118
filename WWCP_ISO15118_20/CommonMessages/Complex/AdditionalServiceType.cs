@@ -27,8 +27,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class AdditionalServiceType
     {
 
-        public String              ServiceName    { get; }
-        public RationalNumberType  ServiceFee     { get; }
+        public String          ServiceName    { get; }
+        public RationalNumber  ServiceFee     { get; }
 
 
     }

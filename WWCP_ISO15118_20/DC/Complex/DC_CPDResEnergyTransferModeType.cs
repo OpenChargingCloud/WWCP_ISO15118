@@ -27,13 +27,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
     public class DC_CPDResEnergyTransferModeType
     {
 
-        public RationalNumberType   EVSEMaximumChargePower      { get; }
-        public RationalNumberType   EVSEMinimumChargePower      { get; }
-        public RationalNumberType   EVSEMaximumChargeCurrent    { get; }
-        public RationalNumberType   EVSEMinimumChargeCurrent    { get; }
-        public RationalNumberType   EVSEMaximumVoltage          { get; }
-        public RationalNumberType   EVSEMinimumVoltage          { get; }
-        public RationalNumberType?  EVSEPowerRampLimitation     { get; }
+        public RationalNumber   EVSEMaximumChargePower      { get; }
+        public RationalNumber   EVSEMinimumChargePower      { get; }
+        public RationalNumber   EVSEMaximumChargeCurrent    { get; }
+        public RationalNumber   EVSEMinimumChargeCurrent    { get; }
+        public RationalNumber   EVSEMaximumVoltage          { get; }
+        public RationalNumber   EVSEMinimumVoltage          { get; }
+        public RationalNumber?  EVSEPowerRampLimitation     { get; }
 
 
     }

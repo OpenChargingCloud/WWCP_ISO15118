@@ -17,6 +17,8 @@
 
 #region Usings
 
+using Newtonsoft.Json.Linq;
+using org.GraphDefined.Vanaheimr.Illias;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,6 +32,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
     public class EIM_ASResAuthorizationModeType
     {
+
+
+
+        public static Boolean TryParse(JObject JSON,
+                                       out EIM_ASResAuthorizationModeType? EIM_ASResAuthorizationMode,
+                                       out String? ErrorResponse)
+
+        {
+            EIM_ASResAuthorizationMode = new EIM_ASResAuthorizationModeType();
+            ErrorResponse = null;
+            return true;
+        }
+
+
+        public JObject ToJSON()
+            => new JObject();
 
 
     }

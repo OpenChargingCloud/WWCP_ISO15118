@@ -32,8 +32,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class EVPriceRuleType
     {
 
-        public RationalNumberType  EnergyFee          { get; }
-        public RationalNumberType  PowerRangeStart    { get; }
+        public RationalNumber  EnergyFee          { get; }
+        public RationalNumber  PowerRangeStart    { get; }
 
 
     }

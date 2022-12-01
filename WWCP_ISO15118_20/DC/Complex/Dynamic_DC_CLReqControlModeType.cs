@@ -27,11 +27,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
     public class Dynamic_DC_CLReqControlModeType : ADynamic_CLReqControlModeType
     {
 
-        public RationalNumberType  EVMaximumChargePower      { get; }
-        public RationalNumberType  EVMinimumChargePower      { get; }
-        public RationalNumberType  EVMaximumChargeCurrent    { get; }
-        public RationalNumberType  EVMaximumVoltage          { get; }
-        public RationalNumberType  EVMinimumVoltage          { get; }
+        public RationalNumber  EVMaximumChargePower      { get; }
+        public RationalNumber  EVMinimumChargePower      { get; }
+        public RationalNumber  EVMaximumChargeCurrent    { get; }
+        public RationalNumber  EVMaximumVoltage          { get; }
+        public RationalNumber  EVMinimumVoltage          { get; }
 
 
     }

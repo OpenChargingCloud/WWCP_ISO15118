@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     {
 
         public UInt32              TxIdentifier    { get; }
-        public RationalNumberType  RSSI            { get; }
+        public RationalNumber  RSSI            { get; }
 
     }
 

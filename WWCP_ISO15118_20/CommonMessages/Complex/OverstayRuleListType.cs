@@ -33,7 +33,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     {
 
         public UInt32?                        OverstayTimeThreshold     { get; }
-        public RationalNumberType?            OverstayPowerThreshold    { get; }
+        public RationalNumber?            OverstayPowerThreshold    { get; }
         public IEnumerable<OverstayRuleType>  OverstayRules             { get; }
 
 

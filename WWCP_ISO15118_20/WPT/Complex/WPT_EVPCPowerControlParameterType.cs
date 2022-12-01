@@ -26,10 +26,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     public class WPT_EVPCPowerControlParameterType
     {
 
-        public RationalNumberType  EVPCCoilCurrentRequest          { get; }
-        public RationalNumberType  EVPCCoilCurrentInformation      { get; }
-        public RationalNumberType  EVPCCurrentOutputInformation    { get; }
-        public RationalNumberType  EVPCVoltageOutputInformation    { get; }
+        public RationalNumber  EVPCCoilCurrentRequest          { get; }
+        public RationalNumber  EVPCCoilCurrentInformation      { get; }
+        public RationalNumber  EVPCCurrentOutputInformation    { get; }
+        public RationalNumber  EVPCVoltageOutputInformation    { get; }
 
 
     }

@@ -28,9 +28,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
     public class BPT_Scheduled_DC_CLReqControlModeType : Scheduled_DC_CLReqControlModeType
     {
 
-        public RationalNumberType?  EVMaximumDischargePower      { get; }
-        public RationalNumberType?  EVMinimumDischargePower      { get; }
-        public RationalNumberType?  EVMaximumDischargeCurrent    { get; }
+        public RationalNumber?  EVMaximumDischargePower      { get; }
+        public RationalNumber?  EVMinimumDischargePower      { get; }
+        public RationalNumber?  EVMaximumDischargeCurrent    { get; }
 
 
     }

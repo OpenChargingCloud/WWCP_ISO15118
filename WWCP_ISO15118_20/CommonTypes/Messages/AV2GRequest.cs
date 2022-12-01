@@ -19,8 +19,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// An abstract request message.
+    /// An abstract ISO 15118-20 V2G request.
     /// </summary>
+    [Obsolete("Use AV2GRequest<TRequest>!")]
     public abstract class AV2GRequest : AV2GMessage
     {
 
@@ -29,12 +30,89 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <summary>
         /// Create a new abstract request message.
         /// </summary>
-        /// <param name="Header">A message header.</param>
-        public AV2GRequest(MessageHeaderType Header)
+        public AV2GRequest()
 
-            : base(Header)
+            : base(new MessageHeader(Session_Id.NewRandom(),
+                                     DateTime.UtcNow))
 
         { }
+
+
+        /// <summary>
+        /// Create a new abstract request message.
+        /// </summary>
+        /// <param name="MessageHeader">A common message header.</param>
+        public AV2GRequest(MessageHeader MessageHeader)
+
+            : base(MessageHeader)
+
+        { }
+
+        #endregion
+
+    }
+
+
+    /// <summary>
+    /// An abstract generic ISO 15118-20 V2G request.
+    /// </summary>
+    public abstract class AV2GRequest<TRequest> : AV2GMessage,
+                                                  IEquatable<TRequest>
+    {
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new abstract generic ISO 15118-20 V2G request.
+        /// </summary>
+        /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
+        public AV2GRequest(MessageHeader MessageHeader)
+
+            : base(MessageHeader)
+
+        { }
+
+        #endregion
+
+
+        #region IEquatable<TRequest> Members
+
+        /// <summary>
+        /// Compare two abstract generic requests for equality.
+        /// </summary>
+        /// <param name="TRequest">Another abstract generic request.</param>
+        public abstract Boolean Equals(TRequest? TRequest);
+
+        #endregion
+
+        #region GenericEquals(ARequest)
+
+        /// <summary>
+        /// Compare two abstract generic requests for equality.
+        /// </summary>
+        /// <param name="ARequest">Another abstract generic request.</param>
+        public Boolean GenericEquals(AV2GRequest<TRequest>? ARequest)
+
+            => ARequest is not null &&
+                   base.Equals(ARequest);
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return base.GetHashCode();
+
+            }
+        }
 
         #endregion
 

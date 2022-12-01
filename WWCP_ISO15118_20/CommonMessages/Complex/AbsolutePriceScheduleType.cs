@@ -30,8 +30,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public String                      Currency                      { get; }
         public String                      Language                      { get; }
         public String                      PriceAlgorithm                { get; }
-        public RationalNumberType?         MinimumCost                   { get; }
-        public RationalNumberType?         MaximumCost                   { get; }
+        public RationalNumber?             MinimumCost                   { get; }
+        public RationalNumber?             MaximumCost                   { get; }
         public TaxRuleListType?            TaxRules                      { get; }
         public PriceRuleStackListType      PriceRuleStacks               { get; }
         public OverstayRuleListType?       OverstayRules                 { get; }

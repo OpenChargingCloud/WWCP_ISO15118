@@ -27,21 +27,21 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
     public class AC_CPDResEnergyTransferModeType
     {
 
-        public RationalNumberType   EVSEMaximumChargePower       { get; }
-        public RationalNumberType?  EVSEMaximumChargePower_L2    { get; }
-        public RationalNumberType?  EVSEMaximumChargePower_L3    { get; }
+        public RationalNumber   EVSEMaximumChargePower       { get; }
+        public RationalNumber?  EVSEMaximumChargePower_L2    { get; }
+        public RationalNumber?  EVSEMaximumChargePower_L3    { get; }
 
-        public RationalNumberType   EVSEMinimumChargePower       { get; }
-        public RationalNumberType?  EVSEMinimumChargePower_L2    { get; }
-        public RationalNumberType?  EVSEMinimumChargePower_L3    { get; }
+        public RationalNumber   EVSEMinimumChargePower       { get; }
+        public RationalNumber?  EVSEMinimumChargePower_L2    { get; }
+        public RationalNumber?  EVSEMinimumChargePower_L3    { get; }
 
-        public RationalNumberType?  EVSEPresentActivePower       { get; }
-        public RationalNumberType?  EVSEPresentActivePower_L2    { get; }
-        public RationalNumberType?  EVSEPresentActivePower_L3    { get; }
+        public RationalNumber?  EVSEPresentActivePower       { get; }
+        public RationalNumber?  EVSEPresentActivePower_L2    { get; }
+        public RationalNumber?  EVSEPresentActivePower_L3    { get; }
 
-        public RationalNumberType   EVSENominalFrequency         { get; }
-        public RationalNumberType?  MaximumPowerAsymmetry        { get; }
-        public RationalNumberType?  EVSEPowerRampLimitation      { get; }
+        public RationalNumber   EVSENominalFrequency         { get; }
+        public RationalNumber?  MaximumPowerAsymmetry        { get; }
+        public RationalNumber?  EVSEPowerRampLimitation      { get; }
 
 
     }

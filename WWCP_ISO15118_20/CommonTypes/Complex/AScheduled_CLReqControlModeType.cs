@@ -31,11 +31,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     public abstract class AScheduled_CLReqControlModeType : ACLReqControlModeType
     {
 
-        public RationalNumberType?  EVTargetEnergyRequest     { get; }
+        public RationalNumber?  EVTargetEnergyRequest     { get; }
 
-        public RationalNumberType?  EVMaximumEnergyRequest    { get; }
+        public RationalNumber?  EVMaximumEnergyRequest    { get; }
 
-        public RationalNumberType?  EVMinimumEnergyRequest    { get; }
+        public RationalNumber?  EVMinimumEnergyRequest    { get; }
 
 
     }

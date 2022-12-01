@@ -33,8 +33,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     {
 
         public UInt64                      TimeAnchor              { get; }
-        public RationalNumberType?         AvailableEnergy         { get; }
-        public RationalNumberType?         PowerTolerance          { get; }
+        public RationalNumber?         AvailableEnergy         { get; }
+        public RationalNumber?         PowerTolerance          { get; }
         public PowerScheduleEntryListType  PowerScheduleEntries    { get; }
 
 

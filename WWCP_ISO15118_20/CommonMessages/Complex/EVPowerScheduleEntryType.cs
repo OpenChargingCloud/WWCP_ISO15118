@@ -33,7 +33,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     {
 
         public UInt32              Duration    { get; }
-        public RationalNumberType  Power       { get; }
+        public RationalNumber  Power       { get; }
 
 
     }

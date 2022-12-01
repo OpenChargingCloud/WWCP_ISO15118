@@ -27,12 +27,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     public class WPT_ChargeLoopResponse : AChargeLoopResponse
     {
 
-        public RationalNumberType                 EVPCPowerRequest                     { get; }
-        public RationalNumberType?                SDPowerInput                         { get; }
-        public RationalNumberType                 SPCMaxOutputPowerLimit               { get; }
-        public RationalNumberType                 SPCMinOutputPowerLimit               { get; }
+        public RationalNumber                 EVPCPowerRequest                     { get; }
+        public RationalNumber?                SDPowerInput                         { get; }
+        public RationalNumber                 SPCMaxOutputPowerLimit               { get; }
+        public RationalNumber                 SPCMinOutputPowerLimit               { get; }
         public WPT_SPCChargeDiagnosticsTypes      SPCChargeDiagnostics                 { get; }
-        public RationalNumberType?                SPCOperatingFrequency                { get; }
+        public RationalNumber?                SPCOperatingFrequency                { get; }
         public WPT_SPCPowerControlParameterType?  SPCPowerControlParameter             { get; }
         public IEnumerable<Byte[]>                ManufacturerSpecificDataContainer    { get; }
 

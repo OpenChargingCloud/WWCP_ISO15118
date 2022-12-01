@@ -27,13 +27,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
     public class BPT_Scheduled_AC_CLReqControlModeType : Scheduled_AC_CLReqControlModeType
     {
 
-        public RationalNumberType? _EVMaximumDischargePower       { get; }
-        public RationalNumberType? _EVMaximumDischargePower_L2    { get; }
-        public RationalNumberType? _EVMaximumDischargePower_L3    { get; }
+        public RationalNumber? _EVMaximumDischargePower       { get; }
+        public RationalNumber? _EVMaximumDischargePower_L2    { get; }
+        public RationalNumber? _EVMaximumDischargePower_L3    { get; }
 
-        public RationalNumberType? _EVMinimumDischargePower       { get; }
-        public RationalNumberType? _EVMinimumDischargePower_L2    { get; }
-        public RationalNumberType? _EVMinimumDischargePower_L3    { get; }
+        public RationalNumber? _EVMinimumDischargePower       { get; }
+        public RationalNumber? _EVMinimumDischargePower_L2    { get; }
+        public RationalNumber? _EVMinimumDischargePower_L3    { get; }
 
 
     }

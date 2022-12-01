@@ -32,12 +32,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class PriceRuleType
     {
 
-        public RationalNumberType   EnergyFee                        { get; }
-        public RationalNumberType?  ParkingFee                       { get; }
+        public RationalNumber   EnergyFee                        { get; }
+        public RationalNumber?  ParkingFee                       { get; }
         public UInt32?              ParkingFeePeriod                 { get; }
         public UInt16?              CarbonDioxideEmission            { get; }
         public Byte?                RenewableGenerationPercentage    { get; }
-        public RationalNumberType   PowerRangeStart                  { get; }
+        public RationalNumber   PowerRangeStart                  { get; }
 
 
     }

@@ -28,11 +28,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
     public class BPT_Dynamic_DC_CLReqControlModeType : Dynamic_DC_CLReqControlModeType
     {
 
-        public RationalNumberType   EVMaximumDischargePower      { get; }
-        public RationalNumberType   EVMinimumDischargePower      { get; }
-        public RationalNumberType   EVMaximumDischargeCurrent    { get; }
-        public RationalNumberType?  EVMaximumV2XEnergyRequest    { get; }
-        public RationalNumberType?  EVMinimumV2XEnergyRequest    { get; }
+        public RationalNumber   EVMaximumDischargePower      { get; }
+        public RationalNumber   EVMinimumDischargePower      { get; }
+        public RationalNumber   EVMaximumDischargeCurrent    { get; }
+        public RationalNumber?  EVMaximumV2XEnergyRequest    { get; }
+        public RationalNumber?  EVMinimumV2XEnergyRequest    { get; }
 
 
     }

@@ -18,6 +18,7 @@
 #region Usings
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +35,20 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         public Byte[]                       GenChallenge          { get; }
         public SupportedProvidersListType?  SupportedProviders    { get; }
+
+
+
+        public static Boolean TryParse(JObject JSON,
+                                       out PnC_ASResAuthorizationModeType? PnC_ASResAuthorizationModeType,
+                                       out String? ErrorResponse)
+
+        {
+            PnC_ASResAuthorizationModeType = new PnC_ASResAuthorizationModeType();
+            ErrorResponse = null;
+            return true;
+        }
+        public JObject ToJSON()
+            => new JObject();
 
     }
 

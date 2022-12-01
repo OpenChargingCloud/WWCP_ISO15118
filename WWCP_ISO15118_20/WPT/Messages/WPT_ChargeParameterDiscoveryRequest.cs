@@ -28,10 +28,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     public class WPT_ChargeParameterDiscoveryRequest : AChargeParameterDiscoveryRequest
     {
 
-        public RationalNumberType   EVPCMaxReceivablePower         { get; }
+        public RationalNumber   EVPCMaxReceivablePower         { get; }
         public UInt16               SDMaxGroundClearence           { get; }
         public UInt16               SDMinGroundClearence           { get; }
-        public RationalNumberType   EVPCNaturalFrequency           { get; }
+        public RationalNumber   EVPCNaturalFrequency           { get; }
 
         public Boolean              EVPCDeviceLocalControl         { get; }
 

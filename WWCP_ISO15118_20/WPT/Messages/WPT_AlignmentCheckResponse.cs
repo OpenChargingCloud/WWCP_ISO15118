@@ -28,7 +28,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     {
 
         public ProcessingTypes      EVProcessing                   { get; }
-        public RationalNumberType?  TargetCoilCurrent              { get; }
+        public RationalNumber?  TargetCoilCurrent              { get; }
         public WPT_EVResultTypes    EVResultCode                   { get; }
         public IEnumerable<Byte[]>  VendorSpecificDataContainer    { get; }
 

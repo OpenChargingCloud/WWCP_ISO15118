@@ -34,7 +34,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         public String?             OverstayRuleDescription    { get; }
         public UInt32              StartTime                  { get; }
-        public RationalNumberType  OverstayFee                { get; }
+        public RationalNumber  OverstayFee                { get; }
         public UInt32              OverstayFeePeriod          { get; }
 
 

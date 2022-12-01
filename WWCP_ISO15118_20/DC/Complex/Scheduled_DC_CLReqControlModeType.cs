@@ -27,13 +27,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
     public class Scheduled_DC_CLReqControlModeType : AScheduled_CLReqControlModeType
     {
 
-        public RationalNumberType   EVTargetCurrent           { get; }
-        public RationalNumberType   EVTargetVoltage           { get; }
-        public RationalNumberType?  EVMaximumChargePower      { get; }
-        public RationalNumberType?  EVMinimumChargePower      { get; }
-        public RationalNumberType?  EVMaximumChargeCurrent    { get; }
-        public RationalNumberType?  EVMaximumVoltage          { get; }
-        public RationalNumberType?  EVMinimumVoltage          { get; }
+        public RationalNumber   EVTargetCurrent           { get; }
+        public RationalNumber   EVTargetVoltage           { get; }
+        public RationalNumber?  EVMaximumChargePower      { get; }
+        public RationalNumber?  EVMinimumChargePower      { get; }
+        public RationalNumber?  EVMaximumChargeCurrent    { get; }
+        public RationalNumber?  EVMaximumVoltage          { get; }
+        public RationalNumber?  EVMinimumVoltage          { get; }
 
 
     }

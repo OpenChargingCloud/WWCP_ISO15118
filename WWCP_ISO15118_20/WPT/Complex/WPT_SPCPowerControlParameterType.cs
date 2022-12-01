@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     public class WPT_SPCPowerControlParameterType
     {
 
-        public RationalNumberType  SPCPrimaryDeviceCoilCurrentInformation    { get; }
+        public RationalNumber  SPCPrimaryDeviceCoilCurrentInformation    { get; }
 
 
     }

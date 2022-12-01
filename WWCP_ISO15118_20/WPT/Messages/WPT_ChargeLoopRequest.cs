@@ -28,9 +28,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     {
 
         public WPT_EVResultTypes                   EVResultCode                         { get; }
-        public RationalNumberType                  EVPCPowerOutput                      { get; }
+        public RationalNumber                  EVPCPowerOutput                      { get; }
         public WPT_EVPCChargeDiagnosticsTypes      EVPCChargeDiagnostics                { get; }
-        public RationalNumberType?                 EVPCOperatingFrequency               { get; }
+        public RationalNumber?                 EVPCOperatingFrequency               { get; }
 
         public WPT_EVPCPowerControlParameterType?  EVPCPowerControlParameter            { get; }
 

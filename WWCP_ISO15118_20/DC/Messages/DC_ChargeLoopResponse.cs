@@ -28,8 +28,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
     public class DC_ChargeLoopResponse : AV2GResponse
     {
 
-        public RationalNumberType      EVSEPresentCurrent          { get; }
-        public RationalNumberType      EVSEPresentVoltage          { get; }
+        public RationalNumber      EVSEPresentCurrent          { get; }
+        public RationalNumber      EVSEPresentVoltage          { get; }
         public Boolean                 EVSEPowerLimitAchieved      { get; }
         public Boolean                 EVSECurrentLimitAchieved    { get; }
         public Boolean                 EVSEVoltageLimitAchieved    { get; }

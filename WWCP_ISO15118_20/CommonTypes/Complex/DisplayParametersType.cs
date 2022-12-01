@@ -39,7 +39,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         public UInt32?              RemainingTimeToTargetSOC     { get; }
         public UInt32?              RemainingTimeToMaximumSOC    { get; }
         public Boolean?             ChargingComplete             { get; }
-        public RationalNumberType?  BatteryEnergyCapacity        { get; }
+        public RationalNumber?  BatteryEnergyCapacity        { get; }
         public Boolean?             InletHot                     { get; }
 
 

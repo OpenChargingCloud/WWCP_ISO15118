@@ -33,9 +33,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     {
 
         public UInt32               Duration    { get; }
-        public RationalNumberType   Power       { get; }
-        public RationalNumberType?  Power_L2    { get; }
-        public RationalNumberType?  Power_L3    { get; }
+        public RationalNumber   Power       { get; }
+        public RationalNumber?  Power_L2    { get; }
+        public RationalNumber?  Power_L3    { get; }
 
 
     }

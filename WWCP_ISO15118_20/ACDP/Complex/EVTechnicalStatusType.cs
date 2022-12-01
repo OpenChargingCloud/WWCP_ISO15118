@@ -30,7 +30,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
         public Boolean              EVReadyToCharge            { get; }
         public Boolean              EVImmobilizationRequest    { get; }
         public Boolean?             EVImmobilized              { get; }
-        public RationalNumberType?  EVWLANStrength             { get; }
+        public RationalNumber?  EVWLANStrength             { get; }
         public CpStatusTypes?       EVCPStatus                 { get; }
         public SByte?               EVSOC                      { get; }
         public ErrorCodeTypes?      EVErrorCode                { get; }

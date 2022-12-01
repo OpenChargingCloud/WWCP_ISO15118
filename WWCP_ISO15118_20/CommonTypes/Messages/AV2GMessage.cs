@@ -33,23 +33,23 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #region Properties
 
         /// <summary>
-        /// The message header.
+        /// The ISO 15118-20 V2G common message header.
         /// </summary>
         [Mandatory]
-        public MessageHeaderType  Header    { get; }
+        public MessageHeader  MessageHeader    { get; }
 
         #endregion
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new abstract message.
+        /// Create a new abstract ISO 15118-20 V2G message.
         /// </summary>
-        /// <param name="Header">A message header.</param>
-        public AV2GMessage(MessageHeaderType Header)
+        /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
+        public AV2GMessage(MessageHeader MessageHeader)
         {
 
-            this.Header = Header;
+            this.MessageHeader = MessageHeader;
 
         }
 

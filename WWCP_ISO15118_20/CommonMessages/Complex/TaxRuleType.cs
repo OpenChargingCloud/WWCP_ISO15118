@@ -34,7 +34,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         public UInt32              TaxRuleID                    { get; }
         public String?             TaxRuleName                  { get; }
-        public RationalNumberType  TaxRate                      { get; }
+        public RationalNumber  TaxRate                      { get; }
         public Boolean?            TaxIncludedInPrice           { get; }
         public Boolean             AppliesToEnergyFee           { get; }
         public Boolean             AppliesToParkingFee          { get; }

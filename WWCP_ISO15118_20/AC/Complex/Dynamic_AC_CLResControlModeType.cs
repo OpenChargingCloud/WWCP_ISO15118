@@ -27,17 +27,17 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
     public class Dynamic_AC_CLResControlModeType : ADynamic_CLResControlModeType
     {
 
-        public RationalNumberType   EVSETargetActivePower         { get; }
-        public RationalNumberType?  EVSETargetActivePower_L2      { get; }
-        public RationalNumberType?  EVSETargetActivePower_L3      { get; }
+        public RationalNumber   EVSETargetActivePower         { get; }
+        public RationalNumber?  EVSETargetActivePower_L2      { get; }
+        public RationalNumber?  EVSETargetActivePower_L3      { get; }
 
-        public RationalNumberType?  EVSETargetReactivePower       { get; }
-        public RationalNumberType?  EVSETargetReactivePower_L2    { get; }
-        public RationalNumberType?  EVSETargetReactivePower_L3    { get; }
+        public RationalNumber?  EVSETargetReactivePower       { get; }
+        public RationalNumber?  EVSETargetReactivePower_L2    { get; }
+        public RationalNumber?  EVSETargetReactivePower_L3    { get; }
 
-        public RationalNumberType?  EVSEPresentActivePower        { get; }
-        public RationalNumberType?  EVSEPresentActivePower_L2     { get; }
-        public RationalNumberType?  EVSEPresentActivePower_L3     { get; }
+        public RationalNumber?  EVSEPresentActivePower        { get; }
+        public RationalNumber?  EVSEPresentActivePower_L2     { get; }
+        public RationalNumber?  EVSEPresentActivePower_L3     { get; }
 
 
     }

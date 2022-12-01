@@ -28,8 +28,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
     {
 
         public ProcessingTypes     EVProcessing        { get; }
-        public RationalNumberType  EVPresentVoltage    { get; }
-        public RationalNumberType  EVTargetVoltage     { get; }
+        public RationalNumber  EVPresentVoltage    { get; }
+        public RationalNumber  EVTargetVoltage     { get; }
 
 
     }

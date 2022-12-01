@@ -17,10 +17,102 @@
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
+
+    /// <summary>
+    /// Extensions methods for authorization types.
+    /// </summary>
+    public static class AuthorizationTypesExtensions
+    {
+
+        #region Parse   (Text)
+
+        /// <summary>
+        /// Parse the given text as an authorization type.
+        /// </summary>
+        /// <param name="Text">A text representation of an authorization type.</param>
+        public static AuthorizationTypes Parse(String Text)
+        {
+
+            if (TryParse(Text, out var type))
+                return type;
+
+            return AuthorizationTypes.Unknown;
+
+        }
+
+        #endregion
+
+        #region TryParse(Text)
+
+        /// <summary>
+        /// Try to parse the given text as an authorization type.
+        /// </summary>
+        /// <param name="Text">A text representation of an authorization type.</param>
+        public static AuthorizationTypes? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var type))
+                return type;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryParse(Text, out ResponseCode)
+
+        /// <summary>
+        /// Try to parse the given text as an authorization type.
+        /// </summary>
+        /// <param name="Text">A text representation of an authorization type.</param>
+        /// <param name="ResponseCode">The parsed authorization types.</param>
+        public static Boolean TryParse(String Text, out AuthorizationTypes ResponseCode)
+        {
+            switch (Text.Trim())
+            {
+
+                case "EIM":
+                    ResponseCode = AuthorizationTypes.EIM;
+                    return true;
+
+                case "PnC":
+                    ResponseCode = AuthorizationTypes.PnC;
+                    return true;
+
+                default:
+                    ResponseCode = AuthorizationTypes.Unknown;
+                    return false;
+
+            }
+        }
+
+        #endregion
+
+        #region AsText  (this AuthorizationTypes)
+
+        public static String AsText(this AuthorizationTypes ResponseCode)
+
+            => ResponseCode switch {
+
+                   AuthorizationTypes.EIM  => "EIM",
+                   AuthorizationTypes.PnC  => "PnC",
+
+                   _                       => "Unknown"
+
+               };
+
+        #endregion
+
+    }
+
     public enum AuthorizationTypes
     {
 
+        Unknown,
+
         EIM,
+
         PnC
 
     }

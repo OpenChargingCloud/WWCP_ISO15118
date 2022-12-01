@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
     public class AC_ChargeLoopResponse : AChargeLoopResponse
     {
 
-        public RationalNumberType?     EVSETargetFrequency    { get; }
+        public RationalNumber?     EVSETargetFrequency    { get; }
         public ACLResControlModeType?  CLResControlMode       { get; }
 
 

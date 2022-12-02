@@ -18,7 +18,10 @@ The following desribes differences of this implementation to the official protoc
 Most changes are intended to simplify the daily operations business, high availability or to support additional concepts/methods like *European General Data Protection Regulation (GDPR)*  and the *German Calibration Law (Eichrecht)*.
 
 - Class and data type names do not strictly reflex the names defined within the XML schemata.
-  - E.g. all collection property name have plural names like "authentication element**s**" instead of "authentication element". Request and response classes do not use the short "Req" or "Res" words. The name of ENUM classes always have plural names. Helper classes for collections are avoided and _IEnumerable<...>_ is used instead.
+  - E.g. all collection property name have plural names like "authentication element**s**" instead of "authentication element".
+  - Request and response classes do not use the short "Req" or "Res" words.
+  - The name of ENUM classes always have plural names.
+  - Helper classes for collections are avoided and _IEnumerable<...>_ is used instead.
 - ...
 
 

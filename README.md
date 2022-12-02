@@ -7,6 +7,11 @@ The focus of this protocol are the communication aspects between an
 electric vehicle and an e-mobility charging station.
 
 
+## Implementation details
+
+In order to make development and debugging 1024 times easier, this _ISO/IEC 15118_ implementation comes with additional JSON (de-)serialization. As, as far as we know, no other project has yet defined a JSON schemata for ISO/IEC 15118, we defined our own, which adopts some JSON-LD concepts like the "@context" property.
+
+
 ## Differences to the official protocol specification
 
 The following desribes differences of this implementation to the official protocol specification.

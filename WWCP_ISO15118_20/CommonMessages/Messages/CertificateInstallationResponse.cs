@@ -28,7 +28,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     {
 
         public ProcessingTypes             EVSEProcessing                        { get; }
-        public CertificateChainType        CPSCertificateChain                   { get; }
+        public IEnumerable<Certificate>    CPSCertificateChain                   { get; }
         public SignedInstallationDataType  SignedInstallationData                { get; }
         public Byte                        RemainingContractCertificateChains    { get; }
 

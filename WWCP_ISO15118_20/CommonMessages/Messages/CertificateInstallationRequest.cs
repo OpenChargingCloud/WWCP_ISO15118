@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class CertificateInstallationRequest : AV2GRequest
     {
 
-        public SignedCertificateChainType    OEMProvisioningCertificateChain     { get; }
+        public SignedCertificateChain        OEMProvisioningCertificateChain     { get; }
         public ListOfRootCertificateIDsType  ListOfRootCertificateIDs            { get; }
 
         public Byte                          MaximumContractCertificateChains    { get; }

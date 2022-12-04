@@ -183,7 +183,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="MessageHeader">The parsed message header request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomMessageHeaderParser">A delegate to parse custom BootNotification requests.</param>
+        /// <param name="CustomMessageHeaderParser">A delegate to parse custom message headers.</param>
         public static Boolean TryParse(JObject                                      JSON,
                                        out MessageHeader?                           MessageHeader,
                                        out String?                                  ErrorResponse,

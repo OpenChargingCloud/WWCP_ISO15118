@@ -171,6 +171,27 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:element name = "AuthorizationSetupRes" type="AuthorizationSetupResType"/>
+        //
+        // <xs:complexType name = "AuthorizationSetupResType" >
+        //     < xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //             <xs:sequence>
+        //                 <xs:element name = "AuthorizationServices" type="authorizationType" maxOccurs="2"/>
+        //                 <xs:element name = "CertificateInstallationService" type="xs:boolean"/>
+        //                 <xs:choice>
+        //                     <xs:element name = "EIM_ASResAuthorizationMode" type="EIM_ASResAuthorizationModeType"/>
+        //                     <xs:element name = "PnC_ASResAuthorizationMode" type="PnC_ASResAuthorizationModeType"/>
+        //                 </xs:choice>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
         #region (static) Parse   (Request, JSON, CustomAuthorizationSetupResponseParser = null)
 
         /// <summary>

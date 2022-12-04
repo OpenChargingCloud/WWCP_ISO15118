@@ -117,7 +117,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="ServiceDetailRequest">The parsed service detail request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomServiceDetailRequestParser">A delegate to parse custom BootNotification requests.</param>
+        /// <param name="CustomServiceDetailRequestParser">A delegate to parse custom service detail requests.</param>
         public static Boolean TryParse(JObject                                             JSON,
                                        out ServiceDetailRequest?                           ServiceDetailRequest,
                                        out String?                                         ErrorResponse,

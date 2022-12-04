@@ -71,6 +71,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:element name = "AuthorizationRes" type="AuthorizationResType"/>
+        //
+        // <xs:complexType name = "AuthorizationResType" >
+        //     < xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //             <xs:sequence>
+        //                 <xs:element name = "EVSEProcessing" type="v2gci_ct:processingType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
         #region (static) Parse   (Request, JSON, CustomAuthorizationResponseParser = null)
 
         /// <summary>

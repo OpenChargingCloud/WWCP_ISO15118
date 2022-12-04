@@ -22,110 +22,67 @@ using Newtonsoft.Json.Linq;
 using org.GraphDefined.Vanaheimr.Illias;
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using cloud.charging.open.protocols.ISO15118_20.XMLSchema;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
+    //ToDo: Maybe an abstract class with two childs would be nicer!
+
     /// <summary>
-    /// The authorization request.
+    /// An abstract authorization request.
     /// </summary>
-    public class AuthorizationRequest : AV2GRequest<AuthorizationRequest>
+    public abstract class AuthorizationRequest : AV2GRequest<AuthorizationRequest>
     {
 
         #region Properties
 
         /// <summary>
-        /// 
+        /// The selected authorization mode.
         /// </summary>
         [Mandatory]
-        public AuthorizationTypes              SelectedAuthorizationService    { get; }
+        public AuthorizationTypes  SelectedAuthorizationService
 
-        /// <summary>
-        /// 
-        /// </summary>
-        [MandatoryChoice("AReqAuthorizationMode")]
-        public EIM_AReqAuthorizationModeType?  EIM_AReqAuthorizationMode       { get; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        [MandatoryChoice("AReqAuthorizationMode")]
-        public PnC_AReqAuthorizationModeType?  PnC_AReqAuthorizationMode       { get; }
+            => this is PnC_AuthorizationRequest
+                   ? AuthorizationTypes.PnC
+                   : AuthorizationTypes.EIM;
 
         #endregion
 
         #region Constructor(s)
 
-        #region (private) AuthorizationRequest(..., EIM_AReqAuthorizationMode, PnC_AReqAuthorizationMode)
-
         /// <summary>
-        /// Create a new authorization request.
+        /// Create a new abstract authorization request.
         /// </summary>
-        /// <param name="Header">A message header.</param>
-        /// <param name="SelectedAuthorizationService">A selected authorization service.</param>
-        /// <param name="EIM_AReqAuthorizationMode"></param>
-        /// <param name="PnC_AReqAuthorizationMode"></param>
-        private AuthorizationRequest(MessageHeader                   Header,
-                                     AuthorizationTypes              SelectedAuthorizationService,
-                                     EIM_AReqAuthorizationModeType?  EIM_AReqAuthorizationMode,
-                                     PnC_AReqAuthorizationModeType?  PnC_AReqAuthorizationMode)
+        /// <param name="MessageHeader">A message header.</param>
+        public AuthorizationRequest(MessageHeader MessageHeader)
 
-            : base(Header)
-
-        {
-
-            this.SelectedAuthorizationService  = SelectedAuthorizationService;
-            this.EIM_AReqAuthorizationMode     = EIM_AReqAuthorizationMode;
-            this.PnC_AReqAuthorizationMode     = PnC_AReqAuthorizationMode;
-
-        }
-
-        #endregion
-
-        #region AuthorizationRequest(..., EIM_AReqAuthorizationMode)
-
-        /// <summary>
-        /// Create a new authorization request.
-        /// </summary>
-        /// <param name="Header">A message header.</param>
-        /// <param name="EIM_AReqAuthorizationMode"></param>
-        public AuthorizationRequest(MessageHeader                  Header,
-                                    EIM_AReqAuthorizationModeType  EIM_AReqAuthorizationMode)
-
-            : this(Header,
-                   AuthorizationTypes.EIM,
-                   EIM_AReqAuthorizationMode,
-                   null)
+            : base(MessageHeader)
 
         { }
-
-        #endregion
-
-        #region AuthorizationRequest(..., PnC_AReqAuthorizationMode)
-
-        /// <summary>
-        /// Create a new authorization request.
-        /// </summary>
-        /// <param name="Header">A message header.</param>
-        /// <param name="PnC_AReqAuthorizationMode"></param>
-        public AuthorizationRequest(MessageHeader                  Header,
-                                    PnC_AReqAuthorizationModeType  PnC_AReqAuthorizationMode)
-
-            : this(Header,
-                   AuthorizationTypes.PnC,
-                   null,
-                   PnC_AReqAuthorizationMode)
-
-        { }
-
-        #endregion
 
         #endregion
 
 
         #region Documentation
+
+        // <xs:element name="AuthorizationReq" type="AuthorizationReqType"/>
+        //
+        // <xs:complexType name="AuthorizationReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="SelectedAuthorizationService" type="authorizationType"/>
+        //                 <xs:choice>
+        //                     <xs:element name="EIM_AReqAuthorizationMode" type="EIM_AReqAuthorizationModeType"/>
+        //                     <xs:element name="PnC_AReqAuthorizationMode" type="PnC_AReqAuthorizationModeType"/>
+        //                 </xs:choice>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
 
         //<?xml version="1.0" encoding="utf-8"?>
         //<ns:AuthorizationReq xmlns:v2gci_ct="urn:iso:std:iso:15118:-20:CommonTypes"
@@ -223,10 +180,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region (static) Parse   (JSON, CustomAuthorizationRequestParser = null)
 
         /// <summary>
-        /// Parse the given JSON representation of an authorization request.
+        /// Parse the given JSON representation of an abstract authorization request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomAuthorizationRequestParser">A delegate to parse custom authorization requests.</param>
+        /// <param name="CustomAuthorizationRequestParser">A delegate to parse custom abstract authorization requests.</param>
         public static AuthorizationRequest Parse(JObject                                             JSON,
                                                  CustomJObjectParserDelegate<AuthorizationRequest>?  CustomAuthorizationRequestParser   = null)
         {
@@ -251,10 +208,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         // Note: The following is needed to satisfy pattern matching delegates! Do not refactor it!
 
         /// <summary>
-        /// Try to parse the given JSON representation of an authorization request.
+        /// Try to parse the given JSON representation of an abstract authorization request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="AuthorizationRequest">The parsed authorization request.</param>
+        /// <param name="AuthorizationRequest">The parsed abstract authorization request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
         public static Boolean TryParse(JObject                    JSON,
                                        out AuthorizationRequest?  AuthorizationRequest,
@@ -267,12 +224,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
 
         /// <summary>
-        /// Try to parse the given JSON representation of an authorization request.
+        /// Try to parse the given JSON representation of an abstract authorization request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="AuthorizationRequest">The parsed authorization request.</param>
+        /// <param name="AuthorizationRequest">The parsed abstract authorization request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomAuthorizationRequestParser">A delegate to parse custom BootNotification requests.</param>
+        /// <param name="CustomAuthorizationRequestParser">A delegate to parse custom abstract authorization requests.</param>
         public static Boolean TryParse(JObject                                             JSON,
                                        out AuthorizationRequest?                           AuthorizationRequest,
                                        out String?                                         ErrorResponse,
@@ -284,7 +241,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 AuthorizationRequest = null;
 
-                #region MessageHeader                   [mandatory]
+                #region MessageHeader               [mandatory]
 
                 if (!JSON.ParseMandatoryJSON("messageHeader",
                                              "message header",
@@ -300,52 +257,70 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 #endregion
 
-                #region SelectedAuthorizationService    [mandatory]
 
-                if (!JSON.ParseMandatory("selectedAuthorizationService",
-                                         "selected authorization service",
-                                         AuthorizationTypesExtensions.TryParse,
-                                         out AuthorizationTypes SelectedAuthorizationService,
-                                         out ErrorResponse))
+                // Plug and Charge
+
+                #region Id                          [optional]
+
+                if (JSON.ParseOptional("Id",
+                                       "identification",
+                                       XML_Id.TryParse,
+                                       out XML_Id? Id,
+                                       out ErrorResponse))
                 {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
+                #region GenChallenge                [optional]
+
+                if (JSON.ParseOptional("genChallenge",
+                                       "gen challenge",
+                                       CommonMessages.GenChallenge.TryParse,
+                                       out GenChallenge? GenChallenge,
+                                       out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
+                #region ContractCertificateChain    [optional]
+
+                if (JSON.ParseOptionalJSON("contractCertificateChain",
+                                           "contract certificate chain",
+                                           CommonMessages.ContractCertificateChain.TryParse,
+                                           out ContractCertificateChain? ContractCertificateChain,
+                                           out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                if (ContractCertificateChain is null)
                     return false;
-                }
-
-                #endregion
-
-                #region EIM_AReqAuthorizationMode        [optional]
-
-                if (JSON.ParseOptionalJSON("EIM_AReqAuthorizationMode",
-                                           "EIM AReq authorization mode",
-                                           EIM_AReqAuthorizationModeType.TryParse,
-                                           out EIM_AReqAuthorizationModeType? EIM_AReqAuthorizationMode,
-                                           out ErrorResponse))
-                {
-                    if (ErrorResponse is not null)
-                        return false;
-                }
-
-                #endregion
-
-                #region PnC_AReqAuthorizationMode        [optional]
-
-                if (JSON.ParseOptionalJSON("PnC_AReqAuthorizationMode",
-                                           "PnC AReq authorization mode",
-                                           PnC_AReqAuthorizationModeType.TryParse,
-                                           out PnC_AReqAuthorizationModeType? PnC_AReqAuthorizationMode,
-                                           out ErrorResponse))
-                {
-                    if (ErrorResponse is not null)
-                        return false;
-                }
 
                 #endregion
 
 
-                AuthorizationRequest = new AuthorizationRequest(MessageHeader,
-                                                                SelectedAuthorizationService,
-                                                                EIM_AReqAuthorizationMode,
-                                                                PnC_AReqAuthorizationMode);
+                // EIM
+
+                // [...] just nothing!
+
+
+                AuthorizationRequest = Id.                      HasValue &&
+                                       GenChallenge.            HasValue &&
+                                       ContractCertificateChain is not null
+
+                                           ? new PnC_AuthorizationRequest(MessageHeader,
+                                                                          Id.Value,
+                                                                          GenChallenge.Value,
+                                                                          ContractCertificateChain)
+
+                                           : new EIM_AuthorizationRequest(MessageHeader);
 
                 if (CustomAuthorizationRequestParser is not null)
                     AuthorizationRequest = CustomAuthorizationRequestParser(JSON,
@@ -370,26 +345,26 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
-        /// <param name="CustomAuthorizationRequestSerializer">A delegate to serialize custom authorization requests.</param>
+        /// <param name="CustomAuthorizationRequestSerializer">A delegate to serialize custom abstract authorization requests.</param>
         /// <param name="CustomMessageHeaderSerializer">A delegate to serialize custom message headers.</param>
-        public JObject ToJSON(CustomJObjectSerializerDelegate<AuthorizationRequest>?  CustomAuthorizationRequestSerializer   = null,
-                              CustomJObjectSerializerDelegate<MessageHeader>?         CustomMessageHeaderSerializer          = null)
+        public JObject ToJSON(CustomJObjectSerializerDelegate<AuthorizationRequest>?      CustomAuthorizationRequestSerializer       = null,
+                              CustomJObjectSerializerDelegate<MessageHeader>?             CustomMessageHeaderSerializer              = null,
+                              CustomJObjectSerializerDelegate<PnC_AuthorizationRequest>?  CustomPnC_AuthorizationRequestSerializer   = null,
+                              CustomJObjectSerializerDelegate<ContractCertificateChain>?  CustomContractCertificateChainSerializer   = null,
+                              CustomJObjectSerializerDelegate<EIM_AuthorizationRequest>?  CustomEIM_AuthorizationRequestSerializer   = null)
         {
 
-            var json = JSONObject.Create(
+            var json = new JObject();
 
-                                 new JProperty("messageHeader",                 MessageHeader.ToJSON(CustomMessageHeaderSerializer)),
-                                 new JProperty("selectedAuthorizationService",  SelectedAuthorizationService.AsText()),
+            if (this is PnC_AuthorizationRequest pnc)
+                json = pnc.ToJSON(CustomPnC_AuthorizationRequestSerializer,
+                                  CustomMessageHeaderSerializer,
+                                  CustomContractCertificateChainSerializer);
 
-                           EIM_AReqAuthorizationMode is not null
-                               ? new JProperty("EIM_AReqAuthorizationMode",     EIM_AReqAuthorizationMode.ToJSON())
-                               : null,
+            if (this is EIM_AuthorizationRequest eim)
+                json = eim.ToJSON(CustomEIM_AuthorizationRequestSerializer,
+                                  CustomMessageHeaderSerializer);
 
-                           PnC_AReqAuthorizationMode is not null
-                               ? new JProperty("PnC_AReqAuthorizationMode",     PnC_AReqAuthorizationMode.ToJSON())
-                               : null
-
-                       );
 
             return CustomAuthorizationRequestSerializer is not null
                        ? CustomAuthorizationRequestSerializer(this, json)
@@ -405,10 +380,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region Operator == (AuthorizationRequest1, AuthorizationRequest2)
 
         /// <summary>
-        /// Compares two authorization requests for equality.
+        /// Compares two abstract authorization requests for equality.
         /// </summary>
-        /// <param name="AuthorizationRequest1">An authorization request.</param>
-        /// <param name="AuthorizationRequest2">Another authorization request.</param>
+        /// <param name="AuthorizationRequest1">An abstract authorization request.</param>
+        /// <param name="AuthorizationRequest2">Another abstract authorization request.</param>
         /// <returns>True if both match; False otherwise.</returns>
         public static Boolean operator == (AuthorizationRequest? AuthorizationRequest1,
                                            AuthorizationRequest? AuthorizationRequest2)
@@ -431,10 +406,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region Operator != (AuthorizationRequest1, AuthorizationRequest2)
 
         /// <summary>
-        /// Compares two authorization requests for inequality.
+        /// Compares two abstract authorization requests for inequality.
         /// </summary>
-        /// <param name="AuthorizationRequest1">An authorization request.</param>
-        /// <param name="AuthorizationRequest2">Another authorization request.</param>
+        /// <param name="AuthorizationRequest1">An abstract authorization request.</param>
+        /// <param name="AuthorizationRequest2">Another abstract authorization request.</param>
         /// <returns>False if both match; True otherwise.</returns>
         public static Boolean operator != (AuthorizationRequest? AuthorizationRequest1,
                                            AuthorizationRequest? AuthorizationRequest2)
@@ -450,9 +425,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region Equals(Object)
 
         /// <summary>
-        /// Compares two authorization requests for equality.
+        /// Compares two abstract authorization requests for equality.
         /// </summary>
-        /// <param name="Object">An authorization request to compare with.</param>
+        /// <param name="Object">An abstract authorization request to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is AuthorizationRequest authorizationRequest &&
@@ -463,20 +438,17 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region Equals(AuthorizationRequest)
 
         /// <summary>
-        /// Compares two authorization requests for equality.
+        /// Compares two abstract authorization requests for equality.
         /// </summary>
-        /// <param name="AuthorizationRequest">An authorization request to compare with.</param>
+        /// <param name="AuthorizationRequest">An abstract authorization request to compare with.</param>
         public override Boolean Equals(AuthorizationRequest? AuthorizationRequest)
 
             => AuthorizationRequest is not null &&
 
                SelectedAuthorizationService.Equals(AuthorizationRequest.SelectedAuthorizationService) &&
 
-             ((EIM_AReqAuthorizationMode is     null && AuthorizationRequest.EIM_AReqAuthorizationMode is     null) ||
-              (EIM_AReqAuthorizationMode is not null && AuthorizationRequest.EIM_AReqAuthorizationMode is not null && EIM_AReqAuthorizationMode.Equals(AuthorizationRequest.EIM_AReqAuthorizationMode))) &&
-
-             ((PnC_AReqAuthorizationMode is     null && AuthorizationRequest.PnC_AReqAuthorizationMode is     null) ||
-              (PnC_AReqAuthorizationMode is not null && AuthorizationRequest.PnC_AReqAuthorizationMode is not null && PnC_AReqAuthorizationMode.Equals(AuthorizationRequest.PnC_AReqAuthorizationMode))) &&
+               ((this is PnC_AuthorizationRequest pnc && pnc.Equals(AuthorizationRequest)) || true) &&
+               ((this is EIM_AuthorizationRequest eim && eim.Equals(AuthorizationRequest)) || true) &&
 
                base.GenericEquals(AuthorizationRequest);
 
@@ -495,11 +467,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             unchecked
             {
 
-                return SelectedAuthorizationService.GetHashCode()       * 7 ^
-                      (EIM_AReqAuthorizationMode?.  GetHashCode() ?? 0) * 5 ^
-                      (PnC_AReqAuthorizationMode?.  GetHashCode() ?? 0) * 3 ^
+                var hashCode = SelectedAuthorizationService.GetHashCode() * 3 ^
+                               base.                        GetHashCode();
 
-                       base.                        GetHashCode();
+                if (this is PnC_AuthorizationRequest pnc)
+                    hashCode ^= pnc.GetHashCode();
+
+                if (this is EIM_AuthorizationRequest eim)
+                    hashCode ^= eim.GetHashCode();
+
+                return hashCode;
 
             }
         }
@@ -515,16 +492,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             => String.Concat(
 
-                   SelectedAuthorizationService.AsText(),
-                   ": ",
+                 this is PnC_AuthorizationRequest pnc
+                     ? "PnC auth: " + pnc.ToString()
+                     : "",
 
-                   EIM_AReqAuthorizationMode is not null
-                       ? EIM_AReqAuthorizationMode.ToString()
-                       : "",
-
-                   PnC_AReqAuthorizationMode is not null
-                       ? PnC_AReqAuthorizationMode.ToString()
-                       : ""
+                 this is EIM_AuthorizationRequest eim
+                     ? "EIM auth: " + eim.ToString()
+                     : ""
 
                );
 

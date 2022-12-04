@@ -49,6 +49,18 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:element name = "AuthorizationSetupReq" type="AuthorizationSetupReqType"/>
+        //
+        // <xs:complexType name = "AuthorizationSetupReqType" >
+        //     < xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType"/>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
         #region (static) Parse   (JSON, CustomAuthorizationSetupRequestParser = null)
 
         /// <summary>
@@ -101,7 +113,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="AuthorizationSetupRequest">The parsed authorization setup request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomAuthorizationSetupRequestParser">A delegate to parse custom BootNotification requests.</param>
+        /// <param name="CustomAuthorizationSetupRequestParser">A delegate to parse custom authorization setup requests.</param>
         public static Boolean TryParse(JObject                                                  JSON,
                                        out AuthorizationSetupRequest?                           AuthorizationSetupRequest,
                                        out String?                                              ErrorResponse,

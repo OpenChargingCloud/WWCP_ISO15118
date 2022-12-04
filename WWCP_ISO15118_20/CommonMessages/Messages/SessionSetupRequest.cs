@@ -65,6 +65,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:element name = "SessionSetupReq" type="SessionSetupReqType"/>
+        //
+        // <xs:complexType name = "SessionSetupReqType" >
+        //     < xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name = "EVCCID" type="v2gci_ct:identifierType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
         #region (static) Parse   (JSON, CustomSessionSetupRequestParser = null)
 
         /// <summary>
@@ -117,7 +133,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="SessionSetupRequest">The parsed session setup request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomSessionSetupRequestParser">A delegate to parse custom BootNotification requests.</param>
+        /// <param name="CustomSessionSetupRequestParser">A delegate to parse custom session setup requests.</param>
         public static Boolean TryParse(JObject                                            JSON,
                                        out SessionSetupRequest?                           SessionSetupRequest,
                                        out String?                                        ErrorResponse,

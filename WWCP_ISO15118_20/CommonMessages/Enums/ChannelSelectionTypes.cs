@@ -17,10 +17,29 @@
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
+
+    #region Documentation
+
+    // <xs:simpleType name="channelSelectionType">
+    //     <xs:restriction base="xs:string">
+    //         <xs:enumeration value="Charge"/>
+    //         <xs:enumeration value="Discharge"/>
+    //     </xs:restriction>
+    // </xs:simpleType>
+
+    #endregion
+
     public enum ChannelSelectionTypes
     {
 
+        /// <summary>
+        /// Charge
+        /// </summary>
         Charge,
+
+        /// <summary>
+        /// Discharge
+        /// </summary>
         Discharge
 
     }

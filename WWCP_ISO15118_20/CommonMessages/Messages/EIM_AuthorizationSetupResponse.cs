@@ -28,13 +28,16 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
+    /// <summary>
+    /// The external identification means authorization setup response.
+    /// </summary>
     public class EIM_AuthorizationSetupResponse : AuthorizationSetupResponse
     {
 
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new external identification means authorization response message.
+        /// Create a new external identification means authorization response.
         /// </summary>
         /// <param name="Request">The authorization setup request leading to this response.</param>
         /// <param name="MessageHeader">A message header.</param>

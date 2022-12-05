@@ -56,7 +56,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <summary>
         /// Create a new service detail response.
         /// </summary>
-        /// <param name="Request">The service detail setup request leading to this response.</param>
+        /// <param name="Request">The service detail request leading to this response.</param>
         /// <param name="MessageHeader">A message header.</param>
         /// <param name="ResponseCode">A message response code.</param>
         /// <param name="ServiceId">A service identification.</param>
@@ -80,6 +80,30 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
+
+        #region Documentation
+
+        // <xs:element name="ServiceDetailRes" type="ServiceDetailResType"/>
+        //
+        // <xs:complexType name="ServiceDetailResType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //             <xs:sequence>
+        //                 <xs:element name="ServiceID" type="serviceIDType"/>
+        //                 <xs:element name="ServiceParameterList" type="ServiceParameterListType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+
+        // <xs:complexType name="ServiceParameterListType">
+        //     <xs:sequence>
+        //         <xs:element name="ParameterSet" type="ParameterSetType" maxOccurs="32"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
         #region (static) Parse   (Request, JSON, CustomServiceDetailResponseParser = null)
 
@@ -316,8 +340,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                ServiceId.  Equals(ServiceDetailResponse.ServiceId) &&
 
-               ServiceParameters.Count().Equals(ServiceDetailResponse.ServiceParameters.Count())     &&
-               ServiceParameters.All(data => ServiceDetailResponse.ServiceParameters.Contains(data)) &&
+               ServiceParameters.Count().Equals(ServiceDetailResponse.ServiceParameters.Count())                             &&
+               ServiceParameters.All(serviceParameter => ServiceDetailResponse.ServiceParameters.Contains(serviceParameter)) &&
 
                base.GenericEquals(ServiceDetailResponse);
 
@@ -336,9 +360,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             unchecked
             {
 
-                return ServiceId.GetHashCode() * 5 ^
-                       //ToDo: Add ServiceParameters!
-                       base.     GetHashCode();
+                return ServiceId.        GetHashCode()  * 5 ^
+                       ServiceParameters.CalcHashCode() * 3 ^
+                       base.             GetHashCode();
 
             }
         }

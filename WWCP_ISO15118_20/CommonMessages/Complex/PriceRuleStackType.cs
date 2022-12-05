@@ -23,18 +23,30 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PriceRuleStackType
+    public class PriceRuleStack
     {
 
-        public UInt32                      Duration      { get; }
-        public IEnumerable<PriceRuleType>  PriceRules    { get; }
+        public TimeSpan                Duration      { get; }
+        public IEnumerable<PriceRule>  PriceRules    { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name = "PriceRuleStackType" >
+        //     < xs:sequence>
+        //         <xs:element name = "Duration"  type="xs:unsignedInt"/>
+        //         <xs:element name = "PriceRule" type="PriceRuleType" maxOccurs="8"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

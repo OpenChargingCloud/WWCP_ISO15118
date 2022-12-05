@@ -106,13 +106,34 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
     }
 
+
+    #region Documentation
+
+    // <xs:simpleType name="authorizationType">
+    //     <xs:restriction base="xs:string">
+    //         <xs:enumeration value="EIM"/>
+    //         <xs:enumeration value="PnC"/>
+    //     </xs:restriction>
+    // </xs:simpleType>
+
+    #endregion
+
     public enum AuthorizationTypes
     {
 
+        /// <summary>
+        /// Unknown authorization type.
+        /// </summary>
         Unknown,
 
+        /// <summary>
+        /// External Identification Means.
+        /// </summary>
         EIM,
 
+        /// <summary>
+        /// Plug and Charge authorization.
+        /// </summary>
         PnC
 
     }

@@ -32,9 +32,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class ScheduleTupleType
     {
 
-        public UInt32                 ScheduleTupleID        { get; }
-        public ChargingScheduleType   ChargingSchedule       { get; }
-        public ChargingScheduleType?  DischargingSchedule    { get; }
+        public NumericIDType          ScheduleTupleID        { get; }
+        public ChargingSchedule   ChargingSchedule       { get; }
+        public ChargingSchedule?  DischargingSchedule    { get; }
+
+
+        #region Documentation
+
+        // <xs:complexType name="ScheduleTupleType">
+        //     <xs:sequence>
+        //         <xs:element name="ScheduleTupleID"     type="v2gci_ct:numericIDType"/>
+        //         <xs:element name="ChargingSchedule"    type="ChargingScheduleType"/>
+        //         <xs:element name="DischargingSchedule" type="ChargingScheduleType" minOccurs="0"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
 
     }

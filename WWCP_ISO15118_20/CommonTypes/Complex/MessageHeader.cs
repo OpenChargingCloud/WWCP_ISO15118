@@ -29,7 +29,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// <summary>
     /// The common message header.
     /// </summary>
-    public class MessageHeader
+    public class MessageHeader : IEquatable<MessageHeader>
     {
 
         #region Properties
@@ -38,7 +38,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// 
         /// </summary>
         [Mandatory]
-        public Session_Id   SessionID    { get; }
+        public Session_Id   SessionId    { get; }
 
         /// <summary>
         /// TimeStamp: An UInt64 in the specification!
@@ -83,7 +83,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
                              Device_Id?   DeviceId    = null)
         {
 
-            this.SessionID  = SessionID;
+            this.SessionId  = SessionID;
             this.Timestamp  = Timestamp;
             this.Signature  = Signature;
             this.MessageId  = MessageId;
@@ -112,8 +112,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         //                      xsi:schemaLocation="urn:iso:std:iso:15118:-20:CommonMessages file://V2G_CI_CommonMessages.xsd">
         //
         //     <v2gci_ct:Header>
+        //
         //         <v2gci_ct:SessionID>212D322D33212D32</v2gci_ct:SessionID>
         //         <v2gci_ct:TimeStamp>4422</v2gci_ct:TimeStamp>
+        //
         //         <xmlsig:Signature>
         //             <xmlsig:SignedInfo>
         //                 <xmlsig:CanonicalizationMethod Algorithm="https://www.liquid-technologies.com" />
@@ -125,6 +127,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         //             </xmlsig:SignedInfo>
         //             <xmlsig:SignatureValue>YTM0NZomIzI2OTsmIzM0NTueYQ==</xmlsig:SignatureValue>
         //         </xmlsig:Signature>
+        //
         //     </v2gci_ct:Header>
         //
         // </ns:AuthorizationReq>
@@ -286,7 +289,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
             var json = JSONObject.Create(
 
-                           new JProperty("sessionId",  SessionID.ToString()),
+                           new JProperty("sessionId",  SessionId.ToString()),
                            new JProperty("timestamp",  Timestamp.ToIso8601())
 
                        );
@@ -300,6 +303,120 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #endregion
 
 
+        #region Operator overloading
+
+        #region Operator == (MessageHeader1, MessageHeader2)
+
+        /// <summary>
+        /// Compares two message headers for equality.
+        /// </summary>
+        /// <param name="MessageHeader1">A message header.</param>
+        /// <param name="MessageHeader2">Another message header.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator == (MessageHeader? MessageHeader1,
+                                           MessageHeader? MessageHeader2)
+        {
+
+            // If both are null, or both are same instance, return true.
+            if (ReferenceEquals(MessageHeader1, MessageHeader2))
+                return true;
+
+            // If one is null, but not both, return false.
+            if (MessageHeader1 is null || MessageHeader2 is null)
+                return false;
+
+            return MessageHeader1.Equals(MessageHeader2);
+
+        }
+
+        #endregion
+
+        #region Operator != (MessageHeader1, MessageHeader2)
+
+        /// <summary>
+        /// Compares two message headers for inequality.
+        /// </summary>
+        /// <param name="MessageHeader1">A message header.</param>
+        /// <param name="MessageHeader2">Another message header.</param>
+        /// <returns>False if both match; True otherwise.</returns>
+        public static Boolean operator != (MessageHeader? MessageHeader1,
+                                           MessageHeader? MessageHeader2)
+
+            => !(MessageHeader1 == MessageHeader2);
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<MessageHeader> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two message headers for equality.
+        /// </summary>
+        /// <param name="Object">A message header to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is MessageHeader messageHeader &&
+                   Equals(messageHeader);
+
+        #endregion
+
+        #region Equals(MessageHeader)
+
+        /// <summary>
+        /// Compares two message headers for equality.
+        /// </summary>
+        /// <param name="MessageHeader">A message header to compare with.</param>
+        public Boolean Equals(MessageHeader? MessageHeader)
+
+            => MessageHeader is not null &&
+
+               SessionId.Equals(MessageHeader.SessionId) &&
+               Timestamp.Equals(MessageHeader.Timestamp);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return SessionId.GetHashCode() * 7 ^
+                       Timestamp.GetHashCode() * 5 ^
+
+                       base.     GetHashCode();
+
+            }
+        }
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   SessionId,
+                   " / ",
+                   Timestamp.ToIso8601()
+
+               );
+
+        #endregion
 
     }
 

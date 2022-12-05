@@ -65,6 +65,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:element name="ServiceDiscoveryReq" type="ServiceDiscoveryReqType"/>
+        //
+        // <xs:complexType name="ServiceDiscoveryReqType" >
+        //     < xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="SupportedServiceIDs" type="ServiceIDListType" minOccurs="0"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
         #region (static) Parse   (JSON, CustomServiceDiscoveryRequestParser = null)
 
         /// <summary>
@@ -280,8 +296,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             => ServiceDiscoveryRequest is not null &&
 
-               SupportedServiceIds.Count().Equals(ServiceDiscoveryRequest.SupportedServiceIds.Count())     &&
-               SupportedServiceIds.All(data => ServiceDiscoveryRequest.SupportedServiceIds.Contains(data)) &&
+               SupportedServiceIds.Count().Equals(ServiceDiscoveryRequest.SupportedServiceIds.Count())                                 &&
+               SupportedServiceIds.All(supportedServiceId => ServiceDiscoveryRequest.SupportedServiceIds.Contains(supportedServiceId)) &&
 
                base.GenericEquals(ServiceDiscoveryRequest);
 

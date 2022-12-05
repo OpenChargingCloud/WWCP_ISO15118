@@ -18,17 +18,47 @@
 #region Usings
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class ScheduleExchangeResponse : AV2GResponse
+    public abstract class ScheduleExchangeResponse : AV2GResponse
     {
+
+        [Mandatory]
+        public ProcessingTypes                  EVSEProcessing                { get; }
+
+        [Optional]
+        public Boolean?                         GoToPause                     { get; }
+
 
         public Dynamic_SEResControlModeType?    Dynamic_SEResControlMode      { get; }
         public Scheduled_SEResControlModeType?  Scheduled_SEResControlMode    { get; }
+
+
+        #region Documentation
+
+        // <xs:element name="ScheduleExchangeRes" type="ScheduleExchangeResType"/>
+        //
+        // <xs:complexType name="ScheduleExchangeResType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //             <xs:sequence>
+        //                 <xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+        //                 <xs:element name="GoToPause" type="xs:boolean" minOccurs="0"/>
+        //                 <xs:choice>
+        //                     <xs:element name="Dynamic_SEResControlMode" type="Dynamic_SEResControlModeType"/>
+        //                     <xs:element name="Scheduled_SEResControlMode" type="Scheduled_SEResControlModeType"/>
+        //                 </xs:choice>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
 
     }

@@ -47,7 +47,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new service discovery request.
+        /// Create a new service detail request.
         /// </summary>
         /// <param name="MessageHeader">A message header.</param>
         /// <param name="ServiceId">A service identification.</param>
@@ -64,6 +64,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
+
+        #region Documentation
+
+        // <xs:element name="ServiceDetailReq" type="ServiceDetailReqType"/>
+        //
+        // <xs:complexType name="ServiceDetailReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="ServiceID" type="serviceIDType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
         #region (static) Parse   (JSON, CustomServiceDetailRequestParser = null)
 

@@ -29,16 +29,31 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PriceRuleType
+    public class PriceRule
     {
 
+        public RationalNumber   PowerRangeStart                  { get; }
         public RationalNumber   EnergyFee                        { get; }
         public RationalNumber?  ParkingFee                       { get; }
-        public UInt32?              ParkingFeePeriod                 { get; }
-        public UInt16?              CarbonDioxideEmission            { get; }
-        public Byte?                RenewableGenerationPercentage    { get; }
-        public RationalNumber   PowerRangeStart                  { get; }
+        public UInt32?          ParkingFeePeriod                 { get; }
+        public UInt16?          CarbonDioxideEmission            { get; }
+        public Byte?            RenewableGenerationPercentage    { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name="PriceRuleType">
+        //     <xs:sequence>
+        //         <xs:element name="EnergyFee"                     type="v2gci_ct:RationalNumberType"/>
+        //         <xs:element name="ParkingFee"                    type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+        //         <xs:element name="ParkingFeePeriod"              type="xs:unsignedInt"              minOccurs="0"/>
+        //         <xs:element name="CarbonDioxideEmission"         type="xs:unsignedShort"            minOccurs="0"/>
+        //         <xs:element name="RenewableGenerationPercentage" type="xs:unsignedByte"             minOccurs="0"/>
+        //         <xs:element name="PowerRangeStart"               type="v2gci_ct:RationalNumberType"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

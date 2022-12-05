@@ -21,8 +21,8 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
-using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 using cloud.charging.open.protocols.ISO15118_20.XMLSchema;
+using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
 #endregion
 

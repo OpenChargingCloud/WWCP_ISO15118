@@ -21,6 +21,8 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
+using cloud.charging.open.protocols.ISO15118_20.XMLSchema;
+
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
@@ -33,6 +35,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     {
 
         #region Properties
+
+        /// <summary>
+        /// The identification of this signed certificate chain.
+        /// (From XML attribute!)
+        /// </summary>
+        [Mandatory]
+        public XML_Id                    Id                 { get; }
 
         /// <summary>
         /// The certificate.
@@ -54,12 +63,15 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <summary>
         /// Create a new contract certificate chain.
         /// </summary>
+        /// <param name="Id">An identification of this signed certificate chain.</param>
         /// <param name="Certificate">A certificate.</param>
         /// <param name="SubCertificates">An optional enumeration of sub certificates.</param>
-        public SignedCertificateChain(Certificate                Certificate,
+        public SignedCertificateChain(XML_Id                     Id,
+                                      Certificate                Certificate,
                                       IEnumerable<Certificate>?  SubCertificates   = null)
         {
 
+            this.Id               = Id;
             this.Certificate      = Certificate;
             this.SubCertificates  = SubCertificates?.Distinct() ?? Array.Empty<Certificate>();
 
@@ -67,6 +79,18 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
+
+        #region Documentation
+
+        // <xs:complexType name="SignedCertificateChainType">
+        //     <xs:sequence>
+        //         <xs:element name="Certificate"     type="certificateType"/>
+        //         <xs:element name="SubCertificates" type="SubCertificatesType" minOccurs="0"/>
+        //     </xs:sequence>
+        //     <xs:attribute name="Id" type="xs:ID" use="required"/>
+        // </xs:complexType>
+
+        #endregion
 
         #region (static) Parse   (JSON, CustomSignedCertificateChainParser = null)
 
@@ -132,6 +156,19 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 SignedCertificateChain = null;
 
+                #region Id                 [mandatory]
+
+                if (!JSON.ParseMandatory("id",
+                                         "identification",
+                                         XML_Id.TryParse,
+                                         out XML_Id Id,
+                                         out ErrorResponse))
+                {
+                    return false;
+                }
+
+                #endregion
+
                 #region Certificate        [mandatory]
 
                 if (!JSON.ParseMandatory("certificate",
@@ -160,7 +197,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 #endregion
 
 
-                SignedCertificateChain = new SignedCertificateChain(Certificate,
+                SignedCertificateChain = new SignedCertificateChain(Id,
+                                                                    Certificate,
                                                                     SubCertificates);
 
                 if (CustomSignedCertificateChainParser is not null)
@@ -192,6 +230,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
+                                 new JProperty("id",               Id.         ToString()),
                                  new JProperty("certificate",      Certificate.ToString()),
 
                            SubCertificates.Any()
@@ -261,7 +300,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <summary>
         /// Compares two signed certificate chains for equality.
         /// </summary>
-        /// <param name="Object">a signed certificate chain to compare with.</param>
+        /// <param name="Object">A signed certificate chain to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is SignedCertificateChain signedCertificateChain &&
@@ -274,15 +313,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <summary>
         /// Compares two signed certificate chains for equality.
         /// </summary>
-        /// <param name="SignedCertificateChain">a signed certificate chain to compare with.</param>
+        /// <param name="SignedCertificateChain">A signed certificate chain to compare with.</param>
         public Boolean Equals(SignedCertificateChain? SignedCertificateChain)
 
             => SignedCertificateChain is not null &&
 
+               Id.         Equals(SignedCertificateChain.Id)          &&
                Certificate.Equals(SignedCertificateChain.Certificate) &&
 
                SubCertificates.Count().Equals(SignedCertificateChain.SubCertificates.Count()) &&
-               SubCertificates.All(data => SignedCertificateChain.SubCertificates.Contains(data));
+               SubCertificates.All(subCertificate => SignedCertificateChain.SubCertificates.Contains(subCertificate));
 
         #endregion
 
@@ -299,10 +339,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             unchecked
             {
 
-                return Certificate.GetHashCode() * 5 ^
-                       //ToDo: Add SubCertificates!
+                return Id.             GetHashCode()  * 7 ^
+                       Certificate.    GetHashCode()  * 5 ^
+                       SubCertificates.CalcHashCode() * 3 ^
 
-                       base.       GetHashCode();
+                       base.           GetHashCode();
 
             }
         }
@@ -318,11 +359,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             => String.Concat(
 
+                   Id,
+                   " / ",
                    Certificate.ToString().SubstringMax(30),
                    ", ",
 
                    SubCertificates.Count(),
-                   " sub certificates"
+                   " sub certificate(s)"
 
                );
 

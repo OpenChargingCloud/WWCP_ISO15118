@@ -18,6 +18,7 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
+using static System.Net.Mime.MediaTypeNames;
 
 #endregion
 
@@ -100,6 +101,14 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:simpleType name="serviceIDType">
+        //     <xs:restriction base="xs:unsignedShort"/>
+        // </xs:simpleType>
+
+        #endregion
+
         #region (static) Parse   (Text)
 
         /// <summary>
@@ -109,8 +118,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public static Service_Id Parse(String Text)
         {
 
-            if (TryParse(Text, out var evseId))
-                return evseId;
+            if (TryParse(Text, out var serviceId))
+                return serviceId;
 
             throw new ArgumentException("Invalid text representation of a service identification: '" + Text + "'!",
                                         nameof(Text));
@@ -126,8 +135,15 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Number">A numeric representation of a service identification.</param>
         public static Service_Id Parse(UInt16 Number)
+        {
 
-            => new (Number);
+            if (TryParse(Number, out var serviceId))
+                return serviceId;
+
+            throw new ArgumentException("Invalid numeric representation of a service identification: '" + Number + "'!",
+                                        nameof(Number));
+
+        }
 
         #endregion
 
@@ -140,8 +156,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public static Service_Id? TryParse(String Text)
         {
 
-            if (TryParse(Text, out var evseId))
-                return evseId;
+            if (TryParse(Text, out var serviceId))
+                return serviceId;
 
             return null;
 
@@ -158,8 +174,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public static Service_Id? TryParse(UInt16 Number)
         {
 
-            if (TryParse(Number, out var evseId))
-                return evseId;
+            if (TryParse(Number, out var serviceId))
+                return serviceId;
 
             return null;
 
@@ -327,8 +343,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="Object">A service identification to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
-            => Object is Service_Id evseId
-                   ? CompareTo(evseId)
+            => Object is Service_Id serviceId
+                   ? CompareTo(serviceId)
                    : throw new ArgumentException("The given object is not a service identification!",
                                                  nameof(Object));
 
@@ -358,8 +374,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="Object">A service identification to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is Service_Id evseId &&
-                   Equals(evseId);
+            => Object is Service_Id serviceId &&
+                   Equals(serviceId);
 
         #endregion
 

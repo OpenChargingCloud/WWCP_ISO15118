@@ -414,8 +414,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             unchecked
             {
 
-                var hashCode = CertificateInstallationService.GetHashCode() * 3 ^
-                               //ToDo: Add CertificateInstallationService!
+                var hashCode = AuthorizationServices.         CalcHashCode() * 5 ^
+                               CertificateInstallationService.GetHashCode()  * 3 ^
                                base.                          GetHashCode();
 
                 if (this is PnC_AuthorizationSetupResponse pnc)

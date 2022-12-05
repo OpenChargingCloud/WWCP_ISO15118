@@ -18,7 +18,7 @@
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class Dynamic_SEResControlModeType
+    public class Dynamic_SEResControlModeType : ScheduleExchangeResponse
     {
 
         public UInt32?                     DepartureTime            { get; }
@@ -30,6 +30,25 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public AbsolutePriceScheduleType?  AbsolutePriceSchedule    { get; }
         public PriceLevelScheduleType?     PriceLevelSchedule       { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name="Dynamic_SEResControlModeType">
+        //     <xs:sequence>
+        //
+        //         <xs:element name="DepartureTime" type="xs:unsignedInt"            minOccurs="0"/>
+        //         <xs:element name="MinimumSOC"    type="v2gci_ct:percentValueType" minOccurs="0"/>
+        //         <xs:element name="TargetSOC"     type="v2gci_ct:percentValueType" minOccurs="0"/>
+        //
+        //         <xs:choice minOccurs="0">
+        //             <xs:element name="AbsolutePriceSchedule" type="AbsolutePriceScheduleType"/>
+        //             <xs:element name="PriceLevelSchedule" type="PriceLevelScheduleType"/>
+        //         </xs:choice>
+        //
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

@@ -17,12 +17,41 @@
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
+
+    #region Documentation
+
+    // <xs:simpleType name="chargeProgressType">
+    //     <xs:restriction base="xs:string">
+    //         <xs:enumeration value="Start"/>
+    //         <xs:enumeration value="Stop"/>
+    //         <xs:enumeration value="Standby"/>
+    //         <xs:enumeration value="ScheduleRenegotiation"/>
+    //     </xs:restriction>
+    // </xs:simpleType>
+
+    #endregion
+
     public enum ChargeProgressTypes
     {
 
+        /// <summary>
+        /// Start charging.
+        /// </summary>
         Start,
+
+        /// <summary>
+        /// Stop charging.
+        /// </summary>
         Stop,
+
+        /// <summary>
+        /// Standby.
+        /// </summary>
         Standby,
+
+        /// <summary>
+        /// Schedule renegotiation.
+        /// </summary>
         ScheduleRenegotiation
 
     }

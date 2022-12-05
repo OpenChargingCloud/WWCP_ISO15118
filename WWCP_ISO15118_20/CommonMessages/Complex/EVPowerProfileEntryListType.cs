@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class EVPowerProfileEntryListType
     {
 
-        public IEnumerable<PowerScheduleEntryType>  EVPowerProfileEntries    { get; }
+        public IEnumerable<PowerScheduleEntry>  EVPowerProfileEntries    { get; }
 
 
     }

@@ -17,23 +17,69 @@
 
 #region Usings
 
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
+
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class ScheduleExchangeRequest : AV2GRequest
+    public abstract class ScheduleExchangeRequest : AV2GRequest<ScheduleExchangeRequest>
     {
 
-        public Dynamic_SEReqControlModeType?    Dynamic_SEReqControlMode      { get; }
-        public Scheduled_SEReqControlModeType?  Scheduled_SEReqControlMode    { get; }
+        #region Properties
+
+        /// <summary>
+        /// The maximum number of supporting points of the energy schedule.
+        /// </summary>
+        [Mandatory]
+        public Int32  MaximumSupportingPoints    { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// The selected energy transfer service.
+        /// </summary>
+        /// <param name="MessageHeader">A message header.</param>
+        /// <param name="MaximumSupportingPoints">The maximum number of supporting points of the energy schedule.</param>
+        public ScheduleExchangeRequest(MessageHeader  MessageHeader,
+                                       Int32          MaximumSupportingPoints)
+
+            : base(MessageHeader)
+
+        {
+
+            this.MaximumSupportingPoints = MaximumSupportingPoints;
+
+        }
+
+        #endregion
+
+
+        #region Documentation
+
+        // <xs:element name="ScheduleExchangeReq" type="ScheduleExchangeReqType"/>
+        // <xs:complexType name="ScheduleExchangeReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="MaximumSupportingPoints" type="maxSupportingPointsScheduleTupleType"/>
+        //                 <xs:choice>
+        //                     <xs:element name="Dynamic_SEReqControlMode"   type="Dynamic_SEReqControlModeType"/>
+        //                     <xs:element name="Scheduled_SEReqControlMode" type="Scheduled_SEReqControlModeType"/>
+        //                 </xs:choice>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
 
     }

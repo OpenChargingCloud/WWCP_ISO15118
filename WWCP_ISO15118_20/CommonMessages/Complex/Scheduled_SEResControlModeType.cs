@@ -29,11 +29,21 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class Scheduled_SEResControlModeType
+    public class Scheduled_SEResControlModeType : ScheduleExchangeResponse
     {
 
         public IEnumerable<ScheduleTupleType>  ScheduleTuples    { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name="Scheduled_SEResControlModeType">
+        //     <xs:sequence>
+        //         <xs:element name="ScheduleTuple" type="ScheduleTupleType" maxOccurs="3"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

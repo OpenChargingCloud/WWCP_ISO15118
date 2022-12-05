@@ -32,8 +32,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     {
 
         public UInt32?            DepartureTime    { get; }
-        public PercentValueType?  MinimumSOC       { get; }
-        public PercentValueType?  TargetSOC        { get; }
+        public PercentValue?  MinimumSOC       { get; }
+        public PercentValue?  TargetSOC        { get; }
         public UInt16?            AckMaxDelay      { get; }
 
 

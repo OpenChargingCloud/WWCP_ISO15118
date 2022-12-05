@@ -102,6 +102,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:simpleType name="genChallengeType">
+        //     <xs:restriction base="xs:base64Binary">
+        //         <xs:length value="16"/>
+        //     </xs:restriction>
+        // </xs:simpleType>
+
+        #endregion
+
         #region (static) Parse   (Text)
 
         /// <summary>

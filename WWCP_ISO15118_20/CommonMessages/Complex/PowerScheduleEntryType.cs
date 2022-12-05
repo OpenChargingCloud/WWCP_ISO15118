@@ -29,14 +29,27 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PowerScheduleEntryType
+    public class PowerScheduleEntry : IEquatable<PowerScheduleEntry>
     {
 
-        public UInt32               Duration    { get; }
+        public TimeSpan         Duration    { get; }
         public RationalNumber   Power       { get; }
         public RationalNumber?  Power_L2    { get; }
         public RationalNumber?  Power_L3    { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name="PowerScheduleEntryType">
+        //     <xs:sequence>
+        //         <xs:element name="Duration" type="xs:unsignedInt"/>
+        //         <xs:element name="Power"    type="v2gci_ct:RationalNumberType"/>
+        //         <xs:element name="Power_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+        //         <xs:element name="Power_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

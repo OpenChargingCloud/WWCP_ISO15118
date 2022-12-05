@@ -31,16 +31,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     public class DisplayParametersType
     {
 
-        public PercentValueType?    PresentSOC                   { get; }
-        public PercentValueType?    MinimumSOC                   { get; }
-        public PercentValueType?    TargetSOC                    { get; }
-        public PercentValueType?    MaximumSOC                   { get; }
-        public UInt32?              RemainingTimeToMinimumSOC    { get; }
-        public UInt32?              RemainingTimeToTargetSOC     { get; }
-        public UInt32?              RemainingTimeToMaximumSOC    { get; }
-        public Boolean?             ChargingComplete             { get; }
+        public PercentValue?    PresentSOC                   { get; }
+        public PercentValue?    MinimumSOC                   { get; }
+        public PercentValue?    TargetSOC                    { get; }
+        public PercentValue?    MaximumSOC                   { get; }
+        public UInt32?          RemainingTimeToMinimumSOC    { get; }
+        public UInt32?          RemainingTimeToTargetSOC     { get; }
+        public UInt32?          RemainingTimeToMaximumSOC    { get; }
+        public Boolean?         ChargingComplete             { get; }
         public RationalNumber?  BatteryEnergyCapacity        { get; }
-        public Boolean?             InletHot                     { get; }
+        public Boolean?         InletHot                     { get; }
 
 
     }

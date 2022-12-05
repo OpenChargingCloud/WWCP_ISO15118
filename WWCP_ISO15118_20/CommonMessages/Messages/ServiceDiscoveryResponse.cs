@@ -90,6 +90,24 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:element name="ServiceDiscoveryRes" type="ServiceDiscoveryResType"/>
+        //
+        // <xs:complexType name="ServiceDiscoveryResType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //             <xs:sequence>
+        //                 <xs:element name="ServiceRenegotiationSupported" type="xs:boolean"/>
+        //                 <xs:element name="EnergyTransferServiceList" type="ServiceListType"/>
+        //                 <xs:element name="VASList" type="ServiceListType" minOccurs="0"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
         #region (static) Parse   (Request, JSON, CustomServiceDiscoveryResponseParser = null)
 
         /// <summary>
@@ -251,6 +269,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                                  new JProperty("messageHeader",                  MessageHeader.ToJSON  (CustomMessageHeaderSerializer)),
                                  new JProperty("responseCode",                   ResponseCode. AsText  ()),
+
                                  new JProperty("serviceRenegotiationSupported",  ServiceRenegotiationSupported),
 
                                  new JProperty("energyTransferServices",         new JArray(EnergyTransferServices.Select(energyTransferService => energyTransferService.Value))),
@@ -340,13 +359,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             => ServiceDiscoveryResponse is not null &&
 
-               ServiceRenegotiationSupported. Equals(ServiceDiscoveryResponse.ServiceRenegotiationSupported)         &&
+               ServiceRenegotiationSupported. Equals(ServiceDiscoveryResponse.ServiceRenegotiationSupported) &&
 
-               EnergyTransferServices.Count().Equals(ServiceDiscoveryResponse.EnergyTransferServices.Count())        &&
-               EnergyTransferServices.All(data =>    ServiceDiscoveryResponse.EnergyTransferServices.Contains(data)) &&
+               EnergyTransferServices.Count().Equals(ServiceDiscoveryResponse.EnergyTransferServices.Count())                                       &&
+               EnergyTransferServices.All(energyTransferService => ServiceDiscoveryResponse.EnergyTransferServices.Contains(energyTransferService)) &&
 
-               ValueAddedServices.    Count().Equals(ServiceDiscoveryResponse.ValueAddedServices.    Count())        &&
-               ValueAddedServices.    All(data =>    ServiceDiscoveryResponse.ValueAddedServices.    Contains(data)) &&
+               ValueAddedServices.    Count().Equals(ServiceDiscoveryResponse.ValueAddedServices.    Count())                                       &&
+               ValueAddedServices.    All(valueAddedService     => ServiceDiscoveryResponse.ValueAddedServices.    Contains(valueAddedService))     &&
 
                base.                   GenericEquals(ServiceDiscoveryResponse);
 

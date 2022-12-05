@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// A parameter.
     /// </summary>
-    public class Parameter
+    public class Parameter : IEquatable<Parameter>
     {
 
         #region Properties
@@ -425,6 +425,166 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Operator overloading
+
+        #region Operator == (Parameter1, Parameter2)
+
+        /// <summary>
+        /// Compares two parameters for equality.
+        /// </summary>
+        /// <param name="Parameter1">A parameter.</param>
+        /// <param name="Parameter2">Another parameter.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator == (Parameter? Parameter1,
+                                           Parameter? Parameter2)
+        {
+
+            // If both are null, or both are same instance, return true.
+            if (ReferenceEquals(Parameter1, Parameter2))
+                return true;
+
+            // If one is null, but not both, return false.
+            if (Parameter1 is null || Parameter2 is null)
+                return false;
+
+            return Parameter1.Equals(Parameter2);
+
+        }
+
+        #endregion
+
+        #region Operator != (Parameter1, Parameter2)
+
+        /// <summary>
+        /// Compares two parameters for inequality.
+        /// </summary>
+        /// <param name="Parameter1">A parameter.</param>
+        /// <param name="Parameter2">Another parameter.</param>
+        /// <returns>False if both match; True otherwise.</returns>
+        public static Boolean operator != (Parameter? Parameter1,
+                                           Parameter? Parameter2)
+
+            => !(Parameter1 == Parameter2);
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<Parameter> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two parameters for equality.
+        /// </summary>
+        /// <param name="Object">A parameter to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is Parameter parameter &&
+                   Equals(parameter);
+
+        #endregion
+
+        #region Equals(Parameter)
+
+        /// <summary>
+        /// Compares two parameters for equality.
+        /// </summary>
+        /// <param name="Parameter">A parameter to compare with.</param>
+        public Boolean Equals(Parameter? Parameter)
+
+            => Parameter is not null &&
+
+               Name.Equals(Parameter.Name) &&
+
+            ((!BooleanValue.       HasValue    && !Parameter.BooleanValue.       HasValue) ||
+              (BooleanValue.       HasValue    &&  Parameter.BooleanValue.       HasValue    && BooleanValue. Value.Equals(Parameter.BooleanValue.Value))) &&
+
+            ((!ByteValue.          HasValue    && !Parameter.ByteValue.          HasValue) ||
+              (ByteValue.          HasValue    &&  Parameter.ByteValue.          HasValue    && ByteValue.    Value.Equals(Parameter.ByteValue.   Value))) &&
+
+            ((!ShortValue.         HasValue    && !Parameter.ShortValue.         HasValue) ||
+              (ShortValue.         HasValue    &&  Parameter.ShortValue.         HasValue    && ShortValue.   Value.Equals(Parameter.ShortValue.  Value))) &&
+
+            ((!IntegerValue.       HasValue    && !Parameter.IntegerValue.       HasValue) ||
+              (IntegerValue.       HasValue    &&  Parameter.IntegerValue.       HasValue    && IntegerValue. Value.Equals(Parameter.IntegerValue.Value))) &&
+
+             ((RationalNumberValue is     null &&  Parameter.RationalNumberValue is     null) ||
+              (RationalNumberValue is not null &&  Parameter.RationalNumberValue is not null && RationalNumberValue.Equals(Parameter.RationalNumberValue))) &&
+
+             ((FiniteStringValue   is     null &&  Parameter.FiniteStringValue   is     null) ||
+              (FiniteStringValue   is not null &&  Parameter.FiniteStringValue   is not null && FiniteStringValue.  Equals(Parameter.FiniteStringValue)));
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return Name.                GetHashCode()       * 19 ^
+                      (BooleanValue?.       GetHashCode() ?? 0) * 17 ^
+                      (ByteValue?.          GetHashCode() ?? 0) * 13 ^
+                      (ShortValue?.         GetHashCode() ?? 0) * 11 ^
+                      (IntegerValue?.       GetHashCode() ?? 0) *  7 ^
+                      (RationalNumberValue?.GetHashCode() ?? 0) *  5 ^
+                      (FiniteStringValue?.  GetHashCode() ?? 0) *  3 ^
+
+                       base.                GetHashCode();
+
+            }
+        }
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   Name,
+                   ": ",
+
+                   BooleanValue.HasValue
+                       ? BooleanValue.Value
+                             ? "true"
+                             : "false"
+                       : "",
+
+                   ByteValue.HasValue
+                       ? ByteValue    + " [byte]"
+                       : "",
+
+                   ShortValue.HasValue
+                       ? ShortValue   + " [short]"
+                       : "",
+
+                   IntegerValue.HasValue
+                       ? IntegerValue + " [integer]"
+                       : "",
+
+                   RationalNumberValue is not null
+                        ? RationalNumberValue.ToString()
+                        : "",
+
+                   FiniteStringValue is not null
+                        ? FiniteStringValue : ""
+
+               );
+
+        #endregion
 
     }
 

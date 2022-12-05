@@ -55,10 +55,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Create a new contract certificate chain.
         /// </summary>
         /// <param name="Certificate">A certificate.</param>
-        /// <param name="SubCertificates">An enumeration of sub certificates.</param>
+        /// <param name="SubCertificates">An enumeration of sub certificates [max 3].</param>
         public ContractCertificateChain(Certificate               Certificate,
                                         IEnumerable<Certificate>  SubCertificates)
         {
+
+            //ToDo: Minimal 0 or 1 sub certificates?
 
             this.Certificate      = Certificate;
             this.SubCertificates  = SubCertificates.Distinct();
@@ -67,6 +69,17 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
+
+        #region Documentation
+
+        // <xs:complexType name="ContractCertificateChainType">
+        //     <xs:sequence>
+        //         <xs:element name="Certificate"     type="certificateType"/>
+        //         <xs:element name="SubCertificates" type="SubCertificatesType"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
         #region (static) Parse   (JSON, CustomContractCertificateChainParser = null)
 
@@ -257,7 +270,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <summary>
         /// Compares two contract certificate chains for equality.
         /// </summary>
-        /// <param name="Object">a contract certificate chain to compare with.</param>
+        /// <param name="Object">A contract certificate chain to compare with.</param>
         public override Boolean Equals(Object? Object)
 
             => Object is ContractCertificateChain contractCertificateChain &&
@@ -270,7 +283,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <summary>
         /// Compares two contract certificate chains for equality.
         /// </summary>
-        /// <param name="ContractCertificateChain">a contract certificate chain to compare with.</param>
+        /// <param name="ContractCertificateChain">A contract certificate chain to compare with.</param>
         public Boolean Equals(ContractCertificateChain? ContractCertificateChain)
 
             => ContractCertificateChain is not null &&
@@ -278,7 +291,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                Certificate.Equals(ContractCertificateChain.Certificate) &&
 
                SubCertificates.Count().Equals(ContractCertificateChain.SubCertificates.Count()) &&
-               SubCertificates.All(data => ContractCertificateChain.SubCertificates.Contains(data));
+               SubCertificates.All(subCertificate => ContractCertificateChain.SubCertificates.Contains(subCertificate));
 
         #endregion
 
@@ -295,10 +308,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             unchecked
             {
 
-                return Certificate.GetHashCode() * 5 ^
-                       //ToDo: Add SubCertificates!
+                return Certificate.    GetHashCode()  * 5 ^
+                       SubCertificates.CalcHashCode() * 3 ^
 
-                       base.       GetHashCode();
+                       base.           GetHashCode();
 
             }
         }

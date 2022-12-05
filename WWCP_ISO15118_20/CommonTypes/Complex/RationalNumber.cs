@@ -21,25 +21,40 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
-using System.Text;
-
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
-    public class RationalNumber
+    /// <summary>
+    /// A new rational number.
+    /// </summary>
+    public class RationalNumber : IEquatable<RationalNumber>
     {
 
         #region Properties
 
+        /// <summary>
+        /// The exponent of the rational number.
+        /// </summary>
+        [Mandatory]
         public SByte  Exponent    { get; }
+
+        /// <summary>
+        /// The value of the rational number.
+        /// </summary>
+        [Mandatory]
         public Int16  Value       { get; }
 
         #endregion
 
         #region Constructor(s)
 
+        /// <summary>
+        /// Create a new rational number.
+        /// </summary>
+        /// <param name="Exponent">The exponent of the rational number.</param>
+        /// <param name="Value">The value of the rational number.</param>
         public RationalNumber(SByte  Exponent,
                               Int16  Value)
         {
@@ -51,6 +66,17 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
         #endregion
 
+
+        #region Documentation
+
+        // <xs:complexType name="RationalNumberType">
+        //     <xs:sequence>
+        //         <xs:element name="Exponent" type="xs:byte"/>
+        //         <xs:element name="Value"    type="xs:short"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
         #region (static) Parse   (JSON, CustomRationalNumberParser = null)
 
@@ -188,6 +214,119 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
         #endregion
 
+
+        #region Operator overloading
+
+        #region Operator == (RationalNumber1, RationalNumber2)
+
+        /// <summary>
+        /// Compares two rational numbers for equality.
+        /// </summary>
+        /// <param name="RationalNumber1">A rational number.</param>
+        /// <param name="RationalNumber2">Another rational number.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator == (RationalNumber? RationalNumber1,
+                                           RationalNumber? RationalNumber2)
+        {
+
+            // If both are null, or both are same instance, return true.
+            if (ReferenceEquals(RationalNumber1, RationalNumber2))
+                return true;
+
+            // If one is null, but not both, return false.
+            if (RationalNumber1 is null || RationalNumber2 is null)
+                return false;
+
+            return RationalNumber1.Equals(RationalNumber2);
+
+        }
+
+        #endregion
+
+        #region Operator != (RationalNumber1, RationalNumber2)
+
+        /// <summary>
+        /// Compares two rational numbers for inequality.
+        /// </summary>
+        /// <param name="RationalNumber1">A rational number.</param>
+        /// <param name="RationalNumber2">Another rational number.</param>
+        /// <returns>False if both match; True otherwise.</returns>
+        public static Boolean operator != (RationalNumber? RationalNumber1,
+                                           RationalNumber? RationalNumber2)
+
+            => !(RationalNumber1 == RationalNumber2);
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<RationalNumber> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two rational numbers for equality.
+        /// </summary>
+        /// <param name="Object">A rational number to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is RationalNumber rationalNumber &&
+                   Equals(rationalNumber);
+
+        #endregion
+
+        #region Equals(RationalNumber)
+
+        /// <summary>
+        /// Compares two rational numbers for equality.
+        /// </summary>
+        /// <param name="RationalNumber">A rational number to compare with.</param>
+        public Boolean Equals(RationalNumber? RationalNumber)
+
+            => RationalNumber is not null &&
+
+               Exponent.Equals(RationalNumber.Exponent) &&
+               Value.   Equals(RationalNumber.Value);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return Exponent.GetHashCode() * 5 ^
+                       Value.   GetHashCode() * 3;
+
+            }
+        }
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   Value,
+                   " ^ ",
+                   Exponent
+
+               );
+
+        #endregion
 
     }
 

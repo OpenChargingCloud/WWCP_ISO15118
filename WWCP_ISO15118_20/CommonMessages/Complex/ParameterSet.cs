@@ -29,7 +29,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// A parameter set.
     /// </summary>
-    public class ParameterSet
+    public class ParameterSet : IEquatable<ParameterSet>
     {
 
         #region Properties
@@ -207,6 +207,124 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
+
+        #region Operator overloading
+
+        #region Operator == (ParameterSet1, ParameterSet2)
+
+        /// <summary>
+        /// Compares two parameter sets for equality.
+        /// </summary>
+        /// <param name="ParameterSet1">A parameter set.</param>
+        /// <param name="ParameterSet2">Another parameter set.</param>
+        /// <returns>True if both match; False otherwise.</returns>
+        public static Boolean operator == (ParameterSet? ParameterSet1,
+                                           ParameterSet? ParameterSet2)
+        {
+
+            // If both are null, or both are same instance, return true.
+            if (ReferenceEquals(ParameterSet1, ParameterSet2))
+                return true;
+
+            // If one is null, but not both, return false.
+            if (ParameterSet1 is null || ParameterSet2 is null)
+                return false;
+
+            return ParameterSet1.Equals(ParameterSet2);
+
+        }
+
+        #endregion
+
+        #region Operator != (ParameterSet1, ParameterSet2)
+
+        /// <summary>
+        /// Compares two parameter sets for inequality.
+        /// </summary>
+        /// <param name="ParameterSet1">A parameter set.</param>
+        /// <param name="ParameterSet2">Another parameter set.</param>
+        /// <returns>False if both match; True otherwise.</returns>
+        public static Boolean operator != (ParameterSet? ParameterSet1,
+                                           ParameterSet? ParameterSet2)
+
+            => !(ParameterSet1 == ParameterSet2);
+
+        #endregion
+
+        #endregion
+
+        #region IEquatable<ParameterSet> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compares two parameter sets for equality.
+        /// </summary>
+        /// <param name="Object">A parameter set to compare with.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is ParameterSet parameterSet &&
+                   Equals(parameterSet);
+
+        #endregion
+
+        #region Equals(ParameterSet)
+
+        /// <summary>
+        /// Compares two parameter sets for equality.
+        /// </summary>
+        /// <param name="ParameterSet">A parameter set to compare with.</param>
+        public Boolean Equals(ParameterSet? ParameterSet)
+
+            => ParameterSet is not null &&
+
+               ParameterSetId.Equals(ParameterSet.ParameterSetId) &&
+
+               Parameters.Count().Equals(ParameterSet.Parameters.Count()) &&
+               Parameters.All(parameter => ParameterSet.Parameters.Contains(parameter));
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return ParameterSetId.GetHashCode()  * 5 ^
+                       Parameters.    CalcHashCode() * 3 ^
+
+                       base.          GetHashCode();
+
+            }
+        }
+
+        #endregion
+
+        #region (override) ToString()
+
+        /// <summary>
+        /// Return a text representation of this object.
+        /// </summary>
+        public override String ToString()
+
+            => String.Concat(
+
+                   ParameterSetId,
+
+                   Parameters.Count(),
+                   " parameter(s)"
+
+               );
+
+        #endregion
 
     }
 

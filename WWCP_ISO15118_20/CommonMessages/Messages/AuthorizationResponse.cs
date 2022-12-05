@@ -219,9 +219,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                           new JProperty("messageHeader",   MessageHeader.ToJSON  (CustomMessageHeaderSerializer)),
-                           new JProperty("responseCode",    ResponseCode. AsText  ()),
-                           new JProperty("evseProcessing",  ResponseCode. ToString())
+                           new JProperty("messageHeader",   MessageHeader. ToJSON(CustomMessageHeaderSerializer)),
+                           new JProperty("responseCode",    ResponseCode.  AsText()),
+
+                           new JProperty("evseProcessing",  EVSEProcessing.AsText())
 
                        );
 

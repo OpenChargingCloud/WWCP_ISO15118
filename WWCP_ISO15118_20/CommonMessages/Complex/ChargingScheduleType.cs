@@ -28,11 +28,28 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class ChargingScheduleType
+    public class ChargingSchedule : IEquatable<ChargingSchedule>
     {
+
+        public PowerSchedule               PowerSchedule            { get; }
 
         public AbsolutePriceScheduleType?  AbsolutePriceSchedule    { get; }
         public PriceLevelScheduleType?     PriceLevelSchedule       { get; }
+
+
+        #region Documentation
+
+        // <xs:complexType name="ChargingScheduleType">
+        //     <xs:sequence>
+        //         <xs:element name="PowerSchedule" type="PowerScheduleType"/>
+        //         <xs:choice minOccurs="0">
+        //             <xs:element name="AbsolutePriceSchedule" type="AbsolutePriceScheduleType"/>
+        //             <xs:element name="PriceLevelSchedule"    type="PriceLevelScheduleType"/>
+        //         </xs:choice>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+         #endregion
 
 
     }

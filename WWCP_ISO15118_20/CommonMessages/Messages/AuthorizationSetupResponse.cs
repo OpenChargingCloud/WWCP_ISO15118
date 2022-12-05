@@ -31,11 +31,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The authorization setup response.
     /// </summary>
-    public class AuthorizationSetupResponse : AV2GResponse<AuthorizationSetupRequest,
-                                                           AuthorizationSetupResponse>
+    public abstract class AuthorizationSetupResponse : AV2GResponse<AuthorizationSetupRequest,
+                                                                    AuthorizationSetupResponse>
     {
 
         #region Properties
+
+        // ToDo: Why multiple, when the XSD says it is a choice?
 
         /// <summary>
         /// The enumeration of 1 or 2 authorization services.
@@ -49,23 +51,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         [Mandatory]
         public Boolean                          CertificateInstallationService    { get; }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        [MandatoryChoice("ASResAuthorizationMode")]
-        public EIM_ASResAuthorizationModeType?  EIM_ASResAuthorizationMode        { get; }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        [MandatoryChoice("ASResAuthorizationMode")]
-        public PnC_ASResAuthorizationModeType?  PnC_ASResAuthorizationMode        { get; }
-
         #endregion
 
         #region Constructor(s)
-
-        #region (private) AuthorizationSetupResponse(..., EIM_ASResAuthorizationMode, PnC_ASResAuthorizationMode)
 
         /// <summary>
         /// Create a new authorization response.
@@ -74,16 +62,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="MessageHeader">A message header.</param>
         /// <param name="ResponseCode">A message response code.</param>
         /// <param name="AuthorizationServices">An enumeration of 1 or 2 authorization services.</param>
-        /// <param name="CertificateInstallationService"></param>
-        /// <param name="EIM_ASResAuthorizationMode"></param>
-        /// <param name="PnC_ASResAuthorizationMode"></param>
-        private AuthorizationSetupResponse(AuthorizationSetupRequest        Request,
-                                           MessageHeader                    MessageHeader,
-                                           ResponseCodes                    ResponseCode,
-                                           IEnumerable<AuthorizationTypes>  AuthorizationServices,
-                                           Boolean                          CertificateInstallationService,
-                                           EIM_ASResAuthorizationModeType?  EIM_ASResAuthorizationMode,
-                                           PnC_ASResAuthorizationModeType?  PnC_ASResAuthorizationMode)
+        /// <param name="CertificateInstallationService">Whether this charging station will provide a certificate installation service.</param>
+        public AuthorizationSetupResponse(AuthorizationSetupRequest        Request,
+                                          MessageHeader                    MessageHeader,
+                                          ResponseCodes                    ResponseCode,
+                                          IEnumerable<AuthorizationTypes>  AuthorizationServices,
+                                          Boolean                          CertificateInstallationService)
 
             : base(Request,
                    MessageHeader,
@@ -101,72 +85,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             this.AuthorizationServices           = AuthorizationServices.Distinct();
             this.CertificateInstallationService  = CertificateInstallationService;
-            this.EIM_ASResAuthorizationMode      = EIM_ASResAuthorizationMode;
-            this.PnC_ASResAuthorizationMode      = PnC_ASResAuthorizationMode;
 
         }
-
-        #endregion
-
-        #region AuthorizationSetupResponse(..., EIM_ASResAuthorizationMode)
-
-        /// <summary>
-        /// Create a new authorization response message.
-        /// </summary>
-        /// <param name="Request">The authorization setup request leading to this response.</param>
-        /// <param name="MessageHeader">A message header.</param>
-        /// <param name="ResponseCode">A message response code.</param>
-        /// <param name="AuthorizationServices">An enumeration of 1 or 2 authorization services.</param>
-        /// <param name="CertificateInstallationService"></param>
-        /// <param name="EIM_ASResAuthorizationMode"></param>
-        public AuthorizationSetupResponse(AuthorizationSetupRequest        Request,
-                                          MessageHeader                    MessageHeader,
-                                          ResponseCodes                    ResponseCode,
-                                          IEnumerable<AuthorizationTypes>  AuthorizationServices,
-                                          Boolean                          CertificateInstallationService,
-                                          EIM_ASResAuthorizationModeType   EIM_ASResAuthorizationMode)
-
-            : this(Request,
-                   MessageHeader,
-                   ResponseCode,
-                   AuthorizationServices,
-                   CertificateInstallationService,
-                   EIM_ASResAuthorizationMode,
-                   null)
-
-        { }
-
-        #endregion
-
-        #region AuthorizationSetupResponse(..., PnC_ASResAuthorizationMode)
-
-        /// <summary>
-        /// Create a new authorization response message.
-        /// </summary>
-        /// <param name="Request">The authorization setup request leading to this response.</param>
-        /// <param name="MessageHeader">A message header.</param>
-        /// <param name="ResponseCode">A message response code.</param>
-        /// <param name="AuthorizationServices">An enumeration of 1 or 2 authorization services.</param>
-        /// <param name="CertificateInstallationService"></param>
-        /// <param name="PnC_ASResAuthorizationMode"></param>
-        public AuthorizationSetupResponse(AuthorizationSetupRequest        Request,
-                                          MessageHeader                    MessageHeader,
-                                          ResponseCodes                    ResponseCode,
-                                          IEnumerable<AuthorizationTypes>  AuthorizationServices,
-                                          Boolean                          CertificateInstallationService,
-                                          PnC_ASResAuthorizationModeType   PnC_ASResAuthorizationMode)
-
-            : this(Request,
-                   MessageHeader,
-                   ResponseCode,
-                   AuthorizationServices,
-                   CertificateInstallationService,
-                   null,
-                   PnC_ASResAuthorizationMode)
-
-        { }
-
-        #endregion
 
         #endregion
 
@@ -276,8 +196,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 #region AuthorizationServices             [mandatory]
 
-                if (!JSON.ParseMandatoryHashSet("certificateInstallationService",
-                                                "certificate installation service",
+                if (!JSON.ParseMandatoryHashSet("authorizationServices",
+                                                "authorization services",
                                                 AuthorizationTypesExtensions.TryParse,
                                                 out HashSet<AuthorizationTypes> AuthorizationServices,
                                                 out ErrorResponse))
@@ -299,13 +219,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 #endregion
 
-                #region EIM_ASResAuthorizationMode        [optional]
 
-                if (JSON.ParseOptionalJSON("EIM_ASResAuthorizationMode",
-                                           "EIM ASRes authorization mode",
-                                           EIM_ASResAuthorizationModeType.TryParse,
-                                           out EIM_ASResAuthorizationModeType? EIM_ASResAuthorizationMode,
-                                           out ErrorResponse))
+                // Plug and Charge
+
+                #region GenChallenge                      [optional]
+
+                if (!JSON.ParseOptional("genChallenge",
+                                        "gen challenge",
+                                        CommonMessages.GenChallenge.TryParse,
+                                        out GenChallenge? GenChallenge,
+                                        out ErrorResponse))
                 {
                     if (ErrorResponse is not null)
                         return false;
@@ -313,13 +236,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 #endregion
 
-                #region PnC_ASResAuthorizationMode        [optional]
+                #region ProviderIds                       [optional]
 
-                if (JSON.ParseOptionalJSON("PnC_AReqAuthorizationMode",
-                                           "PnC AReq authorization mode",
-                                           PnC_ASResAuthorizationModeType.TryParse,
-                                           out PnC_ASResAuthorizationModeType? PnC_ASResAuthorizationMode,
-                                           out ErrorResponse))
+                if (JSON.ParseOptionalHashSet("providerIds",
+                                              "provider identifications",
+                                              Provider_Id.TryParse,
+                                              out HashSet<Provider_Id> ProviderIds,
+                                              out ErrorResponse))
                 {
                     if (ErrorResponse is not null)
                         return false;
@@ -328,20 +251,24 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 #endregion
 
 
-                if (EIM_ASResAuthorizationMode is not null &&
-                    PnC_ASResAuthorizationMode is not null)
-                {
-                    ErrorResponse = "Only wither EIM_ASResAuthorizationMode or PnC_ASResAuthorizationMode is allowed, but not both!";
-                    return false;
-                }
+                // EIM
 
-                AuthorizationSetupResponse = new AuthorizationSetupResponse(Request,
-                                                                            MessageHeader,
-                                                                            ResponseCode,
-                                                                            AuthorizationServices,
-                                                                            CertificateInstallationService,
-                                                                            EIM_ASResAuthorizationMode,
-                                                                            PnC_ASResAuthorizationMode);
+                // [...] just nothing!
+
+
+                AuthorizationSetupResponse = GenChallenge.HasValue
+
+                                                 ? new PnC_AuthorizationSetupResponse(Request,
+                                                                                      MessageHeader,
+                                                                                      ResponseCode,
+                                                                                      CertificateInstallationService,
+                                                                                      GenChallenge.Value,
+                                                                                      ProviderIds)
+
+                                                 : new EIM_AuthorizationSetupResponse(Request,
+                                                                                      MessageHeader,
+                                                                                      ResponseCode,
+                                                                                      CertificateInstallationService);
 
                 if (CustomAuthorizationSetupResponseParser is not null)
                     AuthorizationSetupResponse = CustomAuthorizationSetupResponseParser(JSON,
@@ -368,24 +295,23 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="CustomAuthorizationSetupResponseSerializer">A delegate to serialize custom authorization setup responses.</param>
         /// <param name="CustomMessageHeaderSerializer">A delegate to serialize custom message headers.</param>
-        public JObject ToJSON(CustomJObjectSerializerDelegate<AuthorizationSetupResponse>?  CustomAuthorizationSetupResponseSerializer   = null,
-                              CustomJObjectSerializerDelegate<MessageHeader>?               CustomMessageHeaderSerializer                = null)
+        /// <param name="CustomPnC_AuthorizationSetupResponseSerializer">A delegate to serialize custom plug and charge authorization setup responses.</param>
+        public virtual JObject ToJSON(CustomJObjectSerializerDelegate<AuthorizationSetupResponse>?      CustomAuthorizationSetupResponseSerializer       = null,
+                                      CustomJObjectSerializerDelegate<MessageHeader>?                   CustomMessageHeaderSerializer                    = null,
+                                      CustomJObjectSerializerDelegate<PnC_AuthorizationSetupResponse>?  CustomPnC_AuthorizationSetupResponseSerializer   = null,
+                                      CustomJObjectSerializerDelegate<EIM_AuthorizationSetupResponse>?  CustomEIM_AuthorizationSetupResponseSerializer   = null)
         {
 
-            var json = JSONObject.Create(
+            var json = new JObject();
 
-                                 new JProperty("messageHeader",               MessageHeader.             ToJSON  (CustomMessageHeaderSerializer)),
-                                 new JProperty("responseCode",                ResponseCode.              AsText()),
+            if (this is PnC_AuthorizationSetupResponse pnc)
+                json = pnc.ToJSON(CustomPnC_AuthorizationSetupResponseSerializer,
+                                  CustomMessageHeaderSerializer);
 
-                           EIM_ASResAuthorizationMode is not null
-                               ? new JProperty("EIM_ASResAuthorizationMode",  EIM_ASResAuthorizationMode.ToJSON())
-                               : null,
+            if (this is EIM_AuthorizationSetupResponse eim)
+                json = eim.ToJSON(CustomEIM_AuthorizationSetupResponseSerializer,
+                                  CustomMessageHeaderSerializer);
 
-                           PnC_ASResAuthorizationMode is not null
-                               ? new JProperty("PnC_ASResAuthorizationMode",  PnC_ASResAuthorizationMode.ToJSON())
-                               : null
-
-                       );
 
             return CustomAuthorizationSetupResponseSerializer is not null
                        ? CustomAuthorizationSetupResponseSerializer(this, json)
@@ -468,11 +394,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                CertificateInstallationService.Equals(AuthorizationSetupResponse.CertificateInstallationService) &&
 
-             ((EIM_ASResAuthorizationMode is     null && AuthorizationSetupResponse.EIM_ASResAuthorizationMode is     null) ||
-              (EIM_ASResAuthorizationMode is not null && AuthorizationSetupResponse.EIM_ASResAuthorizationMode is not null && EIM_ASResAuthorizationMode.Equals(AuthorizationSetupResponse.EIM_ASResAuthorizationMode))) &&
-
-             ((PnC_ASResAuthorizationMode is     null && AuthorizationSetupResponse.PnC_ASResAuthorizationMode is     null) ||
-              (PnC_ASResAuthorizationMode is not null && AuthorizationSetupResponse.PnC_ASResAuthorizationMode is not null && PnC_ASResAuthorizationMode.Equals(AuthorizationSetupResponse.PnC_ASResAuthorizationMode))) &&
+               ((this is PnC_AuthorizationSetupResponse pnc && pnc.Equals(AuthorizationSetupResponse)) || true) &&
+               ((this is EIM_AuthorizationSetupResponse eim && eim.Equals(AuthorizationSetupResponse)) || true) &&
 
                base.GenericEquals(AuthorizationSetupResponse);
 
@@ -491,10 +414,17 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             unchecked
             {
 
-                return CertificateInstallationService.GetHashCode()       * 7 ^
-                      (EIM_ASResAuthorizationMode?.   GetHashCode() ?? 0) * 5 ^
-                      (PnC_ASResAuthorizationMode?.   GetHashCode() ?? 0) * 3 ^
-                       base.                          GetHashCode();
+                var hashCode = CertificateInstallationService.GetHashCode() * 3 ^
+                               //ToDo: Add CertificateInstallationService!
+                               base.                          GetHashCode();
+
+                if (this is PnC_AuthorizationSetupResponse pnc)
+                    hashCode ^= pnc.GetHashCode();
+
+                if (this is EIM_AuthorizationSetupResponse eim)
+                    hashCode ^= eim.GetHashCode();
+
+                return hashCode;
 
             }
         }
@@ -510,19 +440,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             => String.Concat(
 
-                   CertificateInstallationService
-                       ? "yes"
-                       : "no",
+                 this is PnC_AuthorizationSetupResponse pnc
+                     ? "PnC response: " + pnc.ToString()
+                     : "",
 
-                   ": ",
-
-                   EIM_ASResAuthorizationMode is not null
-                       ? EIM_ASResAuthorizationMode.ToString()
-                       : "",
-
-                   PnC_ASResAuthorizationMode is not null
-                       ? PnC_ASResAuthorizationMode.ToString()
-                       : ""
+                 this is EIM_AuthorizationSetupResponse eim
+                     ? "EIM response: " + eim.ToString()
+                     : ""
 
                );
 

@@ -18,23 +18,28 @@
 #region Usings
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class OverstayRuleListType
+    public class AdditionalService : IEquatable<AdditionalService>
     {
 
-        public UInt32?                        OverstayTimeThreshold     { get; }
-        public RationalNumber?            OverstayPowerThreshold    { get; }
-        public IEnumerable<OverstayRuleType>  OverstayRules             { get; }
+        public NameType        ServiceName    { get; }
+        public RationalNumber  ServiceFee     { get; }
+
+        #region Documentation
+
+        // <xs:complexType name="AdditionalServiceType">
+        //     <xs:sequence>
+        //         <xs:element name="ServiceName" type="v2gci_ct:nameType"/>
+        //         <xs:element name="ServiceFee"  type="v2gci_ct:RationalNumberType"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
 
     }

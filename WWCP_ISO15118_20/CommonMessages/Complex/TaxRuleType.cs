@@ -32,14 +32,14 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class TaxRuleType
     {
 
-        public UInt32              TaxRuleID                    { get; }
-        public String?             TaxRuleName                  { get; }
+        public UInt32          TaxRuleId                    { get; }
+        public String?         TaxRuleName                  { get; }
         public RationalNumber  TaxRate                      { get; }
-        public Boolean?            TaxIncludedInPrice           { get; }
-        public Boolean             AppliesToEnergyFee           { get; }
-        public Boolean             AppliesToParkingFee          { get; }
-        public Boolean             AppliesToOverstayFee         { get; }
-        public Boolean             AppliesMinimumMaximumCost    { get; }
+        public Boolean?        TaxIncludedInPrice           { get; }
+        public Boolean         AppliesToEnergyFee           { get; }
+        public Boolean         AppliesToParkingFee          { get; }
+        public Boolean         AppliesToOverstayFee         { get; }
+        public Boolean         AppliesMinimumMaximumCost    { get; }
 
 
     }

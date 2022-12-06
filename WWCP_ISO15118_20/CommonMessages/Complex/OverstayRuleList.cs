@@ -29,34 +29,29 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PowerSchedule : IEquatable<PowerSchedule>
+    public class OverstayRuleList : IEquatable<OverstayRuleList>
     {
 
-        public DateTime                         TimeAnchor              { get; }
-        public RationalNumber?                  AvailableEnergy         { get; }
-        public RationalNumber?                  PowerTolerance          { get; }
-        public IEnumerable<PowerScheduleEntry>  PowerScheduleEntries    { get; }
+        public TimeSpan?                  OverstayTimeThreshold     { get; }
+        public RationalNumber?            OverstayPowerThreshold    { get; }
 
+        /// <summary>
+        /// [max 5]
+        /// </summary>
+        public IEnumerable<OverstayRule>  OverstayRules             { get; }
 
         #region Documentation
 
-        // <xs:complexType name="PowerScheduleType">
+        // <xs:complexType name="OverstayRuleListType">
         //     <xs:sequence>
-        //         <xs:element name="TimeAnchor"           type="xs:unsignedLong"/>
-        //         <xs:element name="AvailableEnergy"      type="v2gci_ct:RationalNumberType" minOccurs="0"/>
-        //         <xs:element name="PowerTolerance"       type="v2gci_ct:RationalNumberType" minOccurs="0"/>
-        //         <xs:element name="PowerScheduleEntries" type="PowerScheduleEntryListType"/>
-        //     </xs:sequence>
-        // </xs:complexType>
-
-
-        // <xs:complexType name="PowerScheduleEntryListType">
-        //     <xs:sequence>
-        //         <xs:element name="PowerScheduleEntry" type="PowerScheduleEntryType" maxOccurs="1024"/>
+        //         <xs:element name="OverstayTimeThreshold"  type="xs:unsignedInt"              minOccurs="0"/>
+        //         <xs:element name="OverstayPowerThreshold" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+        //         <xs:element name="OverstayRule"           type="OverstayRuleType"            maxOccurs="5"/>
         //     </xs:sequence>
         // </xs:complexType>
 
         #endregion
+
 
     }
 

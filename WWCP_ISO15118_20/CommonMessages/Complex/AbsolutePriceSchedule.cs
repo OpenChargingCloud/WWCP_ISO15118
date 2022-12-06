@@ -26,26 +26,31 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class AbsolutePriceScheduleType
+    public class AbsolutePriceSchedule
     {
 
-        public XML_Id                       Id                            { get; }
+        public XML_Id                          Id                            { get; }
 
-        public Currency                     Currency                      { get; }
-        public String                       Language                      { get; }
-        public PriceAlgorithm_Id            PriceAlgorithm                { get; }
-        public RationalNumber?              MinimumCost                   { get; }
-        public RationalNumber?              MaximumCost                   { get; }
+        public Currency                        Currency                      { get; }
+        public String                          Language                      { get; }
+        public PriceAlgorithm_Id               PriceAlgorithm                { get; }
+        public RationalNumber?                 MinimumCost                   { get; }
+        public RationalNumber?                 MaximumCost                   { get; }
 
         /// <summary>
         /// [max 10]
         /// </summary>
         [Optional]
-        public IEnumerable<TaxRuleType>     TaxRules                      { get; }
+        public IEnumerable<TaxRuleType>        TaxRules                      { get; }
 
-        public IEnumerable<PriceRuleStack>  PriceRuleStacks               { get; }
-        public OverstayRuleListType?            OverstayRules                 { get; }
-        public AdditionalServiceListType?       AdditionalSelectedServices    { get; }
+        public IEnumerable<PriceRuleStack>     PriceRuleStacks               { get; }
+        public OverstayRuleList?               OverstayRules                 { get; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        [Optional]
+        public IEnumerable<AdditionalService>  AdditionalSelectedServices    { get; }
 
 
         #region Documentation
@@ -80,6 +85,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         // <xs:complexType name="PriceRuleStackListType">
         //     <xs:sequence>
         //         <xs:element name="PriceRuleStack" type="PriceRuleStackType" maxOccurs="1024"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+
+        // <xs:complexType name="AdditionalServiceListType">
+        //     <xs:sequence>
+        //         <xs:element name="AdditionalService" type="AdditionalServiceType" maxOccurs="5"/>
         //     </xs:sequence>
         // </xs:complexType>
 

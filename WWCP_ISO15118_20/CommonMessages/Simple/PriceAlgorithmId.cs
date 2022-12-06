@@ -111,8 +111,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public static PriceAlgorithm_Id Parse(String Text)
         {
 
-            if (TryParse(Text, out var sessionId))
-                return sessionId;
+            if (TryParse(Text, out var priceAlgorithmId))
+                return priceAlgorithmId;
 
             throw new ArgumentException("Invalid text representation of a price algorithm identification: '" + Text + "'!",
                                         nameof(Text));
@@ -130,8 +130,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public static PriceAlgorithm_Id? TryParse(String Text)
         {
 
-            if (TryParse(Text, out var sessionId))
-                return sessionId;
+            if (TryParse(Text, out var priceAlgorithmId))
+                return priceAlgorithmId;
 
             return null;
 
@@ -284,8 +284,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="Object">A price algorithm identification to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
-            => Object is PriceAlgorithm_Id sessionId
-                   ? CompareTo(sessionId)
+            => Object is PriceAlgorithm_Id priceAlgorithmId
+                   ? CompareTo(priceAlgorithmId)
                    : throw new ArgumentException("The given object is not a price algorithm identification!",
                                                  nameof(Object));
 
@@ -317,8 +317,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="Object">A price algorithm identification to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is PriceAlgorithm_Id sessionId &&
-                   Equals(sessionId);
+            => Object is PriceAlgorithm_Id priceAlgorithmId &&
+                   Equals(priceAlgorithmId);
 
         #endregion
 

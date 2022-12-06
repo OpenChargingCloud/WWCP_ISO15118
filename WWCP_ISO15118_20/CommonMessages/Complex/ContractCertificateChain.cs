@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// A contract certificate chain.
+    /// The contract certificate chain.
     /// </summary>
     public class ContractCertificateChain : IEquatable<ContractCertificateChain>
     {
@@ -331,7 +331,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                    ", ",
 
                    SubCertificates.Count(),
-                   " sub certificates"
+                   " sub certificate(s)"
 
                );
 

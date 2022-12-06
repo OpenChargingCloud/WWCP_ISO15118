@@ -33,7 +33,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
         public UInt16                 NotificationMaxDelay    { get; }
 
-        public EvseNotificationTypes  EVSENotification        { get; }
+        public EVSENotifications  EVSENotification        { get; }
 
 
     }

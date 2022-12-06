@@ -66,7 +66,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Try to parse the given text as a response code.
         /// </summary>
         /// <param name="Text">A text representation of a response code.</param>
-        /// <param name="ResponseCode">The parsed response codes.</param>
+        /// <param name="ResponseCode">The parsed response code.</param>
         public static Boolean TryParse(String Text, out ResponseCodes ResponseCode)
         {
             switch (Text.Trim())

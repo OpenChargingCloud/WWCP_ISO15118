@@ -66,7 +66,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Try to parse the given text as an authorization type.
         /// </summary>
         /// <param name="Text">A text representation of an authorization type.</param>
-        /// <param name="ResponseCode">The parsed authorization types.</param>
+        /// <param name="ResponseCode">The parsed authorization type.</param>
         public static Boolean TryParse(String Text, out AuthorizationTypes ResponseCode)
         {
             switch (Text.Trim())

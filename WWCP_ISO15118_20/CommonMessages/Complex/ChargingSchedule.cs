@@ -17,7 +17,6 @@
 
 #region Usings
 
-using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,27 +28,29 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PowerScheduleEntry : IEquatable<PowerScheduleEntry>
+    public class ChargingSchedule : IEquatable<ChargingSchedule>
     {
 
-        public TimeSpan         Duration    { get; }
-        public RationalNumber   Power       { get; }
-        public RationalNumber?  Power_L2    { get; }
-        public RationalNumber?  Power_L3    { get; }
+        public PowerSchedule           PowerSchedule            { get; }
+
+        public AbsolutePriceSchedule?  AbsolutePriceSchedule    { get; }
+        public PriceLevelSchedule?     PriceLevelSchedule       { get; }
 
 
         #region Documentation
 
-        // <xs:complexType name="PowerScheduleEntryType">
+        // <xs:complexType name="ChargingScheduleType">
         //     <xs:sequence>
-        //         <xs:element name="Duration" type="xs:unsignedInt"/>
-        //         <xs:element name="Power"    type="v2gci_ct:RationalNumberType"/>
-        //         <xs:element name="Power_L2" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
-        //         <xs:element name="Power_L3" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+        //         <xs:element name="PowerSchedule" type="PowerScheduleType"/>
+        //         <xs:choice minOccurs="0">
+        //             <xs:element name="AbsolutePriceSchedule" type="AbsolutePriceScheduleType"/>
+        //             <xs:element name="PriceLevelSchedule"    type="PriceLevelScheduleType"/>
+        //         </xs:choice>
         //     </xs:sequence>
         // </xs:complexType>
 
-        #endregion
+         #endregion
+
 
     }
 

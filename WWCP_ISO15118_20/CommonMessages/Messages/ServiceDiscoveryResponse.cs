@@ -41,19 +41,21 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Whether service renegotiation is supported.
         /// </summary>
         [Mandatory]
-        public Boolean                  ServiceRenegotiationSupported    { get; }
+        public Boolean                   ServiceRenegotiationSupported    { get; }
 
         /// <summary>
         /// The enumeration of available energy transfer services.
+        /// [max 8]
         /// </summary>
         [Mandatory]
-        public IEnumerable<Service_Id>  EnergyTransferServices           { get; }
+        public IEnumerable<Service>  EnergyTransferServices           { get; }
 
         /// <summary>
         /// The optional enumeration of value added services.
+        /// [max 8]
         /// </summary>
         [Optional]
-        public IEnumerable<Service_Id>  ValueAddedServices               { get; }
+        public IEnumerable<Service>  ValueAddedServices               { get; }
 
         #endregion
 
@@ -68,12 +70,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="ServiceRenegotiationSupported">Whether service renegotiation is supported.</param>
         /// <param name="EnergyTransferServices">An enumeration of available energy transfer services.</param>
         /// <param name="ValueAddedServices">An optional enumeration of value added services.</param>
-        public ServiceDiscoveryResponse(ServiceDiscoveryRequest   Request,
-                                        MessageHeader             MessageHeader,
-                                        ResponseCodes             ResponseCode,
-                                        Boolean                   ServiceRenegotiationSupported,
-                                        IEnumerable<Service_Id>   EnergyTransferServices,
-                                        IEnumerable<Service_Id>?  ValueAddedServices   = null)
+        public ServiceDiscoveryResponse(ServiceDiscoveryRequest    Request,
+                                        MessageHeader              MessageHeader,
+                                        ResponseCodes              ResponseCode,
+                                        Boolean                    ServiceRenegotiationSupported,
+                                        IEnumerable<Service>   EnergyTransferServices,
+                                        IEnumerable<Service>?  ValueAddedServices   = null)
 
             : base(Request,
                    MessageHeader,
@@ -83,7 +85,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             this.ServiceRenegotiationSupported  = ServiceRenegotiationSupported;
             this.EnergyTransferServices         = EnergyTransferServices.Distinct();
-            this.ValueAddedServices             = ValueAddedServices?.   Distinct() ?? Array.Empty<Service_Id>();
+            this.ValueAddedServices             = ValueAddedServices?.   Distinct() ?? Array.Empty<Service>();
 
         }
 
@@ -99,11 +101,18 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         //         <xs:extension base="v2gci_ct:V2GResponseType">
         //             <xs:sequence>
         //                 <xs:element name="ServiceRenegotiationSupported" type="xs:boolean"/>
-        //                 <xs:element name="EnergyTransferServiceList" type="ServiceListType"/>
-        //                 <xs:element name="VASList" type="ServiceListType" minOccurs="0"/>
+        //                 <xs:element name="EnergyTransferServiceList"     type="ServiceListType"/>
+        //                 <xs:element name="VASList"                       type="ServiceListType" minOccurs="0"/>
         //             </xs:sequence>
         //         </xs:extension>
         //     </xs:complexContent>
+        // </xs:complexType>
+
+
+        // <xs:complexType name="ServiceListType">
+        //     <xs:sequence>
+        //         <xs:element name="Service" type="ServiceType" maxOccurs="8"/>
+        //     </xs:sequence>
         // </xs:complexType>
 
         #endregion
@@ -206,8 +215,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 if (!JSON.ParseMandatoryHashSet("energyTransferServices",
                                                 "energy transfer services",
-                                                Service_Id.TryParse,
-                                                out HashSet<Service_Id> EnergyTransferServices,
+                                                Service.TryParse,
+                                                out HashSet<Service> EnergyTransferServices,
                                                 out ErrorResponse))
                 {
                     return false;
@@ -219,8 +228,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 if (JSON.ParseOptionalHashSet("valueAddedServices",
                                               "value added services",
-                                              Service_Id.TryParse,
-                                              out HashSet<Service_Id> ValueAddedServices,
+                                              Service.TryParse,
+                                              out HashSet<Service> ValueAddedServices,
                                               out ErrorResponse))
                 {
                     return false;
@@ -254,28 +263,30 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
-        #region ToJSON(CustomServiceDiscoveryResponseSerializer = null, CustomMessageHeaderSerializer = null)
+        #region ToJSON(CustomServiceDiscoveryResponseSerializer = null, CustomMessageHeaderSerializer = null, ...)
 
         /// <summary>
         /// Return a JSON representation of this object.
         /// </summary>
         /// <param name="CustomServiceDiscoveryResponseSerializer">A delegate to serialize custom service discovery responses.</param>
         /// <param name="CustomMessageHeaderSerializer">A delegate to serialize custom message headers.</param>
+        /// <param name="CustomServiceSerializer">A delegate to serialize custom services.</param>
         public JObject ToJSON(CustomJObjectSerializerDelegate<ServiceDiscoveryResponse>?  CustomServiceDiscoveryResponseSerializer   = null,
-                              CustomJObjectSerializerDelegate<MessageHeader>?             CustomMessageHeaderSerializer              = null)
+                              CustomJObjectSerializerDelegate<MessageHeader>?             CustomMessageHeaderSerializer              = null,
+                              CustomJObjectSerializerDelegate<Service>?                   CustomServiceSerializer                    = null)
         {
 
             var json = JSONObject.Create(
 
-                                 new JProperty("messageHeader",                  MessageHeader.ToJSON  (CustomMessageHeaderSerializer)),
-                                 new JProperty("responseCode",                   ResponseCode. AsText  ()),
+                                 new JProperty("messageHeader",                  MessageHeader.ToJSON(CustomMessageHeaderSerializer)),
+                                 new JProperty("responseCode",                   ResponseCode. AsText()),
 
                                  new JProperty("serviceRenegotiationSupported",  ServiceRenegotiationSupported),
 
-                                 new JProperty("energyTransferServices",         new JArray(EnergyTransferServices.Select(energyTransferService => energyTransferService.Value))),
+                                 new JProperty("energyTransferServices",         new JArray(EnergyTransferServices.Select(energyTransferService => energyTransferService.ToJSON(CustomServiceSerializer)))),
 
                            ValueAddedServices.Any()
-                               ? new JProperty("energyTransferServices",         new JArray(ValueAddedServices.    Select(valueAddedService     => valueAddedService.    Value)))
+                               ? new JProperty("energyTransferServices",         new JArray(ValueAddedServices.    Select(valueAddedService     => valueAddedService.    ToJSON(CustomServiceSerializer))))
                                : null
 
                        );

@@ -21,14 +21,87 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class Dynamic_SEResControlModeType : ScheduleExchangeResponse
     {
 
-        public UInt32?                     DepartureTime            { get; }
-        public SByte?                      MinimumSOC               { get; }
-        public SByte?                      TargetSOC                { get; }
+        #region Properties
+
+        public DateTime?               DepartureTime            { get; }
+        public PercentValue?           MinimumSOC               { get; }
+        public PercentValue?           TargetSOC                { get; }
 
 
         // Choose one of the following...
-        public AbsolutePriceScheduleType?  AbsolutePriceSchedule    { get; }
-        public PriceLevelScheduleType?     PriceLevelSchedule       { get; }
+        public AbsolutePriceSchedule?  AbsolutePriceSchedule    { get; }
+        public PriceLevelSchedule?     PriceLevelSchedule       { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        #region (private) Dynamic_SEResControlModeType(DepartureTime, MinimumSOC, TargetSOC, AbsolutePriceSchedule, PriceLevelSchedule)
+
+        private Dynamic_SEResControlModeType(DateTime?               DepartureTime,
+                                             PercentValue?           MinimumSOC,
+                                             PercentValue?           TargetSOC,
+                                             AbsolutePriceSchedule?  AbsolutePriceSchedule,
+                                             PriceLevelSchedule?     PriceLevelSchedule)
+        {
+
+            this.DepartureTime          = DepartureTime;
+            this.MinimumSOC             = MinimumSOC;
+            this.TargetSOC              = TargetSOC;
+            this.AbsolutePriceSchedule  = AbsolutePriceSchedule;
+            this.PriceLevelSchedule     = PriceLevelSchedule;
+
+        }
+
+        #endregion
+
+        #region (public) Dynamic_SEResControlModeType(DepartureTime = null, MinimumSOC = null, TargetSOC = null)
+
+        public Dynamic_SEResControlModeType(DateTime?      DepartureTime   = null,
+                                            PercentValue?  MinimumSOC      = null,
+                                            PercentValue?  TargetSOC       = null)
+        {
+
+            this.DepartureTime  = DepartureTime;
+            this.MinimumSOC     = MinimumSOC;
+            this.TargetSOC      = TargetSOC;
+
+        }
+
+        #endregion
+
+        #region (public) Dynamic_SEResControlModeType(DepartureTime, MinimumSOC, TargetSOC, AbsolutePriceSchedule)
+
+        public Dynamic_SEResControlModeType(AbsolutePriceSchedule  AbsolutePriceSchedule,
+                                            DateTime?              DepartureTime   = null,
+                                            PercentValue?          MinimumSOC      = null,
+                                            PercentValue?          TargetSOC       = null)
+        {
+
+            this.DepartureTime          = DepartureTime;
+            this.MinimumSOC             = MinimumSOC;
+            this.TargetSOC              = TargetSOC;
+            this.AbsolutePriceSchedule  = AbsolutePriceSchedule;
+
+        }
+
+        public Dynamic_SEResControlModeType(PriceLevelSchedule  PriceLevelSchedule,
+                                            DateTime?           DepartureTime   = null,
+                                            PercentValue?       MinimumSOC      = null,
+                                            PercentValue?       TargetSOC       = null)
+        {
+
+            this.DepartureTime          = DepartureTime;
+            this.MinimumSOC             = MinimumSOC;
+            this.TargetSOC              = TargetSOC;
+            this.PriceLevelSchedule     = PriceLevelSchedule;
+
+        }
+
+
+        #endregion
+
+        #endregion
 
 
         #region Documentation

@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PriceRule
+    public class PriceRule : IEquatable<PriceRule>
     {
 
         public RationalNumber   PowerRangeStart                  { get; }

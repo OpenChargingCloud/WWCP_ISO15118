@@ -47,12 +47,15 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         //     <xs:complexContent>
         //         <xs:extension base="v2gci_ct:V2GResponseType">
         //             <xs:sequence>
+        //
         //                 <xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
-        //                 <xs:element name="GoToPause" type="xs:boolean" minOccurs="0"/>
+        //                 <xs:element name="GoToPause"      type="xs:boolean" minOccurs="0"/>
+        //
         //                 <xs:choice>
-        //                     <xs:element name="Dynamic_SEResControlMode" type="Dynamic_SEResControlModeType"/>
+        //                     <xs:element name="Dynamic_SEResControlMode"   type="Dynamic_SEResControlModeType"/>
         //                     <xs:element name="Scheduled_SEResControlMode" type="Scheduled_SEResControlModeType"/>
         //                 </xs:choice>
+        //
         //             </xs:sequence>
         //         </xs:extension>
         //     </xs:complexContent>

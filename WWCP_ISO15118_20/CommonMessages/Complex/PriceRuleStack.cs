@@ -18,18 +18,35 @@
 #region Usings
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Xml.Linq;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class AdditionalServiceType
+    public class PriceRuleStack : IEquatable<PriceRuleStack>
     {
 
-        public String          ServiceName    { get; }
-        public RationalNumber  ServiceFee     { get; }
+        public TimeSpan                Duration      { get; }
+        public IEnumerable<PriceRule>  PriceRules    { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name = "PriceRuleStackType" >
+        //     < xs:sequence>
+        //         <xs:element name = "Duration"  type="xs:unsignedInt"/>
+        //         <xs:element name = "PriceRule" type="PriceRuleType" maxOccurs="8"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

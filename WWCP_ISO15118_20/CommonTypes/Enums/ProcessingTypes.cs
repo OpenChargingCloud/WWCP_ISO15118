@@ -66,7 +66,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Try to parse the given text as a processing type.
         /// </summary>
         /// <param name="Text">A text representation of a processing type.</param>
-        /// <param name="ProcessingType">The parsed processing types.</param>
+        /// <param name="ProcessingType">The parsed processing type.</param>
         public static Boolean TryParse(String Text, out ProcessingTypes ProcessingType)
         {
             switch (Text.Trim())
@@ -111,13 +111,31 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
     }
 
+
+    /// <summary>
+    /// Processing types.
+    /// </summary>
     public enum ProcessingTypes
     {
 
+        /// <summary>
+        /// Unknown processing type.
+        /// </summary>
         Unknown,
 
+        /// <summary>
+        /// Finished
+        /// </summary>
         Finished,
+
+        /// <summary>
+        /// Ongoing
+        /// </summary>
         Ongoing,
+
+        /// <summary>
+        /// Ongoing, but waiting for customer interaction.
+        /// </summary>
         Ongoing_WaitingForCustomerInteraction
 
     }

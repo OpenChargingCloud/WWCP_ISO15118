@@ -23,26 +23,33 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml.Linq;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PriceRuleStack
+    public class OverstayRule : IEquatable<OverstayRule>
     {
 
-        public TimeSpan                Duration      { get; }
-        public IEnumerable<PriceRule>  PriceRules    { get; }
+        public UInt32            StartTime                  { get; }
+
+        public UInt32            OverstayFeePeriod          { get; }
+
+        public RationalNumber    OverstayFee                { get; }
+
+        public DescriptionType?  OverstayRuleDescription    { get; }
+
 
 
         #region Documentation
 
-        // <xs:complexType name = "PriceRuleStackType" >
-        //     < xs:sequence>
-        //         <xs:element name = "Duration"  type="xs:unsignedInt"/>
-        //         <xs:element name = "PriceRule" type="PriceRuleType" maxOccurs="8"/>
+        // <xs:complexType name="OverstayRuleType">
+        //     <xs:sequence>
+        //         <xs:element name="OverstayRuleDescription" type="v2gci_ct:descriptionType" minOccurs="0"/>
+        //         <xs:element name="StartTime"               type="xs:unsignedInt"/>
+        //         <xs:element name="OverstayFee"             type="v2gci_ct:RationalNumberType"/>
+        //         <xs:element name="OverstayFeePeriod"       type="xs:unsignedInt"/>
         //     </xs:sequence>
         // </xs:complexType>
 

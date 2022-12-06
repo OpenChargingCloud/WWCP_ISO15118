@@ -33,7 +33,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     {
 
         public UInt64   TimeAnchor                  { get; }
-        public UInt32   PriceScheduleID             { get; }
+        public UInt32   PriceScheduleId             { get; }
         public String?  PriceScheduleDescription    { get; }
 
     }

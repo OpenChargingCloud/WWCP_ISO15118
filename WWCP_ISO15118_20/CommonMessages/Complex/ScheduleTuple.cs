@@ -29,11 +29,25 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PriceLevelScheduleType
+    public class ScheduleTuple
     {
 
-        public Byte                             NumberOfPriceLevels          { get; }
-        public PriceLevelScheduleEntryListType  PriceLevelScheduleEntries    { get; }
+        public NumericIDType      ScheduleTupleID        { get; }
+        public ChargingSchedule   ChargingSchedule       { get; }
+        public ChargingSchedule?  DischargingSchedule    { get; }
+
+
+        #region Documentation
+
+        // <xs:complexType name="ScheduleTupleType">
+        //     <xs:sequence>
+        //         <xs:element name="ScheduleTupleID"     type="v2gci_ct:numericIDType"/>
+        //         <xs:element name="ChargingSchedule"    type="ChargingScheduleType"/>
+        //         <xs:element name="DischargingSchedule" type="ChargingScheduleType" minOccurs="0"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
 
     }

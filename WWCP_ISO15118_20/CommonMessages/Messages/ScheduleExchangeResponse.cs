@@ -25,7 +25,9 @@ using org.GraphDefined.Vanaheimr.Illias;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public abstract class ScheduleExchangeResponse : AV2GResponse
+    public abstract class ScheduleExchangeResponse : AV2GResponse<ScheduleExchangeRequest,
+                                                                  ScheduleExchangeResponse>,
+                                                     IEquatable<ScheduleExchangeResponse>
     {
 
         [Mandatory]
@@ -35,8 +37,28 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public Boolean?                         GoToPause                     { get; }
 
 
-        public Dynamic_SEResControlModeType?    Dynamic_SEResControlMode      { get; }
-        public Scheduled_SEResControlModeType?  Scheduled_SEResControlMode    { get; }
+        //public Dynamic_SEResControlModeType?    Dynamic_SEResControlMode      { get; }
+        //public Scheduled_SEResControlModeType?  Scheduled_SEResControlMode    { get; }
+
+
+
+        public ScheduleExchangeResponse(ScheduleExchangeRequest  Request,
+                                        MessageHeader            MessageHeader,
+                                        ResponseCodes            ResponseCode,
+
+                                        ProcessingTypes          EVSEProcessing,
+                                        Boolean?                 GoToPause   = null)
+
+            : base(Request,
+                   MessageHeader,
+                   ResponseCode)
+
+        {
+
+            this.EVSEProcessing  = EVSEProcessing;
+            this.GoToPause       = GoToPause;
+
+        }
 
 
         #region Documentation

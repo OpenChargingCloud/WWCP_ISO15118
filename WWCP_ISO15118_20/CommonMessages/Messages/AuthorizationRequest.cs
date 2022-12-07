@@ -441,7 +441,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two abstract authorization requests for equality.
         /// </summary>
         /// <param name="AuthorizationRequest">An abstract authorization request to compare with.</param>
-        public override Boolean Equals(AuthorizationRequest? AuthorizationRequest)
+        public Boolean Equals(AuthorizationRequest? AuthorizationRequest)
 
             => AuthorizationRequest is not null &&
 
@@ -450,7 +450,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                ((this is PnC_AuthorizationRequest pnc && pnc.Equals(AuthorizationRequest)) || true) &&
                ((this is EIM_AuthorizationRequest eim && eim.Equals(AuthorizationRequest)) || true) &&
 
-               base.GenericEquals(AuthorizationRequest);
+               base.Equals(AuthorizationRequest);
 
         #endregion
 

@@ -292,14 +292,14 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two service discovery requests for equality.
         /// </summary>
         /// <param name="ServiceDiscoveryRequest">A service discovery request to compare with.</param>
-        public override Boolean Equals(ServiceDiscoveryRequest? ServiceDiscoveryRequest)
+        public Boolean Equals(ServiceDiscoveryRequest? ServiceDiscoveryRequest)
 
             => ServiceDiscoveryRequest is not null &&
 
                SupportedServiceIds.Count().Equals(ServiceDiscoveryRequest.SupportedServiceIds.Count())                                 &&
                SupportedServiceIds.All(supportedServiceId => ServiceDiscoveryRequest.SupportedServiceIds.Contains(supportedServiceId)) &&
 
-               base.GenericEquals(ServiceDiscoveryRequest);
+               base.Equals(ServiceDiscoveryRequest);
 
         #endregion
 

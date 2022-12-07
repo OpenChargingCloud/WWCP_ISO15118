@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using cloud.charging.open.protocols.ISO15118_20.CommonMessages;
+
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
@@ -22,7 +24,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// An abstract ISO 15118-20 V2G request.
     /// </summary>
     [Obsolete("Use AV2GRequest<TRequest>!")]
-    public abstract class AV2GRequest : AV2GMessage
+    public abstract class AV2GRequest : AV2GMessage,
+                                        IEquatable<AV2GRequest>
     {
 
         #region Constructor(s)
@@ -50,14 +53,64 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
         #endregion
 
+
+        #region IEquatable<AV2GRequest> Members
+
+        #region Equals(Object)
+
+        /// <summary>
+        /// Compare two abstract V2G requests for equality.
+        /// </summary>
+        /// <param name="Object">Another abstract V2G request.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is AV2GRequest aV2GRequest &&
+                   Equals(aV2GRequest);
+
+        #endregion
+
+        #region Equals(AV2GRequest)
+
+        /// <summary>
+        /// Compare two abstract V2G requests for equality.
+        /// </summary>
+        /// <param name="AV2GRequest">Another abstract V2G request.</param>
+        public virtual Boolean Equals(AV2GRequest? AV2GRequest)
+
+            => AV2GRequest is not null &&
+
+               base.Equals(AV2GRequest);
+
+        #endregion
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return base.GetHashCode();
+
+            }
+        }
+
+        #endregion
+
     }
 
 
     /// <summary>
     /// An abstract generic ISO 15118-20 V2G request.
     /// </summary>
-    public abstract class AV2GRequest<TRequest> : AV2GMessage,
-                                                  IEquatable<TRequest>
+    public abstract class AV2GRequest<TV2GRequest> : AV2GMessage,
+                                                     IEquatable<AV2GRequest<TV2GRequest>>
     {
 
         #region Constructor(s)
@@ -75,26 +128,34 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #endregion
 
 
-        #region IEquatable<TRequest> Members
+        #region IEquatable<AV2GRequest<TV2GRequest>> Members
+
+        #region Equals(Object)
 
         /// <summary>
-        /// Compare two abstract generic requests for equality.
+        /// Compare two abstract generic V2G requests for equality.
         /// </summary>
-        /// <param name="TRequest">Another abstract generic request.</param>
-        public abstract Boolean Equals(TRequest? TRequest);
+        /// <param name="Object">Another abstract generic V2G request.</param>
+        public override Boolean Equals(Object? Object)
+
+            => Object is AV2GRequest<TV2GRequest> aV2GRequest &&
+                   Equals(aV2GRequest);
 
         #endregion
 
-        #region GenericEquals(ARequest)
+        #region Equals(AV2GRequest)
 
         /// <summary>
-        /// Compare two abstract generic requests for equality.
+        /// Compare two abstract generic V2G requests for equality.
         /// </summary>
-        /// <param name="ARequest">Another abstract generic request.</param>
-        public Boolean GenericEquals(AV2GRequest<TRequest>? ARequest)
+        /// <param name="AV2GRequest">Another abstract generic V2G request.</param>
+        public virtual Boolean Equals(AV2GRequest<TV2GRequest>? AV2GRequest)
 
-            => ARequest is not null &&
-                   base.Equals(ARequest);
+            => AV2GRequest is not null &&
+
+               base.Equals(AV2GRequest);
+
+        #endregion
 
         #endregion
 

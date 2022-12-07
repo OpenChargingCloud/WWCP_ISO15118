@@ -289,13 +289,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two session setup requests for equality.
         /// </summary>
         /// <param name="SessionSetupRequest">A session setup request to compare with.</param>
-        public override Boolean Equals(SessionSetupRequest? SessionSetupRequest)
+        public Boolean Equals(SessionSetupRequest? SessionSetupRequest)
 
             => SessionSetupRequest is not null &&
 
-               EVCCId.     Equals(SessionSetupRequest.EVCCId) &&
+               EVCCId.Equals(SessionSetupRequest.EVCCId) &&
 
-               base.GenericEquals(SessionSetupRequest);
+               base.  Equals(SessionSetupRequest);
 
         #endregion
 

@@ -29,7 +29,8 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class Scheduled_SEResControlModeType : ScheduleExchangeResponse
+    public class Scheduled_SEResControlModeType : ScheduleExchangeResponse,
+                                                  IEquatable<Scheduled_SEResControlModeType>
     {
 
         public IEnumerable<ScheduleTuple>  ScheduleTuples    { get; }

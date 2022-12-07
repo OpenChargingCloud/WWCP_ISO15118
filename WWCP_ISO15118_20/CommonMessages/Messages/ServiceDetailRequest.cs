@@ -289,13 +289,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two service detail requests for equality.
         /// </summary>
         /// <param name="ServiceDetailRequest">A service detail request to compare with.</param>
-        public override Boolean Equals(ServiceDetailRequest? ServiceDetailRequest)
+        public Boolean Equals(ServiceDetailRequest? ServiceDetailRequest)
 
             => ServiceDetailRequest is not null &&
 
-               ServiceId.  Equals(ServiceDetailRequest.ServiceId) &&
+               ServiceId.Equals(ServiceDetailRequest.ServiceId) &&
 
-               base.GenericEquals(ServiceDetailRequest);
+               base.     Equals(ServiceDetailRequest);
 
         #endregion
 

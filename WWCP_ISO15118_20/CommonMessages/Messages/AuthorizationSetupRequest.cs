@@ -254,11 +254,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two authorization setup requests for equality.
         /// </summary>
         /// <param name="AuthorizationSetupRequest">An authorization setup request to compare with.</param>
-        public override Boolean Equals(AuthorizationSetupRequest? AuthorizationSetupRequest)
+        public Boolean Equals(AuthorizationSetupRequest? AuthorizationSetupRequest)
 
             => AuthorizationSetupRequest is not null &&
 
-               base.GenericEquals(AuthorizationSetupRequest);
+               base.Equals(AuthorizationSetupRequest);
 
         #endregion
 

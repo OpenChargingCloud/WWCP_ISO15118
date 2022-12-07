@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// <summary>
     /// An abstract ISO 15118-20 V2G message.
     /// </summary>
-    public abstract class AV2GMessage
+    public abstract class AV2GMessage : IEquatable<AV2GMessage>
     {
 
         #region Properties
@@ -51,6 +51,39 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
             this.MessageHeader = MessageHeader;
 
+        }
+
+        #endregion
+
+
+        #region IEquatable<AV2GMessage> Members
+
+        /// <summary>
+        /// Compare two abstract V2G messages for equality.
+        /// </summary>
+        /// <param name="AV2GMessage">An abstract V2G message.</param>
+        public Boolean Equals(AV2GMessage? AV2GMessage)
+
+            => AV2GMessage is not null &&
+
+               MessageHeader.Equals(AV2GMessage.MessageHeader);
+
+        #endregion
+
+        #region (override) GetHashCode()
+
+        /// <summary>
+        /// Return the HashCode of this object.
+        /// </summary>
+        /// <returns>The HashCode of this object.</returns>
+        public override Int32 GetHashCode()
+        {
+            unchecked
+            {
+
+                return MessageHeader.GetHashCode();
+
+            }
         }
 
         #endregion

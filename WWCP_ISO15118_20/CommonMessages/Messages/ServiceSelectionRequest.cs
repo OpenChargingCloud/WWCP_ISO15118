@@ -318,7 +318,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two service selection requests for equality.
         /// </summary>
         /// <param name="ServiceSelectionRequest">A service selection request to compare with.</param>
-        public override Boolean Equals(ServiceSelectionRequest? ServiceSelectionRequest)
+        public Boolean Equals(ServiceSelectionRequest? ServiceSelectionRequest)
 
             => ServiceSelectionRequest is not null &&
 
@@ -327,7 +327,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                SelectedValueAddedServices.Count().Equals(ServiceSelectionRequest.SelectedValueAddedServices.Count())                                               &&
                SelectedValueAddedServices.All(selectedValueAddedService => ServiceSelectionRequest.SelectedValueAddedServices.Contains(selectedValueAddedService)) &&
 
-               base.                  GenericEquals(ServiceSelectionRequest);
+               base.Equals(ServiceSelectionRequest);
 
         #endregion
 

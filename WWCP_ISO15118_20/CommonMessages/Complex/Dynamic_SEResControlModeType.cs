@@ -18,7 +18,8 @@
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class Dynamic_SEResControlModeType : ScheduleExchangeResponse
+    public class Dynamic_SEResControlModeType : ScheduleExchangeResponse,
+                                                IEquatable<Dynamic_SEResControlModeType>
     {
 
         #region Properties

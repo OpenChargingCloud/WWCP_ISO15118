@@ -29,14 +29,14 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class VehicleCheckInRequest : AV2GRequest
+    public class VehicleCheckInRequest : ARequest
     {
 
-        public EvCheckInStatusTypes  EVCheckInStatus    { get; }
-        public ParkingMethodTypes    ParkingMethod      { get; }
-        public Int16?                VehicleFrame       { get; }
-        public Int16?                DeviceOffset       { get; }
-        public Int16?                VehicleTravel      { get; }
+        public EVCheckInStatus  EVCheckInStatus    { get; }
+        public ParkingMethods   ParkingMethod      { get; }
+        public Int16?           VehicleFrame       { get; }
+        public Int16?           DeviceOffset       { get; }
+        public Int16?           VehicleTravel      { get; }
 
     }
 

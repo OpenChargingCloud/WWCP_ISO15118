@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.DCP
 {
 
-    public class ACDP_SystemStatusRequest : AV2GRequest
+    public class ACDP_SystemStatusRequest : ARequest
     {
 
         public EVTechnicalStatusType  EVTechnicalStatus    { get; }

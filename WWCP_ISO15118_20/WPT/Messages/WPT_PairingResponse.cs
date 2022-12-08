@@ -24,7 +24,7 @@ using System.Collections.ObjectModel;
 
 namespace cloud.charging.open.protocols.ISO15118_20.WPT
 {
-    public class WPT_PairingResponse : AV2GResponse
+    public class WPT_PairingResponse : AResponse
     {
         public ProcessingTypes           EVSEProcessing                 { get; }
         public UInt32?                   ObservedIDCode                 { get; }

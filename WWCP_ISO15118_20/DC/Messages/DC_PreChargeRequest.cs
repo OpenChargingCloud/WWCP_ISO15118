@@ -24,12 +24,12 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.DC
 {
 
-    public class DC_PreChargeRequest : AV2GRequest
+    public class DC_PreChargeRequest : ARequest
     {
 
-        public ProcessingTypes     EVProcessing        { get; }
-        public RationalNumber  EVPresentVoltage    { get; }
-        public RationalNumber  EVTargetVoltage     { get; }
+        public ProcessingTypes  EVProcessing        { get; }
+        public RationalNumber   EVPresentVoltage    { get; }
+        public RationalNumber   EVTargetVoltage     { get; }
 
 
     }

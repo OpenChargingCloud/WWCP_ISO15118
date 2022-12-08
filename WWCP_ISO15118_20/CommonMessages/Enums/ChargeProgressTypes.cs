@@ -18,6 +18,105 @@
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
+    /// <summary>
+    /// Extensions methods for charge progress types.
+    /// </summary>
+    public static class ChargeProgressTypesExtensions
+    {
+
+        #region Parse   (Text)
+
+        /// <summary>
+        /// Parse the given text as a charge progress type.
+        /// </summary>
+        /// <param name="Text">A text representation of a charge progress type.</param>
+        public static ChargeProgressTypes Parse(String Text)
+        {
+
+            if (TryParse(Text, out var type))
+                return type;
+
+            return ChargeProgressTypes.Unknown;
+
+        }
+
+        #endregion
+
+        #region TryParse(Text)
+
+        /// <summary>
+        /// Try to parse the given text as a charge progress type.
+        /// </summary>
+        /// <param name="Text">A text representation of a charge progress type.</param>
+        public static ChargeProgressTypes? TryParse(String Text)
+        {
+
+            if (TryParse(Text, out var type))
+                return type;
+
+            return null;
+
+        }
+
+        #endregion
+
+        #region TryParse(Text, out ChargingSessionType)
+
+        /// <summary>
+        /// Try to parse the given text as a charge progress type.
+        /// </summary>
+        /// <param name="Text">A text representation of a charge progress type.</param>
+        /// <param name="ChargingSessionType">The parsed charge progress type.</param>
+        public static Boolean TryParse(String Text, out ChargeProgressTypes ChargingSessionType)
+        {
+            switch (Text.Trim())
+            {
+
+                case "Start":
+                    ChargingSessionType = ChargeProgressTypes.Start;
+                    return true;
+
+                case "Stop":
+                    ChargingSessionType = ChargeProgressTypes.Stop;
+                    return true;
+
+                case "Standby":
+                    ChargingSessionType = ChargeProgressTypes.Standby;
+                    return true;
+
+                case "ScheduleRenegotiation":
+                    ChargingSessionType = ChargeProgressTypes.ScheduleRenegotiation;
+                    return true;
+
+                default:
+                    ChargingSessionType = ChargeProgressTypes.Unknown;
+                    return false;
+
+            }
+        }
+
+        #endregion
+
+        #region AsText  (this ChargingSessionType)
+
+        public static String AsText(this ChargeProgressTypes ChargingSessionType)
+
+            => ChargingSessionType switch {
+
+                   ChargeProgressTypes.Start                  => "Start",
+                   ChargeProgressTypes.Stop                   => "Stop",
+                   ChargeProgressTypes.Standby                => "Standby",
+                   ChargeProgressTypes.ScheduleRenegotiation  => "ScheduleRenegotiation",
+
+                   _                                          => "Unknown"
+
+               };
+
+        #endregion
+
+    }
+
+
     #region Documentation
 
     // <xs:simpleType name="chargeProgressType">
@@ -31,8 +130,17 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
     #endregion
 
+
+    /// <summary>
+    /// Charge progress types.
+    /// </summary>
     public enum ChargeProgressTypes
     {
+
+        /// <summary>
+        /// Unknown charge progress type.
+        /// </summary>
+        Unknown,
 
         /// <summary>
         /// Start charging.

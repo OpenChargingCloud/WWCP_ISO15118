@@ -18,16 +18,67 @@
 #region Usings
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public abstract class MeteringConfirmationRequest : AV2GRequest
+    /// <summary>
+    /// The metering confirmation request.
+    /// </summary>
+    public class MeteringConfirmationRequest : ARequest<MeteringConfirmationRequest>
     {
 
+        #region Properties
+
+        /// <summary>
+        /// Signed metering data.
+        /// </summary>
+        [Mandatory]
         public SignedMeteringDataType  SignedMeteringData    { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new service detail request.
+        /// </summary>
+        /// <param name="MessageHeader">A message header.</param>
+        /// <param name="SignedMeteringData">Signed metering data.</param>
+        public MeteringConfirmationRequest(MessageHeader           MessageHeader,
+                                           SignedMeteringDataType  SignedMeteringData)
+
+            : base(MessageHeader)
+
+        {
+
+            this.SignedMeteringData = SignedMeteringData;
+
+        }
+
+        #endregion
+
+
+        #region Documentation
+
+        // <xs:element name="MeteringConfirmationReq" type="MeteringConfirmationReqType"/>
+        //
+        // <xs:complexType name="MeteringConfirmationReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="SignedMeteringData" type="SignedMeteringDataType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
+
 
     }
 

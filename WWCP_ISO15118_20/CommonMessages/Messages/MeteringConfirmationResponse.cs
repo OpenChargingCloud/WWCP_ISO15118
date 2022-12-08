@@ -29,9 +29,21 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public abstract class MeteringConfirmationResponse : AV2GResponse
+    public class MeteringConfirmationResponse : AResponse
     {
 
+
+        #region Documentation
+
+        // <xs:element name="MeteringConfirmationRes" type="MeteringConfirmationResType"/>
+        //
+        // <xs:complexType name="MeteringConfirmationResType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GResponseType"/>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

@@ -31,8 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The service detail response.
     /// </summary>
-    public class ServiceDetailResponse : AV2GResponse<ServiceDetailRequest,
-                                                      ServiceDetailResponse>
+    public class ServiceDetailResponse : AResponse<ServiceDetailRequest,
+                                                   ServiceDetailResponse>
     {
 
         #region Properties

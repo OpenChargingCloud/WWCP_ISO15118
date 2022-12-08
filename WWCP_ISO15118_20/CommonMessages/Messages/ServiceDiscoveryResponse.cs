@@ -31,8 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The service discovery response.
     /// </summary>
-    public class ServiceDiscoveryResponse : AV2GResponse<ServiceDiscoveryRequest,
-                                                         ServiceDiscoveryResponse>
+    public class ServiceDiscoveryResponse : AResponse<ServiceDiscoveryRequest,
+                                                      ServiceDiscoveryResponse>
     {
 
         #region Properties

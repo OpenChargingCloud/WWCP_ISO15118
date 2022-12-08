@@ -31,8 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The authorization setup response.
     /// </summary>
-    public abstract class AuthorizationSetupResponse : AV2GResponse<AuthorizationSetupRequest,
-                                                                    AuthorizationSetupResponse>
+    public abstract class AuthorizationSetupResponse : AResponse<AuthorizationSetupRequest,
+                                                                 AuthorizationSetupResponse>
     {
 
         #region Properties

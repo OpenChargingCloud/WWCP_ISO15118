@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.DCP
 {
 
-    public class ACDP_SystemStatusResponse : AV2GResponse
+    public class ACDP_SystemStatusResponse : AResponse
     {
 
         public MechanicalChargingDeviceStatusTypes  EVSEMechanicalChargingDeviceStatus    { get; }

@@ -31,7 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The absolute price schedule.
     /// </summary>
-    public class AbsolutePriceSchedule
+    public class AbsolutePriceSchedule : PriceSchedule,
+                                         IEquatable<AbsolutePriceSchedule>
     {
 
         #region Properties
@@ -106,26 +107,38 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Create a new absolute price schedule.
         /// </summary>
         /// <param name="Id">An unique identification of the absolute price schedule.</param>
+        /// <param name="TimeAnchor">A time anchor of the price schedule.</param>
+        /// <param name="PriceScheduleId">An unique identification of the price schedule.</param>
         /// <param name="Currency">The currency used.</param>
         /// <param name="Language">The language spoken.</param>
         /// <param name="PriceAlgorithmId">An unique identification of the price algorithm.</param>
         /// <param name="PriceRuleStacks">An enumeration of price rule stacks [max 1024].</param>
+        /// 
+        /// <param name="Description">An optional description of the price schedule.</param>
         /// <param name="MinimumCost">An optional minimum cost.</param>
         /// <param name="MaximumCost">An optional maximum cost.</param>
         /// <param name="TaxRules">An optional enumeration of tax rules [max 10].</param>
         /// <param name="OverstayRules">An optional overstay rules list.</param>
         /// <param name="AdditionalSelectedServices">An optional enumeration of additional selected services.</param>
         public AbsolutePriceSchedule(AbsolutePriceSchedule_Id         Id,
+                                     DateTime                         TimeAnchor,
+                                     PriceSchedule_Id                 PriceScheduleId,
                                      Currency                         Currency,
                                      String                           Language,
                                      PriceAlgorithm_Id                PriceAlgorithmId,
                                      IEnumerable<PriceRuleStack>      PriceRuleStacks,
 
+                                     Description?                     Description                  = null,
                                      RationalNumber?                  MinimumCost                  = null,
                                      RationalNumber?                  MaximumCost                  = null,
                                      IEnumerable<TaxRule>?            TaxRules                     = null,
                                      OverstayRuleList?                OverstayRules                = null,
                                      IEnumerable<AdditionalService>?  AdditionalSelectedServices   = null)
+
+            : base(TimeAnchor,
+                   PriceScheduleId,
+                   Description)
+
         {
 
             this.Id                          = Id;
@@ -266,6 +279,31 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 #endregion
 
+                #region TimeAnchor                     [mandatory]
+
+                if (!JSON.ParseMandatory("timeAnchor",
+                                         "time anchor",
+                                         out DateTime TimeAnchor,
+                                         out ErrorResponse))
+                {
+                    return false;
+                }
+
+                #endregion
+
+                #region PriceScheduleId                [mandatory]
+
+                if (!JSON.ParseMandatory("priceScheduleId",
+                                         "price schedule identification",
+                                         PriceSchedule_Id.TryParse,
+                                         out PriceSchedule_Id PriceScheduleId,
+                                         out ErrorResponse))
+                {
+                    return false;
+                }
+
+                #endregion
+
                 #region Currency                       [mandatory]
 
                 if (!JSON.ParseMandatory("currency",
@@ -313,6 +351,21 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                                                 out ErrorResponse))
                 {
                     return false;
+                }
+
+                #endregion
+
+
+                #region Description                    [optional]
+
+                if (JSON.ParseOptional("description",
+                                       "price schedule description",
+                                       CommonTypes.Description.TryParse,
+                                       out Description? Description,
+                                       out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
                 }
 
                 #endregion
@@ -389,10 +442,14 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
 
                 AbsolutePriceSchedule = new AbsolutePriceSchedule(Id,
+                                                                  TimeAnchor,
+                                                                  PriceScheduleId,
                                                                   Currency,
                                                                   Language,
                                                                   PriceAlgorithmId,
                                                                   PriceRuleStacks,
+
+                                                                  Description,
                                                                   MinimumCost,
                                                                   MaximumCost,
                                                                   TaxRules,
@@ -443,12 +500,18 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             var json = JSONObject.Create(
 
                                  new JProperty("id",                          Id.              ToString()),
+                                 new JProperty("timeAnchor",                  TimeAnchor.      ToIso8601()),
+                                 new JProperty("priceScheduleId",             PriceScheduleId. ToString()),
                                  new JProperty("currency",                    Currency.ISOCode),
                                  new JProperty("language",                    Language),
                                  new JProperty("priceAlgorithmId",            PriceAlgorithmId.ToString()),
                                  new JProperty("priceRuleStacks",             new JArray(PriceRuleStacks.           Select(priceRuleStack    => priceRuleStack.   ToJSON(CustomPriceRuleStackSerializer,
                                                                                                                                                                          CustomPriceRuleSerializer,
                                                                                                                                                                          CustomRationalNumberSerializer)))),
+
+                           Description.HasValue
+                               ? new JProperty("description",                 Description.     Value)
+                               : null,
 
                            MinimumCost is not null
                                ? new JProperty("minimumCost",                 MinimumCost.     ToJSON(CustomRationalNumberSerializer))
@@ -576,7 +639,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
               (OverstayRules is not null && AbsolutePriceSchedule.OverstayRules is not null && OverstayRules.Equals(AbsolutePriceSchedule.OverstayRules))) &&
 
                AdditionalSelectedServices.Count().Equals(AbsolutePriceSchedule.AdditionalSelectedServices.Count()) &&
-               AdditionalSelectedServices.All(subCertificate => AbsolutePriceSchedule.AdditionalSelectedServices.Contains(subCertificate));
+               AdditionalSelectedServices.All(subCertificate => AbsolutePriceSchedule.AdditionalSelectedServices.Contains(subCertificate)) &&
+
+               base.            Equals(AbsolutePriceSchedule);
 
         #endregion
 
@@ -603,7 +668,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                       (MaximumCost?.               GetHashCode()  ?? 0) * 11 ^
                       (TaxRules?.                  CalcHashCode() ?? 0) *  7 ^
                       (OverstayRules?.             GetHashCode()  ?? 0) *  5 ^
-                      (AdditionalSelectedServices?.CalcHashCode() ?? 0) *  3;
+                      (AdditionalSelectedServices?.CalcHashCode() ?? 0) *  3 ^
+
+                       base.                       GetHashCode();
 
             }
         }
@@ -620,6 +687,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             => String.Concat(
 
                    Id,                      ", ",
+                   base.ToString(),         ", ",
                    Currency,                ", ",
                    Language,                ", ",
                    PriceAlgorithmId,        ", ",

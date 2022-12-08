@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The service selection request.
     /// </summary>
-    public class ServiceSelectionRequest : AV2GRequest<ServiceSelectionRequest>
+    public class ServiceSelectionRequest : ARequest<ServiceSelectionRequest>
     {
 
         #region Properties
@@ -175,11 +175,14 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("selectedEnergyTransferService",
                                              "service identification",
                                              SelectedService.TryParse,
-                                             out SelectedService SelectedEnergyTransferService,
+                                             out SelectedService? SelectedEnergyTransferService,
                                              out ErrorResponse))
                 {
                     return false;
                 }
+
+                if (SelectedEnergyTransferService is null)
+                    return false;
 
                 #endregion
 
@@ -318,7 +321,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two service selection requests for equality.
         /// </summary>
         /// <param name="ServiceSelectionRequest">A service selection request to compare with.</param>
-        public Boolean Equals(ServiceSelectionRequest? ServiceSelectionRequest)
+        public override Boolean Equals(ServiceSelectionRequest? ServiceSelectionRequest)
 
             => ServiceSelectionRequest is not null &&
 

@@ -22,7 +22,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// An abstract response message.
     /// </summary>
     [Obsolete("Use AV2GResponse<TRequest, TResponse>!")]
-    public abstract class AV2GResponse : AV2GMessage
+    public abstract class AResponse : AMessage
     {
 
         #region Properties
@@ -39,7 +39,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <summary>
         /// Create a new abstract response message.
         /// </summary>
-        public AV2GResponse()
+        public AResponse()
 
             : base(new MessageHeader(Session_Id.NewRandom(),
                                      DateTime.UtcNow))
@@ -52,7 +52,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// </summary>
         /// <param name="MessageHeader">A message header.</param>
         /// <param name="ResponseCode">A message response code.</param>
-        public AV2GResponse(MessageHeader      MessageHeader,
+        public AResponse(MessageHeader      MessageHeader,
                             ResponseCodes  ResponseCode)
 
             : base(MessageHeader)
@@ -72,10 +72,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// <summary>
     /// An abstract generic ISO 15118-20 V2G response.
     /// </summary>
-    public abstract class AV2GResponse<TRequest, TResponse> : AV2GResponse<TResponse>
+    public abstract class AResponse<TRequest, TResponse> : AResponse<TResponse>
 
-        where TRequest  : class//, IRequest
-        where TResponse : class//, IResponse
+        where TRequest  : class, IRequest <TRequest>
+        where TResponse : class, IResponse<TResponse>
 
     {
 
@@ -101,7 +101,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="Request">The ISO 15118-20 V2G request leading to this result.</param>
         /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
         /// <param name="ResponseCode">A message response code.</param>
-        public AV2GResponse(TRequest           Request,
+        public AResponse(TRequest           Request,
                             MessageHeader      MessageHeader,
                             ResponseCodes  ResponseCode)
 
@@ -124,7 +124,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Compares two abstract generic responses for equality.
         /// </summary>
         /// <param name="AV2GResponse">An abstract generic response to compare with.</param>
-        public Boolean GenericEquals(AV2GResponse<TRequest, TResponse> AV2GResponse)
+        public Boolean GenericEquals(AResponse<TRequest, TResponse> AV2GResponse)
 
             => AV2GResponse is not null &&
 
@@ -166,10 +166,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// <summary>
     /// An abstract generic ISO 15118-20 V2G response.
     /// </summary>
-    public abstract class AV2GResponse<TResponse> : AV2GMessage,
-                                                    IEquatable<TResponse>
+    public abstract class AResponse<TResponse> : AMessage,
+                                                 IResponse<TResponse>
 
-        where TResponse : class//, IResponse
+        where TResponse : class, IResponse<TResponse>
 
     {
 
@@ -189,7 +189,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// </summary>
         /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
         /// <param name="ResponseCode">A message response code.</param>
-        public AV2GResponse(MessageHeader      MessageHeader,
+        public AResponse(MessageHeader      MessageHeader,
                             ResponseCodes  ResponseCode)
 
             : base(MessageHeader)
@@ -213,8 +213,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="AV2GResponse1">A response.</param>
         /// <param name="AV2GResponse2">Another response.</param>
         /// <returns>True if both match; False otherwise.</returns>
-        public static Boolean operator == (AV2GResponse<TResponse>? AV2GResponse1,
-                                           AV2GResponse<TResponse>? AV2GResponse2)
+        public static Boolean operator == (AResponse<TResponse>? AV2GResponse1,
+                                           AResponse<TResponse>? AV2GResponse2)
         {
 
             // If both are null, or both are same instance, return true.
@@ -239,8 +239,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="AV2GResponse1">A response.</param>
         /// <param name="AV2GResponse2">Another response.</param>
         /// <returns>False if both match; True otherwise.</returns>
-        public static Boolean operator != (AV2GResponse<TResponse>? AV2GResponse1,
-                                           AV2GResponse<TResponse>? AV2GResponse2)
+        public static Boolean operator != (AResponse<TResponse>? AV2GResponse1,
+                                           AResponse<TResponse>? AV2GResponse2)
 
             => !(AV2GResponse1 == AV2GResponse2);
 
@@ -258,7 +258,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="Object">An abstract generic response to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is AV2GResponse<TResponse> aResponse &&
+            => Object is AResponse<TResponse> aResponse &&
                    Equals(aResponse);
 
         #endregion
@@ -269,7 +269,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Compares two abstract generic responses for equality.
         /// </summary>
         /// <param name="AV2GResponse">An abstract generic response to compare with.</param>
-        public Boolean BaseGenericEquals(AV2GResponse<TResponse> AV2GResponse)
+        public Boolean BaseGenericEquals(AResponse<TResponse> AV2GResponse)
 
             => AV2GResponse is not null &&
 

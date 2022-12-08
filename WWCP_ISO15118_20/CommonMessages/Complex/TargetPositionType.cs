@@ -29,11 +29,35 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class TargetPositionType
+    /// <summary>
+    /// Target positions
+    /// </summary>
+    public class TargetPositions
     {
+
+        //Note: No references found!
+
+
+        #region Properties
 
         public UInt16  TargetOffsetX    { get; }
         public UInt16  TargetOffsetY    { get; }
+
+        #endregion
+
+
+
+        #region Documentation
+
+        // <xs:complexType name="TargetPositionType">
+        //     <xs:sequence>
+        //         <xs:element name="TargetOffsetX" type="xs:unsignedShort"/>
+        //         <xs:element name="TargetOffsetY" type="xs:unsignedShort"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
+
 
     }
 

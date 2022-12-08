@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// <summary>
     /// An abstract ISO 15118-20 V2G message.
     /// </summary>
-    public abstract class AV2GMessage : IEquatable<AV2GMessage>
+    public abstract class AMessage : IEquatable<AMessage>
     {
 
         #region Properties
@@ -46,7 +46,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Create a new abstract ISO 15118-20 V2G message.
         /// </summary>
         /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
-        public AV2GMessage(MessageHeader MessageHeader)
+        public AMessage(MessageHeader MessageHeader)
         {
 
             this.MessageHeader = MessageHeader;
@@ -56,17 +56,34 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #endregion
 
 
-        #region IEquatable<AV2GMessage> Members
+        #region IEquatable<AMessage> Members
+
+        #region Equals(Object)
 
         /// <summary>
         /// Compare two abstract V2G messages for equality.
         /// </summary>
-        /// <param name="AV2GMessage">An abstract V2G message.</param>
-        public Boolean Equals(AV2GMessage? AV2GMessage)
+        /// <param name="Object">Another abstract V2G message.</param>
+        public override Boolean Equals(Object? Object)
 
-            => AV2GMessage is not null &&
+            => Object is AMessage aMessage &&
+                   Equals(aMessage);
 
-               MessageHeader.Equals(AV2GMessage.MessageHeader);
+        #endregion
+
+        #region Equals(AMessage)
+
+        /// <summary>
+        /// Compare two abstract V2G messages for equality.
+        /// </summary>
+        /// <param name="AMessage">Another abstract V2G message.</param>
+        public virtual Boolean Equals(AMessage? AMessage)
+
+            => AMessage is not null &&
+
+               MessageHeader.Equals(AMessage.MessageHeader);
+
+        #endregion
 
         #endregion
 

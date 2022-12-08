@@ -160,7 +160,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryHashSet("overstayRules",
                                                 "sub certificates",
                                                 OverstayRule.TryParse,
-                                                out HashSet<OverstayRule>? OverstayRules,
+                                                out HashSet<OverstayRule> OverstayRules,
                                                 out ErrorResponse))
                 {
                     return false;

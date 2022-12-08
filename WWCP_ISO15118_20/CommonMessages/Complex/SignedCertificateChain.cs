@@ -187,7 +187,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (JSON.ParseOptionalHashSet("subCertificates",
                                                "sub certificates",
                                                CommonMessages.Certificate.TryParse,
-                                               out HashSet<Certificate>? SubCertificates,
+                                               out HashSet<Certificate> SubCertificates,
                                                out ErrorResponse))
                 {
                     if (ErrorResponse is not null)

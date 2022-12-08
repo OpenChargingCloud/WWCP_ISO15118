@@ -21,6 +21,8 @@ using Newtonsoft.Json.Linq;
 
 using org.GraphDefined.Vanaheimr.Illias;
 
+using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
@@ -29,7 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The price level schedule.
     /// </summary>
-    public class PriceLevelSchedule : IEquatable<PriceLevelSchedule>
+    public class PriceLevelSchedule : PriceSchedule,
+                                      IEquatable<PriceLevelSchedule>
     {
 
         #region Properties
@@ -60,11 +63,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Create a new price level schedule.
         /// </summary>
         /// <param name="Id">An unique identification for the price level schedule.</param>
+        /// <param name="TimeAnchor">A time anchor of the price schedule.</param>
+        /// <param name="PriceScheduleId">An unique identification of the price schedule.</param>
         /// <param name="NumberOfPriceLevels">The number of prive levels.</param>
         /// <param name="PriceLevelScheduleEntries">An enumeration of sub certificates [max 3].</param>
+        /// <param name="Description">An optional description of the price schedule.</param>
         public PriceLevelSchedule(PriceLevelSchedule_Id                 Id,
+                                  DateTime                              TimeAnchor,
+                                  PriceSchedule_Id                      PriceScheduleId,
                                   Byte                                  NumberOfPriceLevels,
-                                  IEnumerable<PriceLevelScheduleEntry>  PriceLevelScheduleEntries)
+                                  IEnumerable<PriceLevelScheduleEntry>  PriceLevelScheduleEntries,
+                                  Description?                          Description   = null)
+
+            : base(TimeAnchor,
+                   PriceScheduleId,
+                   Description)
+
         {
 
             this.Id                         = Id;
@@ -176,6 +190,31 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 #endregion
 
+                #region TimeAnchor                   [mandatory]
+
+                if (!JSON.ParseMandatory("timeAnchor",
+                                         "time anchor",
+                                         out DateTime TimeAnchor,
+                                         out ErrorResponse))
+                {
+                    return false;
+                }
+
+                #endregion
+
+                #region PriceScheduleId              [mandatory]
+
+                if (!JSON.ParseMandatory("priceScheduleId",
+                                         "price schedule identification",
+                                         PriceSchedule_Id.TryParse,
+                                         out PriceSchedule_Id PriceScheduleId,
+                                         out ErrorResponse))
+                {
+                    return false;
+                }
+
+                #endregion
+
                 #region NumberOfPriceLevels          [mandatory]
 
                 if (!JSON.ParseMandatory("numberOfPriceLevels",
@@ -193,7 +232,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryHashSet("priceLevelScheduleEntries",
                                                 "price level schedule entries",
                                                 PriceLevelScheduleEntry.TryParse,
-                                                out HashSet<PriceLevelScheduleEntry>? PriceLevelScheduleEntries,
+                                                out HashSet<PriceLevelScheduleEntry> PriceLevelScheduleEntries,
                                                 out ErrorResponse))
                 {
                     return false;
@@ -201,10 +240,27 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 #endregion
 
+                #region Description                  [optional]
+
+                if (JSON.ParseOptional("description",
+                                       "price schedule description",
+                                       CommonTypes.Description.TryParse,
+                                       out Description? Description,
+                                       out ErrorResponse))
+                {
+                    if (ErrorResponse is not null)
+                        return false;
+                }
+
+                #endregion
+
 
                 PriceLevelSchedule = new PriceLevelSchedule(Id,
+                                                            TimeAnchor,
+                                                            PriceScheduleId,
                                                             NumberOfPriceLevels,
-                                                            PriceLevelScheduleEntries);
+                                                            PriceLevelScheduleEntries,
+                                                            Description);
 
                 if (CustomPriceLevelScheduleParser is not null)
                     PriceLevelSchedule = CustomPriceLevelScheduleParser(JSON,
@@ -237,9 +293,15 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                           new JProperty("id",                         Id.ToString()),
-                           new JProperty("numberOfPriceLevels",        NumberOfPriceLevels),
-                           new JProperty("priceLevelScheduleEntries",  new JArray(PriceLevelScheduleEntries.Select(priceLevelScheduleEntry => priceLevelScheduleEntry.ToJSON(CustomPriceLevelScheduleEntrySerializer))))
+                                 new JProperty("id",                         Id.             ToString()),
+                                 new JProperty("timeAnchor",                 TimeAnchor.     ToIso8601()),
+                                 new JProperty("priceScheduleId",            PriceScheduleId.ToString()),
+                                 new JProperty("numberOfPriceLevels",        NumberOfPriceLevels),
+                                 new JProperty("priceLevelScheduleEntries",  new JArray(PriceLevelScheduleEntries.Select(priceLevelScheduleEntry => priceLevelScheduleEntry.ToJSON(CustomPriceLevelScheduleEntrySerializer)))),
+
+                           Description.HasValue
+                               ? new JProperty("description",                Description.    Value)
+                               : null
 
                        );
 
@@ -326,7 +388,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                NumberOfPriceLevels.Equals(PriceLevelSchedule.NumberOfPriceLevels) &&
 
                PriceLevelScheduleEntries.Count().Equals(PriceLevelSchedule.PriceLevelScheduleEntries.Count()) &&
-               PriceLevelScheduleEntries.All(priceLevelScheduleEntry => PriceLevelSchedule.PriceLevelScheduleEntries.Contains(priceLevelScheduleEntry));
+               PriceLevelScheduleEntries.All(priceLevelScheduleEntry => PriceLevelSchedule.PriceLevelScheduleEntries.Contains(priceLevelScheduleEntry)) &&
+
+               base.               Equals(PriceLevelSchedule);
 
         #endregion
 

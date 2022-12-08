@@ -31,8 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The abstract schedule exchange request.
     /// </summary>
-    public abstract class ScheduleExchangeRequest : AV2GRequest<ScheduleExchangeRequest>,
-                                                    IEquatable<ScheduleExchangeRequest>
+    public abstract class ScheduleExchangeRequest : ARequest<ScheduleExchangeRequest>
     {
 
         #region Properties
@@ -96,8 +95,6 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         // </xs:simpleType>
 
         #endregion
-
-
 
 
         #region Operator overloading
@@ -166,7 +163,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two schedule exchange requests for equality.
         /// </summary>
         /// <param name="ScheduleExchangeRequest">A schedule exchange request to compare with.</param>
-        public Boolean Equals(ScheduleExchangeRequest? ScheduleExchangeRequest)
+        public override Boolean Equals(ScheduleExchangeRequest? ScheduleExchangeRequest)
 
             => ScheduleExchangeRequest is not null &&
 

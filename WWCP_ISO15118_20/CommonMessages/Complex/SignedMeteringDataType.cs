@@ -18,6 +18,7 @@
 #region Usings
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using cloud.charging.open.protocols.ISO15118_20.XMLSchema;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -32,9 +33,37 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class SignedMeteringDataType
     {
 
+        public XML_Id           Id           { get; }
+
+        public Session_Id       SessionId    { get; }
+
+        public MeterInfoType    MeterInfo    { get; }
+
+        public ReceiptType      Receipt      { get; }
+
+
         public Dynamic_SMDTControlModeType?    Dynamic_SMDTControlMode      { get; }
         public Scheduled_SMDTControlModeType?  Scheduled_SMDTControlMode    { get; }
 
+
+        // <xs:complexType name="SignedMeteringDataType">
+        //
+        //     <xs:sequence>
+        //
+        //         <xs:element name="SessionID" type="v2gci_ct:sessionIDType"/>
+        //         <xs:element name="MeterInfo" type="v2gci_ct:MeterInfoType"/>
+        //         <xs:element name="Receipt"   type="v2gci_ct:ReceiptType" minOccurs="0"/>
+        //
+        //         <xs:choice>
+        //             <xs:element name="Dynamic_SMDTControlMode"   type="Dynamic_SMDTControlModeType"/>
+        //             <xs:element name="Scheduled_SMDTControlMode" type="Scheduled_SMDTControlModeType"/>
+        //         </xs:choice>
+        //
+        //     </xs:sequence>
+        //
+        //     <xs:attribute name="Id" type="xs:ID" use="required"/>
+        //
+        // </xs:complexType>
 
     }
 

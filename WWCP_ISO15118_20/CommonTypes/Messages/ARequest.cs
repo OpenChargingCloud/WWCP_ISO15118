@@ -15,17 +15,15 @@
  * limitations under the License.
  */
 
-using cloud.charging.open.protocols.ISO15118_20.CommonMessages;
-
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
     /// An abstract ISO 15118-20 V2G request.
     /// </summary>
-    [Obsolete("Use AV2GRequest<TRequest>!")]
-    public abstract class AV2GRequest : AV2GMessage,
-                                        IEquatable<AV2GRequest>
+    [Obsolete("Use ARequest<TRequest>!")]
+    public abstract class ARequest : AMessage,
+                                     IEquatable<ARequest>
     {
 
         #region Constructor(s)
@@ -33,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <summary>
         /// Create a new abstract request message.
         /// </summary>
-        public AV2GRequest()
+        public ARequest()
 
             : base(new MessageHeader(Session_Id.NewRandom(),
                                      DateTime.UtcNow))
@@ -45,7 +43,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Create a new abstract request message.
         /// </summary>
         /// <param name="MessageHeader">A common message header.</param>
-        public AV2GRequest(MessageHeader MessageHeader)
+        public ARequest(MessageHeader MessageHeader)
 
             : base(MessageHeader)
 
@@ -54,7 +52,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #endregion
 
 
-        #region IEquatable<AV2GRequest> Members
+        #region IEquatable<ARequest> Members
 
         #region Equals(Object)
 
@@ -64,22 +62,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="Object">Another abstract V2G request.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is AV2GRequest aV2GRequest &&
-                   Equals(aV2GRequest);
+            => Object is ARequest aRequest &&
+                   Equals(aRequest);
 
         #endregion
 
-        #region Equals(AV2GRequest)
+        #region Equals(ARequest)
 
         /// <summary>
         /// Compare two abstract V2G requests for equality.
         /// </summary>
-        /// <param name="AV2GRequest">Another abstract V2G request.</param>
-        public virtual Boolean Equals(AV2GRequest? AV2GRequest)
+        /// <param name="ARequest">Another abstract V2G request.</param>
+        public virtual Boolean Equals(ARequest? ARequest)
 
-            => AV2GRequest is not null &&
+            => ARequest is not null &&
 
-               base.Equals(AV2GRequest);
+               base.Equals(ARequest);
 
         #endregion
 
@@ -109,8 +107,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// <summary>
     /// An abstract generic ISO 15118-20 V2G request.
     /// </summary>
-    public abstract class AV2GRequest<TV2GRequest> : AV2GMessage,
-                                                     IEquatable<AV2GRequest<TV2GRequest>>
+    public abstract class ARequest<TRequest> : AMessage,
+                                               IRequest<TRequest>
+
+        where TRequest: IRequest<TRequest>
+
     {
 
         #region Constructor(s)
@@ -119,7 +120,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Create a new abstract generic ISO 15118-20 V2G request.
         /// </summary>
         /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
-        public AV2GRequest(MessageHeader MessageHeader)
+        public ARequest(MessageHeader MessageHeader)
 
             : base(MessageHeader)
 
@@ -128,7 +129,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #endregion
 
 
-        #region IEquatable<AV2GRequest<TV2GRequest>> Members
+        #region IEquatable<ARequest<TRequest>> Members
 
         #region Equals(Object)
 
@@ -138,22 +139,36 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="Object">Another abstract generic V2G request.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is AV2GRequest<TV2GRequest> aV2GRequest &&
-                   Equals(aV2GRequest);
+            => Object is ARequest<TRequest> aRequest &&
+                   Equals(aRequest);
 
         #endregion
 
-        #region Equals(AV2GRequest)
+        #region Equals(ARequest<TRequest>)
 
         /// <summary>
         /// Compare two abstract generic V2G requests for equality.
         /// </summary>
-        /// <param name="AV2GRequest">Another abstract generic V2G request.</param>
-        public virtual Boolean Equals(AV2GRequest<TV2GRequest>? AV2GRequest)
+        /// <param name="ARequest">Another abstract generic V2G request.</param>
+        public virtual Boolean Equals(ARequest<TRequest>? ARequest)
 
-            => AV2GRequest is not null &&
+            => ARequest is not null &&
 
-               base.Equals(AV2GRequest);
+               base.Equals(ARequest);
+
+        #endregion
+
+        #region Equals(ARequest)
+
+        /// <summary>
+        /// Compare two abstract generic V2G requests for equality.
+        /// </summary>
+        /// <param name="ARequest">Another abstract generic V2G request.</param>
+        public virtual Boolean Equals(TRequest? ARequest)
+
+            => ARequest is not null &&
+
+               base.Equals(ARequest);
 
         #endregion
 

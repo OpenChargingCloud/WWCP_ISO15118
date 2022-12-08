@@ -127,6 +127,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     }
 
 
+    #region Documentation
+
+    // <xs:simpleType name="evseNotificationType">
+    //     <xs:restriction base="xs:string">
+    //         <xs:enumeration value="Pause"/>
+    //         <xs:enumeration value="ExitStandby"/>
+    //         <xs:enumeration value="Terminate"/>
+    //         <xs:enumeration value="ScheduleRenegotiation"/>
+    //         <xs:enumeration value="ServiceRenegotiation"/>
+    //         <xs:enumeration value="MeteringConfirmation"/>
+    //     </xs:restriction>
+    // </xs:simpleType>
+
+    #endregion
+
+
     /// <summary>
     /// EVSE notifications.
     /// </summary>

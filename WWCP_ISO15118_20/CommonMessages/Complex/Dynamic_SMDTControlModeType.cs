@@ -31,6 +31,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class Dynamic_SMDTControlModeType
     {
 
+        #region Documentation
+
+        // <xs:complexType name="Dynamic_SMDTControlModeType"/>
+
+        #endregion
 
     }
 

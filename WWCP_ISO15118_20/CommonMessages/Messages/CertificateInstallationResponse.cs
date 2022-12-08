@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class CertificateInstallationResponse : AV2GResponse
+    public class CertificateInstallationResponse : AResponse
     {
 
         public ProcessingTypes             EVSEProcessing                        { get; }

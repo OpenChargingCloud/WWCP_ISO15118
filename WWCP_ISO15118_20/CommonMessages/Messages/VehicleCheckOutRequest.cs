@@ -29,11 +29,11 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class VehicleCheckOutRequest : AV2GRequest
+    public class VehicleCheckOutRequest : ARequest
     {
 
-        public EvCheckOutStatusTypes  EVCheckOutStatus    { get; }
-        public UInt64                 CheckOutTime        { get; }
+        public EVCheckOutStatus  EVCheckOutStatus    { get; }
+        public DateTime          CheckOutTime        { get; }
 
     }
 

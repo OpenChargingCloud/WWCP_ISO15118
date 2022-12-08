@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     public class DetailedTaxType
     {
 
-        public NumericIDType   TaxRuleID    { get; }
+        public NumericIDType   TaxRuleId    { get; }
         public RationalNumber  Amount       { get; }
 
 

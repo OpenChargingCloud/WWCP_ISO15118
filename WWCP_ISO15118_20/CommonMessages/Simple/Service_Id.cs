@@ -18,7 +18,6 @@
 #region Usings
 
 using org.GraphDefined.Vanaheimr.Illias;
-using static System.Net.Mime.MediaTypeNames;
 
 #endregion
 

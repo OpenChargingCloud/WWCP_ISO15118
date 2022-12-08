@@ -25,7 +25,7 @@ using System.Collections.ObjectModel;
 namespace cloud.charging.open.protocols.ISO15118_20.WPT
 {
 
-    public class WPT_FinePositioningRequest : AV2GRequest
+    public class WPT_FinePositioningRequest : ARequest
     {
 
         public ProcessingTypes              EVProcessing                   { get; }

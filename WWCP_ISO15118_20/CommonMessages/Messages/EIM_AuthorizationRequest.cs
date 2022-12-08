@@ -30,7 +30,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The external identification means authorization request.
     /// </summary>
-    public class EIM_AuthorizationRequest : AuthorizationRequest
+    public class EIM_AuthorizationRequest : AuthorizationRequest,
+                                            IEquatable<EIM_AuthorizationRequest>
     {
 
         #region Constructor(s)
@@ -244,7 +245,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="EIM_AuthorizationRequest">An external identification means authorization mode request type to compare with.</param>
         public Boolean Equals(EIM_AuthorizationRequest? EIM_AuthorizationRequest)
 
-            => EIM_AuthorizationRequest is not null;
+            => EIM_AuthorizationRequest is not null &&
+
+               base.Equals(EIM_AuthorizationRequest);
 
         #endregion
 

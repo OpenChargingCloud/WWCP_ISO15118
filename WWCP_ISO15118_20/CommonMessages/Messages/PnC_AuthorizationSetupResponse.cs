@@ -28,7 +28,8 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class PnC_AuthorizationSetupResponse : AuthorizationSetupResponse
+    public class PnC_AuthorizationSetupResponse : AuthorizationSetupResponse,
+                                                  IEquatable<PnC_AuthorizationSetupResponse>
     {
 
         #region Properties

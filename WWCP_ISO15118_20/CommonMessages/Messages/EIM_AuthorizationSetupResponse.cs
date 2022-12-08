@@ -31,7 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The external identification means authorization setup response.
     /// </summary>
-    public class EIM_AuthorizationSetupResponse : AuthorizationSetupResponse
+    public class EIM_AuthorizationSetupResponse : AuthorizationSetupResponse,
+                                                  IEquatable<EIM_AuthorizationSetupResponse>
     {
 
         #region Constructor(s)

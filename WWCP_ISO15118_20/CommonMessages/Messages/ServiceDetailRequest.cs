@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The service detail request.
     /// </summary>
-    public class ServiceDetailRequest : AV2GRequest<ServiceDetailRequest>
+    public class ServiceDetailRequest : ARequest<ServiceDetailRequest>
     {
 
         #region Properties
@@ -289,7 +289,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two service detail requests for equality.
         /// </summary>
         /// <param name="ServiceDetailRequest">A service detail request to compare with.</param>
-        public Boolean Equals(ServiceDetailRequest? ServiceDetailRequest)
+        public override Boolean Equals(ServiceDetailRequest? ServiceDetailRequest)
 
             => ServiceDetailRequest is not null &&
 

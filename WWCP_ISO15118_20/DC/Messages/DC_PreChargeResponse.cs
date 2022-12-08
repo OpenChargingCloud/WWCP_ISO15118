@@ -25,7 +25,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.DC
 {
 
-    public class DC_PreChargeResponse : AV2GResponse
+    public class DC_PreChargeResponse : AResponse
     {
 
         public RationalNumber  EVSEPresentVoltage    { get; }

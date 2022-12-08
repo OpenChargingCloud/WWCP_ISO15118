@@ -28,7 +28,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
-    public abstract class AChargeLoopResponse : AV2GResponse
+    public abstract class AChargeLoopResponse : AResponse
     {
 
         public EVSEStatusType?  EVSEStatus    { get; }

@@ -112,6 +112,19 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     }
 
 
+    #region Documentation
+
+    // <xs:simpleType name="processingType">
+    //     <xs:restriction base="xs:string">
+    //         <xs:enumeration value="Finished"/>
+    //         <xs:enumeration value="Ongoing"/>
+    //         <xs:enumeration value="Ongoing_WaitingForCustomerInteraction"/>
+    //     </xs:restriction>
+    // </xs:simpleType>
+
+    #endregion
+
+
     /// <summary>
     /// Processing types.
     /// </summary>

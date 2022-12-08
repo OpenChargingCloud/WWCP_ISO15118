@@ -109,8 +109,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public static ParameterSet_Id Parse(String Text)
         {
 
-            if (TryParse(Text, out var evseId))
-                return evseId;
+            if (TryParse(Text, out var parameterSetId))
+                return parameterSetId;
 
             throw new ArgumentException("Invalid text representation of a parameter set identification: '" + Text + "'!",
                                         nameof(Text));
@@ -140,8 +140,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public static ParameterSet_Id? TryParse(String Text)
         {
 
-            if (TryParse(Text, out var evseId))
-                return evseId;
+            if (TryParse(Text, out var parameterSetId))
+                return parameterSetId;
 
             return null;
 
@@ -158,8 +158,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public static ParameterSet_Id? TryParse(UInt16 Number)
         {
 
-            if (TryParse(Number, out var evseId))
-                return evseId;
+            if (TryParse(Number, out var parameterSetId))
+                return parameterSetId;
 
             return null;
 
@@ -327,8 +327,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="Object">A parameter set identification to compare with.</param>
         public Int32 CompareTo(Object? Object)
 
-            => Object is ParameterSet_Id evseId
-                   ? CompareTo(evseId)
+            => Object is ParameterSet_Id parameterSetId
+                   ? CompareTo(parameterSetId)
                    : throw new ArgumentException("The given object is not a parameter set identification!",
                                                  nameof(Object));
 
@@ -358,8 +358,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="Object">A parameter set identification to compare with.</param>
         public override Boolean Equals(Object? Object)
 
-            => Object is ParameterSet_Id evseId &&
-                   Equals(evseId);
+            => Object is ParameterSet_Id parameterSetId &&
+                   Equals(parameterSetId);
 
         #endregion
 

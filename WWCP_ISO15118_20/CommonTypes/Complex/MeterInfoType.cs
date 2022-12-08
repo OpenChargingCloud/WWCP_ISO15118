@@ -31,21 +31,36 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     public class MeterInfoType
     {
 
-        public Meter_Id             MeterID                           { get; }
+        public Meter_Id         MeterId                           { get; }
 
-        public UInt64               ChargedEnergyReadingWh            { get; }
+        public UInt64           ChargedEnergyReadingWh            { get; }
 
-        public UInt64?              BPT_DischargedEnergyReadingWh     { get; }
+        public UInt64?          BPT_DischargedEnergyReadingWh     { get; }
 
-        public UInt64?              CapacitiveEnergyReadingVARh       { get; }
+        public UInt64?          CapacitiveEnergyReadingVARh       { get; }
 
-        public UInt64?              BPT_InductiveEnergyReadingVARh    { get; }
+        public UInt64?          BPT_InductiveEnergyReadingVARh    { get; }
 
-        public MeterSignatureType?  MeterSignature                    { get; }
+        public MeterSignature?  MeterSignature                    { get; }
 
-        public Int16?               MeterStatus                       { get; }
+        public Int16?           MeterStatus                       { get; }
 
-        public UInt64?              MeterTimestamp                    { get; }
+        public UInt64?          MeterTimestamp                    { get; }
+
+
+
+        // <xs:complexType name="MeterInfoType">
+        //     <xs:sequence>
+        //         <xs:element name="MeterID"                        type="meterIDType"/>
+        //         <xs:element name="ChargedEnergyReadingWh"         type="xs:unsignedLong"/>
+        //         <xs:element name="BPT_DischargedEnergyReadingWh"  type="xs:unsignedLong"    minOccurs="0"/>
+        //         <xs:element name="CapacitiveEnergyReadingVARh"    type="xs:unsignedLong"    minOccurs="0"/>
+        //         <xs:element name="BPT_InductiveEnergyReadingVARh" type="xs:unsignedLong"    minOccurs="0"/>
+        //         <xs:element name="MeterSignature"                 type="meterSignatureType" minOccurs="0"/>
+        //         <xs:element name="MeterStatus"                    type="xs:short"           minOccurs="0"/>
+        //         <xs:element name="MeterTimestamp"                 type="xs:unsignedLong"    minOccurs="0"/>
+        //     </xs:sequence>
+        // </xs:complexType>
 
 
     }

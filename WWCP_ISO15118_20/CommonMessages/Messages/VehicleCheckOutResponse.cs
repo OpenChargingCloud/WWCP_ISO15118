@@ -24,10 +24,10 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class VehicleCheckOutResponse : AV2GResponse
+    public class VehicleCheckOutResponse : AResponse
     {
 
-        public EvseCheckOutStatusTypes  EVSECheckOutStatus    { get; }
+        public EVSECheckOutStatus  EVSECheckOutStatus    { get; }
 
     }
 

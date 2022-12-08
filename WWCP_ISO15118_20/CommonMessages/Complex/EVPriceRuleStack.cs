@@ -164,7 +164,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryHashSet("evPriceRules",
                                                 "EV price rules",
                                                 EVPriceRule.TryParse,
-                                                out HashSet<EVPriceRule>? EVPriceRules,
+                                                out HashSet<EVPriceRule> EVPriceRules,
                                                 out ErrorResponse))
                 {
                     return false;

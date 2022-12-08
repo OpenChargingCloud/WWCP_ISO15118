@@ -32,8 +32,18 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     public class Scheduled_SMDTControlModeType
     {
 
-        public UInt32  SelectedScheduleTupleID    { get; }
+        public ScheduleTuple_Id  SelectedScheduleTupleId    { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name="Scheduled_SMDTControlModeType">
+        //     <xs:sequence>
+        //         <xs:element name="SelectedScheduleTupleID" type="v2gci_ct:numericIDType"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

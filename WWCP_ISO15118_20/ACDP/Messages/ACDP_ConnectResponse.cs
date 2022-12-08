@@ -25,7 +25,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.DCP
 {
 
-    public class ACDP_ConnectResponse : AV2GResponse
+    public class ACDP_ConnectResponse : AResponse
     {
 
         public ProcessingTypes                      EVSEProcessing                        { get; }

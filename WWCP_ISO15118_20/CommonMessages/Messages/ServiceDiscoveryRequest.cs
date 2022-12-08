@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The service discovery request.
     /// </summary>
-    public class ServiceDiscoveryRequest : AV2GRequest<ServiceDiscoveryRequest>
+    public class ServiceDiscoveryRequest : ARequest<ServiceDiscoveryRequest>
     {
 
         #region Properties
@@ -292,7 +292,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two service discovery requests for equality.
         /// </summary>
         /// <param name="ServiceDiscoveryRequest">A service discovery request to compare with.</param>
-        public Boolean Equals(ServiceDiscoveryRequest? ServiceDiscoveryRequest)
+        public override Boolean Equals(ServiceDiscoveryRequest? ServiceDiscoveryRequest)
 
             => ServiceDiscoveryRequest is not null &&
 

@@ -31,8 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The session setup response.
     /// </summary>
-    public class SessionSetupResponse : AV2GResponse<SessionSetupRequest,
-                                                     SessionSetupResponse>
+    public class SessionSetupResponse : AResponse<SessionSetupRequest,
+                                                  SessionSetupResponse>
     {
 
         #region Properties

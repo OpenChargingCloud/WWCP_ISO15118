@@ -302,9 +302,65 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     }
 
 
+    #region Documentation
+
+    // <xs:simpleType name="responseCodeType">
+    //     <xs:restriction base="xs:string">
+    //         <xs:enumeration value="OK"/>
+    //         <xs:enumeration value="OK_CertificateExpiresSoon"/>
+    //         <xs:enumeration value="OK_NewSessionEstablished"/>
+    //         <xs:enumeration value="OK_OldSessionJoined"/>
+    //         <xs:enumeration value="OK_PowerToleranceConfirmed"/>
+    //         <xs:enumeration value="WARNING_AuthorizationSelectionInvalid"/>
+    //         <xs:enumeration value="WARNING_CertificateExpired"/>
+    //         <xs:enumeration value="WARNING_CertificateNotYetValid"/>
+    //         <xs:enumeration value="WARNING_CertificateRevoked"/>
+    //         <xs:enumeration value="WARNING_CertificateValidationError"/>
+    //         <xs:enumeration value="WARNING_ChallengeInvalid"/>
+    //         <xs:enumeration value="WARNING_EIMAuthorizationFailure"/>
+    //         <xs:enumeration value="WARNING_eMSPUnknown"/>
+    //         <xs:enumeration value="WARNING_EVPowerProfileViolation"/>
+    //         <xs:enumeration value="WARNING_GeneralPnCAuthorizationError"/>
+    //         <xs:enumeration value="WARNING_NoCertificateAvailable"/>
+    //         <xs:enumeration value="WARNING_NoContractMatchingPCIDFound"/>
+    //         <xs:enumeration value="WARNING_PowerToleranceNotConfirmed"/>
+    //         <xs:enumeration value="WARNING_ScheduleRenegotiationFailed"/>
+    //         <xs:enumeration value="WARNING_StandbyNotAllowed"/>
+    //         <xs:enumeration value="WARNING_WPT"/>
+    //         <xs:enumeration value="FAILED"/>
+    //         <xs:enumeration value="FAILED_AssociationError"/>
+    //         <xs:enumeration value="FAILED_ContactorError"/>
+    //         <xs:enumeration value="FAILED_EVPowerProfileInvalid"/>
+    //         <xs:enumeration value="FAILED_EVPowerProfileViolation"/>
+    //         <xs:enumeration value="FAILED_MeteringSignatureNotValid"/>
+    //         <xs:enumeration value="FAILED_NoEnergyTransferServiceSelected"/>
+    //         <xs:enumeration value="FAILED_NoServiceRenegotiationSupported"/>
+    //         <xs:enumeration value="FAILED_PauseNotAllowed"/>
+    //         <xs:enumeration value="FAILED_PowerDeliveryNotApplied"/>
+    //         <xs:enumeration value="FAILED_PowerToleranceNotConfirmed"/>
+    //         <xs:enumeration value="FAILED_ScheduleRenegotiation"/>
+    //         <xs:enumeration value="FAILED_ScheduleSelectionInvalid"/>
+    //         <xs:enumeration value="FAILED_SequenceError"/>
+    //         <xs:enumeration value="FAILED_ServiceIDInvalid"/>
+    //         <xs:enumeration value="FAILED_ServiceSelectionInvalid"/>
+    //         <xs:enumeration value="FAILED_SignatureError"/>
+    //         <xs:enumeration value="FAILED_UnknownSession"/>
+    //         <xs:enumeration value="FAILED_WrongChargeParameter"/>
+    //     </xs:restriction>
+    // </xs:simpleType>
+
+    #endregion
+
+
+    /// <summary>
+    /// Response codes.
+    /// </summary>
     public enum ResponseCodes
     {
 
+        /// <summary>
+        /// Unknown response code.
+        /// </summary>
         Unknown,
 
         OK,

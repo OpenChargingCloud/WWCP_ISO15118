@@ -60,28 +60,28 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
-        #region TryParse(Text, out ResponseCode)
+        #region TryParse(Text, out AuthorizationType)
 
         /// <summary>
         /// Try to parse the given text as an authorization type.
         /// </summary>
         /// <param name="Text">A text representation of an authorization type.</param>
-        /// <param name="ResponseCode">The parsed authorization type.</param>
-        public static Boolean TryParse(String Text, out AuthorizationTypes ResponseCode)
+        /// <param name="AuthorizationType">The parsed authorization type.</param>
+        public static Boolean TryParse(String Text, out AuthorizationTypes AuthorizationType)
         {
             switch (Text.Trim())
             {
 
                 case "EIM":
-                    ResponseCode = AuthorizationTypes.EIM;
+                    AuthorizationType = AuthorizationTypes.EIM;
                     return true;
 
                 case "PnC":
-                    ResponseCode = AuthorizationTypes.PnC;
+                    AuthorizationType = AuthorizationTypes.PnC;
                     return true;
 
                 default:
-                    ResponseCode = AuthorizationTypes.Unknown;
+                    AuthorizationType = AuthorizationTypes.Unknown;
                     return false;
 
             }
@@ -91,9 +91,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #region AsText  (this AuthorizationTypes)
 
-        public static String AsText(this AuthorizationTypes ResponseCode)
+        public static String AsText(this AuthorizationTypes AuthorizationType)
 
-            => ResponseCode switch {
+            => AuthorizationType switch {
 
                    AuthorizationTypes.EIM  => "EIM",
                    AuthorizationTypes.PnC  => "PnC",
@@ -118,6 +118,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
     #endregion
 
+
+    /// <summary>
+    /// Authorization types.
+    /// </summary>
     public enum AuthorizationTypes
     {
 

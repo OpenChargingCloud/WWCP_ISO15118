@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class VehicleCheckInResponse : AV2GResponse
+    public class VehicleCheckInResponse : AResponse
     {
 
         public Int16?  ParkingSpace      { get; }

@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The session setup request.
     /// </summary>
-    public class SessionSetupRequest : AV2GRequest<SessionSetupRequest>
+    public class SessionSetupRequest : ARequest<SessionSetupRequest>
     {
 
         #region Properties
@@ -289,7 +289,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two session setup requests for equality.
         /// </summary>
         /// <param name="SessionSetupRequest">A session setup request to compare with.</param>
-        public Boolean Equals(SessionSetupRequest? SessionSetupRequest)
+        public override Boolean Equals(SessionSetupRequest? SessionSetupRequest)
 
             => SessionSetupRequest is not null &&
 

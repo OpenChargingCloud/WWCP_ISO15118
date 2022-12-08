@@ -23,7 +23,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
 namespace cloud.charging.open.protocols.ISO15118_20.WPT
 {
-    public class WPT_FinePositioningSetupResponse : AV2GResponse
+    public class WPT_FinePositioningSetupResponse : AResponse
     {
 
         public WPT_FinePositioningMethodListType  PrimaryDeviceFinePositioningMethodList    { get; }

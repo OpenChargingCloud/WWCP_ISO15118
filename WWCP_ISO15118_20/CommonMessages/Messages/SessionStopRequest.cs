@@ -29,7 +29,7 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
-    public class SessionStopRequest : AV2GRequest
+    public class SessionStopRequest : ARequest
     {
 
         public ChargingSessionTypes  ChargingSession             { get; }

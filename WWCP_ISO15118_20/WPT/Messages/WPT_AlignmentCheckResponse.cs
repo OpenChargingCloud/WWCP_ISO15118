@@ -24,7 +24,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.WPT
 {
 
-    public class WPT_AlignmentCheckResponse : AV2GRequest
+    public class WPT_AlignmentCheckResponse : ARequest
     {
 
         public ProcessingTypes      EVProcessing                   { get; }

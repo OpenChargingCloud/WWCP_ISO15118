@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The authorization setup request.
     /// </summary>
-    public class AuthorizationSetupRequest : AV2GRequest<AuthorizationSetupRequest>
+    public class AuthorizationSetupRequest : ARequest<AuthorizationSetupRequest>
     {
 
         #region Constructor(s)
@@ -254,7 +254,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two authorization setup requests for equality.
         /// </summary>
         /// <param name="AuthorizationSetupRequest">An authorization setup request to compare with.</param>
-        public Boolean Equals(AuthorizationSetupRequest? AuthorizationSetupRequest)
+        public override Boolean Equals(AuthorizationSetupRequest? AuthorizationSetupRequest)
 
             => AuthorizationSetupRequest is not null &&
 

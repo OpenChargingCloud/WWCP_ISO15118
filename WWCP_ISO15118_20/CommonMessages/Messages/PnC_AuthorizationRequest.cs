@@ -32,7 +32,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The plug and charge authorization request.
     /// </summary>
-    public class PnC_AuthorizationRequest : AuthorizationRequest
+    public class PnC_AuthorizationRequest : AuthorizationRequest,
+                                            IEquatable<PnC_AuthorizationRequest>
     {
 
         #region Properties

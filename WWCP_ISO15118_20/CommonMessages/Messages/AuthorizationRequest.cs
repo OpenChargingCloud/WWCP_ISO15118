@@ -34,7 +34,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// An abstract authorization request.
     /// </summary>
-    public abstract class AuthorizationRequest : AV2GRequest<AuthorizationRequest>
+    public abstract class AuthorizationRequest : ARequest<AuthorizationRequest>
     {
 
         #region Properties
@@ -441,7 +441,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Compares two abstract authorization requests for equality.
         /// </summary>
         /// <param name="AuthorizationRequest">An abstract authorization request to compare with.</param>
-        public Boolean Equals(AuthorizationRequest? AuthorizationRequest)
+        public override Boolean Equals(AuthorizationRequest? AuthorizationRequest)
 
             => AuthorizationRequest is not null &&
 

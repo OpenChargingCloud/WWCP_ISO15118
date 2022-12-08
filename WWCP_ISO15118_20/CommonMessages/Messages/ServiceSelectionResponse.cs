@@ -31,8 +31,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
     /// <summary>
     /// The service selection response.
     /// </summary>
-    public class ServiceSelectionResponse : AV2GResponse<ServiceSelectionRequest,
-                                                         ServiceSelectionResponse>
+    public class ServiceSelectionResponse : AResponse<ServiceSelectionRequest,
+                                                      ServiceSelectionResponse>
     {
 
         #region Constructor(s)

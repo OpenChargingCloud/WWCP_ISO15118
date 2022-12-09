@@ -15,34 +15,21 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
-
-#endregion
-
 namespace cloud.charging.open.protocols.ISO15118_20.DCP
 {
-
-    public class ACDP_ConnectRequest : ARequest
+    public enum ErrorCodes
     {
 
-        public ElectricalChargingDeviceStatus  EVElectricalChargingDeviceStatus    { get; }
-
-
-        #region Documentation
-
-        // <xs:complexType name="ACDP_ConnectReqType">
-        //     <xs:complexContent>
-        //         <xs:extension base="v2gci_ct:V2GRequestType">
-        //             <xs:sequence>
-        //                 <xs:element name="EVElectricalChargingDeviceStatus" type="electricalChargingDeviceStatusType"/>
-        //             </xs:sequence>
-        //         </xs:extension>
-        //     </xs:complexContent>
-        // </xs:complexType>
-
-        #endregion
+        OK_NoEVError,
+        FAILED,
+        FAILED_EmergencyEvent,
+        FAILED_Breaker,
+        FAILED_RESSTemperatureInhibit,
+        FAILED_RESS,
+        FAILED_ChargingCurrentDifferential,
+        FAILED_ChargingVoltageOutOfRange,
+        FAILED_Reserved1,
+        FAILED_Reserved2
 
     }
 

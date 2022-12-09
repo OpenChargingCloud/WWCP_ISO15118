@@ -28,6 +28,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
     {
 
 
+        #region Documentation
+
+        // <xs:complexType name="DC_CableCheckReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType"/>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
     }
 
 }

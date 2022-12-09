@@ -31,6 +31,21 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
         public Boolean  EVPositioningSupport    { get; }
 
 
+        #region Documentation
+
+        // <xs:complexType name="ACDP_VehiclePositioningReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="EVMobilityStatus"     type="xs:boolean"/>
+        //                 <xs:element name="EVPositioningSupport" type="xs:boolean"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
     }
 
 }

@@ -17,34 +17,29 @@
 
 #region Usings
 
-using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
-
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 #endregion
 
-namespace cloud.charging.open.protocols.ISO15118_20.DC
+namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
-    public class DC_CableCheckResponse : AResponse
+    public abstract class AScheduled_CLResControlMode : ACLResControlMode
     {
-
-        public ProcessingTypes  EVSEProcessing    { get; }
-
 
         #region Documentation
 
-        // <xs:complexType name="DC_CableCheckResType">
+        // <xs:complexType name="Scheduled_CLResControlModeType" abstract="true">
         //     <xs:complexContent>
-        //         <xs:extension base="v2gci_ct:V2GResponseType">
-        //             <xs:sequence>
-        //                 <xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
-        //             </xs:sequence>
-        //         </xs:extension>
+        //         <xs:extension base="CLResControlModeType"/>
         //     </xs:complexContent>
         // </xs:complexType>
 
         #endregion
-
 
     }
 

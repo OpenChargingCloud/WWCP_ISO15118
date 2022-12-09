@@ -27,8 +27,24 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
     public class AC_ChargeParameterDiscoveryRequest : AChargeParameterDiscoveryRequest
     {
 
-        public AC_CPDReqEnergyTransferModeType?  AC_CPDReqEnergyTransferMode    { get; }
+        public AC_CPDReqEnergyTransferMode?  AC_CPDReqEnergyTransferMode    { get; }
 
+
+        #region Documentation
+
+        // <xs:element name="AC_ChargeParameterDiscoveryReq" type="AC_ChargeParameterDiscoveryReqType"/>
+        //
+        // <xs:complexType name="AC_ChargeParameterDiscoveryReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:ChargeParameterDiscoveryReqType">
+        //             <xs:sequence>
+        //                 <xs:element ref="AC_CPDReqEnergyTransferMode"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

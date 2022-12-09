@@ -49,6 +49,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:complexType name = "EIM_AReqAuthorizationModeType" />
+
+        #endregion
+
         #region (static) Parse   (JSON, CustomEIM_AuthorizationRequestParser = null)
 
         /// <summary>

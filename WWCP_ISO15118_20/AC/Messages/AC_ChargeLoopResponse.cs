@@ -27,9 +27,52 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
     public class AC_ChargeLoopResponse : AChargeLoopResponse
     {
 
-        public RationalNumber?     EVSETargetFrequency    { get; }
-        public ACLResControlModeType?  CLResControlMode       { get; }
+        #region Properties
 
+        public RationalNumber?     EVSETargetFrequency    { get; }
+        public ACLResControlMode?  CLResControlMode       { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        public AC_ChargeLoopResponse(RationalNumber?              EVSETargetFrequency,
+                                     Dynamic_AC_CLResControlMode  Dynamic_AC_CLResControlMode)
+        {
+
+            this.EVSETargetFrequency  = EVSETargetFrequency;
+            this.CLResControlMode     = Dynamic_AC_CLResControlMode;
+
+        }
+
+        public AC_ChargeLoopResponse(RationalNumber?                EVSETargetFrequency,
+                                     Scheduled_AC_CLResControlMode  Scheduled_AC_CLResControlMode)
+        {
+
+            this.EVSETargetFrequency  = EVSETargetFrequency;
+            this.CLResControlMode     = Scheduled_AC_CLResControlMode;
+
+        }
+
+        #endregion
+
+
+        #region Documentation
+
+        // <xs:element name="AC_ChargeLoopRes" type="AC_ChargeLoopResType"/>
+        // 
+        // <xs:complexType name="AC_ChargeLoopResType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:ChargeLoopResType">
+        //             <xs:sequence>
+        //                 <xs:element name="EVSETargetFrequency" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+        //                 <xs:element ref="v2gci_ct:CLResControlMode"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

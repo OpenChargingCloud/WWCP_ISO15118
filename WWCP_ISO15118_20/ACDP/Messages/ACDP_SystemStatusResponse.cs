@@ -27,16 +27,38 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
     public class ACDP_SystemStatusResponse : AResponse
     {
 
-        public MechanicalChargingDeviceStatusTypes  EVSEMechanicalChargingDeviceStatus    { get; }
-        public Boolean                              EVSEReadyToCharge                     { get; }
-        public IsolationStatusTypes                 EVSEIsolationStatus                   { get; }
-        public Boolean                              EVSEDisabled                          { get; }
-        public Boolean                              EVSEUtilityInterruptEvent             { get; }
-        public Boolean                              EVSEEmergencyShutdown                 { get; }
-        public Boolean                              EVSEMalfunction                       { get; }
-        public Boolean                              EVInChargePosition                    { get; }
-        public Boolean                              EVAssociationStatus                   { get; }
+        public MechanicalChargingDeviceStatus  EVSEMechanicalChargingDeviceStatus    { get; }
+        public Boolean                         EVSEReadyToCharge                     { get; }
+        public IsolationStatus                 EVSEIsolationStatus                   { get; }
+        public Boolean                         EVSEDisabled                          { get; }
+        public Boolean                         EVSEUtilityInterruptEvent             { get; }
+        public Boolean                         EVSEEmergencyShutdown                 { get; }
+        public Boolean                         EVSEMalfunction                       { get; }
+        public Boolean                         EVInChargePosition                    { get; }
+        public Boolean                         EVAssociationStatus                   { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name="ACDP_SystemStatusResType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //             <xs:sequence>
+        //                 <xs:element name="EVSEMechanicalChargingDeviceStatus" type="mechanicalChargingDeviceStatusType"/>
+        //                 <xs:element name="EVSEReadyToCharge"                  type="xs:boolean"/>
+        //                 <xs:element name="EVSEIsolationStatus"                type="isolationStatusType"/>
+        //                 <xs:element name="EVSEDisabled"                       type="xs:boolean"/>
+        //                 <xs:element name="EVSEUtilityInterruptEvent"          type="xs:boolean"/>
+        //                 <xs:element name="EVSEEmergencyShutdown"              type="xs:boolean"/>
+        //                 <xs:element name="EVSEMalfunction"                    type="xs:boolean"/>
+        //                 <xs:element name="EVInChargePosition"                 type="xs:boolean"/>
+        //                 <xs:element name="EVAssociationStatus"                type="xs:boolean"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

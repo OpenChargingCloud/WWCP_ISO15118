@@ -19,31 +19,32 @@
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
-
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.DCP
 {
 
-    public class ACDP_ConnectResponse : AResponse
+    public class Dynamic_DC_CLReqControlMode : ADynamic_CLReqControlMode
     {
 
-        public ProcessingTypes                 EVSEProcessing                        { get; }
-
-        public ElectricalChargingDeviceStatus  EVSEElectricalChargingDeviceStatus    { get; }
-
-        public MechanicalChargingDeviceStatus  EVSEMechanicalChargingDeviceStatus    { get; }
+        public RationalNumber  EVMaximumChargePower      { get; }
+        public RationalNumber  EVMinimumChargePower      { get; }
+        public RationalNumber  EVMaximumChargeCurrent    { get; }
+        public RationalNumber  EVMaximumVoltage          { get; }
+        public RationalNumber  EVMinimumVoltage          { get; }
 
 
         #region Documentation
 
-        // <xs:complexType name="ACDP_ConnectResType">
+        // <xs:complexType name="Dynamic_DC_CLReqControlModeType">
         //     <xs:complexContent>
-        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //         <xs:extension base="v2gci_ct:Dynamic_CLReqControlModeType">
         //             <xs:sequence>
-        //                 <xs:element name="EVSEProcessing"                     type="v2gci_ct:processingType"/>
-        //                 <xs:element name="EVSEElectricalChargingDeviceStatus" type="electricalChargingDeviceStatusType"/>
-        //                 <xs:element name="EVSEMechanicalChargingDeviceStatus" type="mechanicalChargingDeviceStatusType"/>
+        //                 <xs:element name="EVMaximumChargePower"   type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVMinimumChargePower"   type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVMaximumChargeCurrent" type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVMaximumVoltage"       type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVMinimumVoltage"       type="v2gci_ct:RationalNumberType"/>
         //             </xs:sequence>
         //         </xs:extension>
         //     </xs:complexContent>

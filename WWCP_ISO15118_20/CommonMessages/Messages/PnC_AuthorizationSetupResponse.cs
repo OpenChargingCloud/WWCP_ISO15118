@@ -83,6 +83,24 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:complexType name="PnC_ASResAuthorizationModeType">
+        //     <xs:sequence>
+        //         <xs:element name="GenChallenge"       type="genChallengeType"/>
+        //         <xs:element name="SupportedProviders" type="SupportedProvidersListType" minOccurs="0"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+
+        // <xs:complexType name="SupportedProvidersListType">
+        //     <xs:sequence>
+        //         <xs:element name="ProviderID" type="v2gci_ct:nameType" maxOccurs="128"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
+
         #region (static) Parse   (Request, JSON, CustomPnC_AuthorizationSetupResponseParser = null)
 
         /// <summary>

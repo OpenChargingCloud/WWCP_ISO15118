@@ -27,8 +27,46 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
     public class AC_ChargeLoopRequest : AChargeLoopRequest
     {
 
-        public ACLReqControlModeType?  CLReqControlMode    { get; }
+        #region Properties
 
+        public ACLReqControlMode?  CLReqControlMode    { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        public AC_ChargeLoopRequest(Dynamic_AC_CLReqControlMode Dynamic_AC_CLReqControlMode)
+        {
+
+            this.CLReqControlMode = Dynamic_AC_CLReqControlMode;
+
+        }
+
+        public AC_ChargeLoopRequest(Scheduled_AC_CLReqControlMode Scheduled_AC_CLReqControl)
+        {
+
+            this.CLReqControlMode = Scheduled_AC_CLReqControl;
+
+        }
+
+        #endregion
+
+
+        #region Documentation
+
+        // <xs:element name="AC_ChargeLoopReq" type="AC_ChargeLoopReqType"/>
+        // 
+        // <xs:complexType name="AC_ChargeLoopReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:ChargeLoopReqType">
+        //             <xs:sequence>
+        //                 <xs:element ref="v2gci_ct:CLReqControlMode"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

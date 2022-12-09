@@ -19,32 +19,36 @@
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
-
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.DC
 {
 
-    public class DC_CableCheckResponse : AResponse
+    public class Dynamic_DC_CLResControlMode : ADynamic_CLResControlMode
     {
 
-        public ProcessingTypes  EVSEProcessing    { get; }
+        public RationalNumber  EVSEMaximumChargePower      { get; }
+        public RationalNumber  EVSEMinimumChargePower      { get; }
+        public RationalNumber  EVSEMaximumChargeCurrent    { get; }
+        public RationalNumber  EVSEMaximumVoltage          { get; }
 
 
         #region Documentation
 
-        // <xs:complexType name="DC_CableCheckResType">
+        // <xs:complexType name="Dynamic_DC_CLResControlModeType">
         //     <xs:complexContent>
-        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //         <xs:extension base="v2gci_ct:Dynamic_CLResControlModeType">
         //             <xs:sequence>
-        //                 <xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+        //                 <xs:element name="EVSEMaximumChargePower"   type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVSEMinimumChargePower"   type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVSEMaximumChargeCurrent" type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVSEMaximumVoltage"       type="v2gci_ct:RationalNumberType"/>
         //             </xs:sequence>
         //         </xs:extension>
         //     </xs:complexContent>
         // </xs:complexType>
 
         #endregion
-
 
     }
 

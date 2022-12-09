@@ -499,26 +499,26 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                                 new JProperty("id",                          Id.              ToString()),
-                                 new JProperty("timeAnchor",                  TimeAnchor.      ToIso8601()),
-                                 new JProperty("priceScheduleId",             PriceScheduleId. ToString()),
+                                 new JProperty("id",                          Id.               ToString()),
+                                 new JProperty("timeAnchor",                  TimeAnchor.       ToIso8601()),
+                                 new JProperty("priceScheduleId",             PriceScheduleId.  ToString()),
                                  new JProperty("currency",                    Currency.ISOCode),
                                  new JProperty("language",                    Language),
-                                 new JProperty("priceAlgorithmId",            PriceAlgorithmId.ToString()),
+                                 new JProperty("priceAlgorithmId",            PriceAlgorithmId. ToString()),
                                  new JProperty("priceRuleStacks",             new JArray(PriceRuleStacks.           Select(priceRuleStack    => priceRuleStack.   ToJSON(CustomPriceRuleStackSerializer,
                                                                                                                                                                          CustomPriceRuleSerializer,
                                                                                                                                                                          CustomRationalNumberSerializer)))),
 
                            Description.HasValue
-                               ? new JProperty("description",                 Description.     Value)
+                               ? new JProperty("description",                 Description.      Value)
                                : null,
 
                            MinimumCost is not null
-                               ? new JProperty("minimumCost",                 MinimumCost.     ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("minimumCost",                 MinimumCost.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            MaximumCost is not null
-                               ? new JProperty("maximumCost",                 MaximumCost.     ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("maximumCost",                 MaximumCost.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            TaxRules.Any()

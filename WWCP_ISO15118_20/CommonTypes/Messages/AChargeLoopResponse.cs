@@ -32,9 +32,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     {
 
         public EVSEStatusType?  EVSEStatus    { get; }
-        public MeterInfoType?   MeterInfo     { get; }
+        public MeterInfo?       MeterInfo     { get; }
 
-        public ReceiptType?     Receipt       { get; }
+        public Receipt?     Receipt       { get; }
 
 
     }

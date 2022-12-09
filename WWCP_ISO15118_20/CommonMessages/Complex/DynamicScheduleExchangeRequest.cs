@@ -264,14 +264,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("evTargetEnergyRequest",
                                              "EV target energy request",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? EVTargetEnergyRequest,
+                                             out RationalNumber EVTargetEnergyRequest,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (EVTargetEnergyRequest is null)
-                    return false;
 
                 #endregion
 
@@ -280,14 +277,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("evMaximumEnergyRequest",
                                              "EV maximum energy request",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? EVMaximumEnergyRequest,
+                                             out RationalNumber EVMaximumEnergyRequest,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (EVMaximumEnergyRequest is null)
-                    return false;
 
                 #endregion
 
@@ -296,14 +290,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("evMinimumEnergyRequest",
                                              "EV minimum energy request",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? EVMinimumEnergyRequest,
+                                             out RationalNumber EVMinimumEnergyRequest,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (EVMinimumEnergyRequest is null)
-                    return false;
 
                 #endregion
 
@@ -411,28 +402,28 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                                 new JProperty("messageHeader",               MessageHeader.            ToJSON(CustomMessageHeaderSerializer)),
+                                 new JProperty("messageHeader",               MessageHeader.                  ToJSON(CustomMessageHeaderSerializer)),
                                  new JProperty("maximumSupportingPoints",     MaximumSupportingPoints),
 
-                                 new JProperty("departureTime",               DepartureTime.            ToIso8601()),
-                                 new JProperty("evTargetEnergyRequest",       EVTargetEnergyRequest.    ToJSON(CustomRationalNumberSerializer)),
-                                 new JProperty("evMaximumEnergyRequest",      EVMaximumEnergyRequest.   ToJSON(CustomRationalNumberSerializer)),
-                                 new JProperty("evMinimumEnergyRequest",      EVMinimumEnergyRequest.   ToJSON(CustomRationalNumberSerializer)),
+                                 new JProperty("departureTime",               DepartureTime.                  ToIso8601()),
+                                 new JProperty("evTargetEnergyRequest",       EVTargetEnergyRequest.          ToJSON(CustomRationalNumberSerializer)),
+                                 new JProperty("evMaximumEnergyRequest",      EVMaximumEnergyRequest.         ToJSON(CustomRationalNumberSerializer)),
+                                 new JProperty("evMinimumEnergyRequest",      EVMinimumEnergyRequest.         ToJSON(CustomRationalNumberSerializer)),
 
                            MinimumSOC.HasValue
-                               ? new JProperty("minimumSOC",                  MinimumSOC.Value.         ToString())
+                               ? new JProperty("minimumSOC",                  MinimumSOC.Value.               ToString())
                                : null,
 
                            TargetSOC.HasValue
-                               ? new JProperty("targetSOC",                   TargetSOC.Value.          ToString())
+                               ? new JProperty("targetSOC",                   TargetSOC.Value.                ToString())
                                : null,
 
                            EVMaximumV2XEnergyRequest is not null
-                               ? new JProperty("evMaximumV2XEnergyRequest",   EVMaximumV2XEnergyRequest.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("evMaximumV2XEnergyRequest",   EVMaximumV2XEnergyRequest.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            EVMinimumV2XEnergyRequest is not null
-                               ? new JProperty("evMinimumV2XEnergyRequest",   EVMinimumV2XEnergyRequest.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("evMinimumV2XEnergyRequest",   EVMinimumV2XEnergyRequest.Value.ToJSON(CustomRationalNumberSerializer))
                                : null
 
                        );

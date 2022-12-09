@@ -61,7 +61,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region Constructor(s)
 
         /// <summary>
-        /// Create a new contract certificate chain.
+        /// Create a new signed certificate chain.
         /// </summary>
         /// <param name="Id">An identification of this signed certificate chain.</param>
         /// <param name="Certificate">A certificate.</param>
@@ -88,6 +88,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         //         <xs:element name="SubCertificates" type="SubCertificatesType" minOccurs="0"/>
         //     </xs:sequence>
         //     <xs:attribute name="Id" type="xs:ID" use="required"/>
+        // </xs:complexType>
+
+
+        // <xs:complexType name="SubCertificatesType">
+        //     <xs:sequence>
+        //         <xs:element name="Certificate" type="certificateType" maxOccurs="3"/>
+        //     </xs:sequence>
         // </xs:complexType>
 
         #endregion

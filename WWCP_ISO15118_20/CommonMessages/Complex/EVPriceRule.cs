@@ -149,14 +149,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("EnergyFee",
                                              "energy fee",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? EnergyFee,
+                                             out RationalNumber EnergyFee,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (EnergyFee is null)
-                    return false;
 
                 #endregion
 
@@ -165,14 +162,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("PowerRangeStart",
                                              "power range start",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? PowerRangeStart,
+                                             out RationalNumber PowerRangeStart,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (PowerRangeStart is null)
-                    return false;
 
                 #endregion
 

@@ -189,14 +189,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("powerRangeStart",
                                              "power range start",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? PowerRangeStart,
+                                             out RationalNumber PowerRangeStart,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (PowerRangeStart is null)
-                    return false;
 
                 #endregion
 
@@ -205,14 +202,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("energyFee",
                                              "energy fee",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? EnergyFee,
+                                             out RationalNumber EnergyFee,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (EnergyFee is null)
-                    return false;
 
                 #endregion
 
@@ -313,11 +307,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                                 new JProperty("powerRangeStart",                PowerRangeStart.ToJSON(CustomRationalNumberSerializer)),
-                                 new JProperty("energyFee",                      EnergyFee.      ToJSON(CustomRationalNumberSerializer)),
+                                 new JProperty("powerRangeStart",                PowerRangeStart. ToJSON(CustomRationalNumberSerializer)),
+                                 new JProperty("energyFee",                      EnergyFee.       ToJSON(CustomRationalNumberSerializer)),
 
                            ParkingFee is not null
-                               ? new JProperty("parkingFee",                     ParkingFee.     ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("parkingFee",                     ParkingFee.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            ParkingFeePeriod.HasValue

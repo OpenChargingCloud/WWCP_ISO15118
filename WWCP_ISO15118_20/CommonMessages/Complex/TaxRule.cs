@@ -223,14 +223,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("taxRate",
                                              "tax rate",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? TaxRate,
+                                             out RationalNumber TaxRate,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (TaxRate is null)
-                    return false;
 
                 #endregion
 

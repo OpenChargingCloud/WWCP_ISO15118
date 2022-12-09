@@ -79,6 +79,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         //     </xs:sequence>
         // </xs:complexType>
 
+
+        // <xs:complexType name="SubCertificatesType">
+        //     <xs:sequence>
+        //         <xs:element name="Certificate" type="certificateType" maxOccurs="3"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
         #endregion
 
         #region (static) Parse   (JSON, CustomContractCertificateChainParser = null)

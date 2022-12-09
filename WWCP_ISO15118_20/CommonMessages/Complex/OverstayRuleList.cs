@@ -245,7 +245,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                                : null,
 
                            OverstayPowerThreshold is not null
-                               ? new JProperty("overstayPowerThreshold",  OverstayPowerThreshold.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("overstayPowerThreshold",  OverstayPowerThreshold.Value.ToJSON(CustomRationalNumberSerializer))
                                : null
 
                        );

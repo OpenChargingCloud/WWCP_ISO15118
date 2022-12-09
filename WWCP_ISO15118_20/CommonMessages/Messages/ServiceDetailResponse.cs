@@ -44,7 +44,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public Service_Id                 ServiceId            { get; }
 
         /// <summary>
-        /// 
+        /// The enumeration of service parameters.
         /// </summary>
         [Mandatory]
         public IEnumerable<ParameterSet>  ServiceParameters    { get; }
@@ -59,11 +59,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="Request">The service detail request leading to this response.</param>
         /// <param name="MessageHeader">A message header.</param>
         /// <param name="ResponseCode">A message response code.</param>
+        /// 
         /// <param name="ServiceId">A service identification.</param>
-        /// <param name="ServiceParameters"></param>
+        /// <param name="ServiceParameters">An enumeration of service parameters.</param>
         public ServiceDetailResponse(ServiceDetailRequest       Request,
                                      MessageHeader              MessageHeader,
                                      ResponseCodes              ResponseCode,
+
                                      Service_Id                 ServiceId,
                                      IEnumerable<ParameterSet>  ServiceParameters)
 
@@ -186,6 +188,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 }
 
                 #endregion
+
 
                 #region ServiceId            [mandatory]
 

@@ -163,14 +163,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("power",
                                              "power",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? Power,
+                                             out RationalNumber Power,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (Power is null)
-                    return false;
 
                 #endregion
 

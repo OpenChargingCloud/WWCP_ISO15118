@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.XMLDSig
     public class X509DataType
     {
 
-        public X509IssuerSerialType?  X509IssuerSerial    { get; }
+        public X509IssuerSerial?  X509IssuerSerial    { get; }
         public Byte[]?                X509SKI             { get; }
         public String?                X509SubjectName     { get; }
         public Byte[]?                X509Certificate     { get; }

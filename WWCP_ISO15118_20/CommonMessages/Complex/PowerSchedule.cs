@@ -260,16 +260,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                                 new JProperty("timeAnchor",            TimeAnchor.     ToIso8601()),
+                                 new JProperty("timeAnchor",            TimeAnchor.           ToIso8601()),
                                  new JProperty("powerScheduleEntries",  new JArray(PowerScheduleEntries.Select(powerScheduleEntry => powerScheduleEntry.ToJSON(CustomPowerScheduleEntrySerializer,
                                                                                                                                                                CustomRationalNumberSerializer)))),
 
                            AvailableEnergy is not null
-                               ? new JProperty("availableEnergy",       AvailableEnergy.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("availableEnergy",       AvailableEnergy.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            PowerTolerance is not null
-                               ? new JProperty("powerTolerance",        PowerTolerance. ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("powerTolerance",        PowerTolerance.Value. ToJSON(CustomRationalNumberSerializer))
                                : null
 
                        );

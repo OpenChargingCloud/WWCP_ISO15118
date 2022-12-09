@@ -332,33 +332,33 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                                 new JProperty("messageHeader",            MessageHeader.         ToJSON(CustomMessageHeaderSerializer)),
+                                 new JProperty("messageHeader",            MessageHeader.               ToJSON(CustomMessageHeaderSerializer)),
                                  new JProperty("maximumSupportingPoints",  MaximumSupportingPoints),
 
                            DepartureTime.HasValue
-                               ? new JProperty("departureTime",            DepartureTime.Value.   ToIso8601())
+                               ? new JProperty("departureTime",            DepartureTime.Value.         ToIso8601())
                                : null,
 
                            EVTargetEnergyRequest  is not null
-                               ? new JProperty("evTargetEnergyRequest",    EVTargetEnergyRequest. ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("evTargetEnergyRequest",    EVTargetEnergyRequest. Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            EVMaximumEnergyRequest is not null
-                               ? new JProperty("evMaximumEnergyRequest",   EVMaximumEnergyRequest.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("evMaximumEnergyRequest",   EVMaximumEnergyRequest.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            EVMinimumEnergyRequest is not null
-                               ? new JProperty("evMinimumEnergyRequest",   EVMinimumEnergyRequest.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("evMinimumEnergyRequest",   EVMinimumEnergyRequest.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            EVEnergyOffer          is not null
-                               ? new JProperty("evEnergyOffer",            EVEnergyOffer.         ToJSON(CustomEVEnergyOfferSerializer,
-                                                                                                         CustomEVPowerScheduleSerializer,
-                                                                                                         CustomEVPowerScheduleEntrySerializer,
-                                                                                                         CustomRationalNumberSerializer,
-                                                                                                         CustomEVAbsolutePriceScheduleSerializer,
-                                                                                                         CustomEVPriceRuleStackSerializer,
-                                                                                                         CustomEVPriceRuleSerializer))
+                               ? new JProperty("evEnergyOffer",            EVEnergyOffer.               ToJSON(CustomEVEnergyOfferSerializer,
+                                                                                                               CustomEVPowerScheduleSerializer,
+                                                                                                               CustomEVPowerScheduleEntrySerializer,
+                                                                                                               CustomRationalNumberSerializer,
+                                                                                                               CustomEVAbsolutePriceScheduleSerializer,
+                                                                                                               CustomEVPriceRuleStackSerializer,
+                                                                                                               CustomEVPriceRuleSerializer))
                                : null
 
                        );

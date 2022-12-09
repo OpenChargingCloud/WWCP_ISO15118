@@ -162,14 +162,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("fee",
                                              "service fee",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? Fee,
+                                             out RationalNumber Fee,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (Fee is null)
-                    return false;
 
                 #endregion
 

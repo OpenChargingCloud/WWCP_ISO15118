@@ -183,14 +183,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 if (!JSON.ParseMandatoryJSON("power",
                                              "power",
                                              RationalNumber.TryParse,
-                                             out RationalNumber? Power,
+                                             out RationalNumber Power,
                                              out ErrorResponse))
                 {
                     return false;
                 }
-
-                if (Power is null)
-                    return false;
 
                 #endregion
 
@@ -260,14 +257,15 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             var json = JSONObject.Create(
 
                                  new JProperty("duration",  (UInt64) Math.Round(Duration.TotalSeconds, 0)),
-                                 new JProperty("power",     Power.  ToJSON(CustomRationalNumberSerializer)),
+
+                                 new JProperty("power",     Power.        ToJSON(CustomRationalNumberSerializer)),
 
                            PowerL2 is not null
-                               ? new JProperty("powerL2",   PowerL2.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("powerL2",   PowerL2.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            PowerL3 is not null
-                               ? new JProperty("powerL3",   PowerL3.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("powerL3",   PowerL3.Value.ToJSON(CustomRationalNumberSerializer))
                                : null
 
                        );

@@ -21,7 +21,7 @@ using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
-namespace cloud.charging.open.protocols.ISO15118_20
+namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>

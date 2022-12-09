@@ -17,34 +17,37 @@
 
 #region Usings
 
+using cloud.charging.open.protocols.ISO15118_20.DCP;
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
-
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.DC
 {
 
-    public class DC_CableCheckResponse : AResponse
+    public class BPT_Scheduled_DC_CLReqControlMode : Scheduled_DC_CLReqControlMode
     {
 
-        public ProcessingTypes  EVSEProcessing    { get; }
+        public RationalNumber?  EVMaximumDischargePower      { get; }
+        public RationalNumber?  EVMinimumDischargePower      { get; }
+        public RationalNumber?  EVMaximumDischargeCurrent    { get; }
 
 
         #region Documentation
 
-        // <xs:complexType name="DC_CableCheckResType">
+        // <xs:complexType name="BPT_Scheduled_DC_CLReqControlModeType">
         //     <xs:complexContent>
-        //         <xs:extension base="v2gci_ct:V2GResponseType">
+        //         <xs:extension base="Scheduled_DC_CLReqControlModeType">
         //             <xs:sequence>
-        //                 <xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
+        //                 <xs:element name="EVMaximumDischargePower"   type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+        //                 <xs:element name="EVMinimumDischargePower"   type="v2gci_ct:RationalNumberType" minOccurs="0"/>
+        //                 <xs:element name="EVMaximumDischargeCurrent" type="v2gci_ct:RationalNumberType" minOccurs="0"/>
         //             </xs:sequence>
         //         </xs:extension>
         //     </xs:complexContent>
         // </xs:complexType>
 
         #endregion
-
 
     }
 

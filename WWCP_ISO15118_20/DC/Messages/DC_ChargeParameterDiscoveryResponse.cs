@@ -28,7 +28,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
     public class DC_ChargeParameterDiscoveryResponse : AResponse
     {
 
-        public DC_CPDResEnergyTransferModeType?  DC_CPDResEnergyTransferMode    { get; }
+        public DC_CPDResEnergyTransferMode?  DC_CPDResEnergyTransferMode    { get; }
+
+
+        #region Documentation
+
+        // <xs:complexType name="DC_ChargeParameterDiscoveryResType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:ChargeParameterDiscoveryResType">
+        //             <xs:sequence>
+        //                 <xs:element ref="DC_CPDResEnergyTransferMode"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
 
     }

@@ -28,13 +28,32 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
     public class DC_ChargeLoopResponse : AResponse
     {
 
-        public RationalNumber          EVSEPresentCurrent          { get; }
-        public RationalNumber          EVSEPresentVoltage          { get; }
-        public Boolean                 EVSEPowerLimitAchieved      { get; }
-        public Boolean                 EVSECurrentLimitAchieved    { get; }
-        public Boolean                 EVSEVoltageLimitAchieved    { get; }
-        public ACLResControlModeType?  CLResControlMode            { get; }
+        public RationalNumber      EVSEPresentCurrent          { get; }
+        public RationalNumber      EVSEPresentVoltage          { get; }
+        public Boolean             EVSEPowerLimitAchieved      { get; }
+        public Boolean             EVSECurrentLimitAchieved    { get; }
+        public Boolean             EVSEVoltageLimitAchieved    { get; }
+        public ACLResControlMode?  CLResControlMode            { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name="DC_ChargeLoopResType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:ChargeLoopResType">
+        //             <xs:sequence>
+        //                 <xs:element name="EVSEPresentCurrent"       type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVSEPresentVoltage"       type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVSEPowerLimitAchieved"   type="xs:boolean"/>
+        //                 <xs:element name="EVSECurrentLimitAchieved" type="xs:boolean"/>
+        //                 <xs:element name="EVSEVoltageLimitAchieved" type="xs:boolean"/>
+        //                 <xs:element ref="v2gci_ct:CLResControlMode"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

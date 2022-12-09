@@ -19,32 +19,23 @@
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
-
 #endregion
 
-namespace cloud.charging.open.protocols.ISO15118_20.DC
+namespace cloud.charging.open.protocols.ISO15118_20.AC
 {
 
-    public class DC_CableCheckResponse : AResponse
+    public class BPT_Dynamic_AC_CLResControlMode : Dynamic_AC_CLResControlMode
     {
-
-        public ProcessingTypes  EVSEProcessing    { get; }
-
 
         #region Documentation
 
-        // <xs:complexType name="DC_CableCheckResType">
+        // <xs:complexType name="BPT_Dynamic_AC_CLResControlModeType">
         //     <xs:complexContent>
-        //         <xs:extension base="v2gci_ct:V2GResponseType">
-        //             <xs:sequence>
-        //                 <xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
-        //             </xs:sequence>
-        //         </xs:extension>
+        //         <xs:extension base="Dynamic_AC_CLResControlModeType"/>
         //     </xs:complexContent>
         // </xs:complexType>
 
         #endregion
-
 
     }
 

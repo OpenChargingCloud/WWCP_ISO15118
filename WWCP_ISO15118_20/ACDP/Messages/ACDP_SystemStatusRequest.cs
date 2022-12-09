@@ -27,8 +27,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
     public class ACDP_SystemStatusRequest : ARequest
     {
 
-        public EVTechnicalStatusType  EVTechnicalStatus    { get; }
+        public EVTechnicalStatus  EVTechnicalStatus    { get; }
 
+
+        #region Documentation
+
+        // <xs:complexType name="ACDP_SystemStatusReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="EVTechnicalStatus" type="EVTechnicalStatusType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

@@ -32,6 +32,23 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
         public RationalNumber   EVTargetVoltage     { get; }
 
 
+        #region Documentation
+
+        // <xs:complexType name="DC_PreChargeReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="EVProcessing"     type="v2gci_ct:processingType"/>
+        //                 <xs:element name="EVPresentVoltage" type="v2gci_ct:RationalNumberType"/>
+        //                 <xs:element name="EVTargetVoltage"  type="v2gci_ct:RationalNumberType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
+
     }
 
 }

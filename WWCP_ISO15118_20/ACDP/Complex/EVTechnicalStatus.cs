@@ -19,31 +19,22 @@
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
-
 #endregion
 
-namespace cloud.charging.open.protocols.ISO15118_20.DC
+namespace cloud.charging.open.protocols.ISO15118_20.DCP
 {
 
-    public class DC_CableCheckResponse : AResponse
+    public class EVTechnicalStatus
     {
 
-        public ProcessingTypes  EVSEProcessing    { get; }
-
-
-        #region Documentation
-
-        // <xs:complexType name="DC_CableCheckResType">
-        //     <xs:complexContent>
-        //         <xs:extension base="v2gci_ct:V2GResponseType">
-        //             <xs:sequence>
-        //                 <xs:element name="EVSEProcessing" type="v2gci_ct:processingType"/>
-        //             </xs:sequence>
-        //         </xs:extension>
-        //     </xs:complexContent>
-        // </xs:complexType>
-
-        #endregion
+        public Boolean          EVReadyToCharge            { get; }
+        public Boolean          EVImmobilizationRequest    { get; }
+        public Boolean?         EVImmobilized              { get; }
+        public RationalNumber?  EVWLANStrength             { get; }
+        public CPStatus?        EVCPStatus                 { get; }
+        public SByte?           EVSOC                      { get; }
+        public ErrorCodes?      EVErrorCode                { get; }
+        public Boolean?         EVTimeout                  { get; }
 
 
     }

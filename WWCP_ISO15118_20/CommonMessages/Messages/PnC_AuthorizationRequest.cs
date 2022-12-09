@@ -86,6 +86,18 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #endregion
 
 
+        #region Documentation
+
+        // <xs:complexType name="PnC_AReqAuthorizationModeType">
+        //     <xs:sequence>
+        //         <xs:element name="GenChallenge"             type="genChallengeType"/>
+        //         <xs:element name="ContractCertificateChain" type="ContractCertificateChainType"/>
+        //     </xs:sequence>
+        //     <xs:attribute name="Id" type="xs:ID" use="required"/>
+        // </xs:complexType>
+
+        #endregion
+
         #region (static) Parse   (JSON, CustomPnC_AuthorizationRequestParser = null)
 
         /// <summary>

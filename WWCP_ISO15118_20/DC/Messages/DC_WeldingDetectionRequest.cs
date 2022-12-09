@@ -30,6 +30,20 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
         public ProcessingTypes  EVProcessing    { get; }
 
 
+        #region Documentation
+
+        // <xs:complexType name="DC_WeldingDetectionReqType">
+        //     <xs:complexContent>
+        //         <xs:extension base="v2gci_ct:V2GRequestType">
+        //             <xs:sequence>
+        //                 <xs:element name="EVProcessing" type="v2gci_ct:processingType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
     }
 
 }

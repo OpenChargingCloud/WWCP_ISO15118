@@ -658,8 +658,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             unchecked
             {
 
-                return Id.                         GetHashCode()        * 29 ^
-                       Currency.                   GetHashCode()        * 27 ^
+                return Id.                         GetHashCode()        * 31 ^
+                       Currency.                   GetHashCode()        * 29 ^
                        Language.                   GetHashCode()        * 23 ^
                        PriceAlgorithmId.           GetHashCode()        * 19 ^
                        PriceRuleStacks.            CalcHashCode()       * 17 ^

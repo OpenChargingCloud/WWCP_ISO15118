@@ -24,20 +24,41 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.AC
 {
 
-    public class AC_ChargeLoopResponse : AChargeLoopResponse
+    /// <summary>
+    /// The AC charge loop response.
+    /// </summary>
+    public class ACChargeLoopResponse : AChargeLoopResponse
     {
 
         #region Properties
 
+        /// <summary>
+        /// The EVSE target frequency.
+        /// </summary>
         public RationalNumber?     EVSETargetFrequency    { get; }
+
+        /// <summary>
+        /// The abstract control mode.
+        /// </summary>
         public ACLResControlMode?  CLResControlMode       { get; }
 
         #endregion
 
         #region Constructor(s)
 
-        public AC_ChargeLoopResponse(RationalNumber?              EVSETargetFrequency,
-                                     Dynamic_AC_CLResControlMode  Dynamic_AC_CLResControlMode)
+        #region AC_ChargeLoopResponse(EVSETargetFrequency, Dynamic_AC_CLResControlMode)
+
+        /// <summary>
+        /// Create a new dynamic AC charge loop response.
+        /// </summary>
+        /// <param name="MessageHeader">A message header.</param>
+        /// <param name="DisplayParameters">Optional display parameters.</param>
+        /// <param name="MeterInfoRequested">Whether meter information is requested.</param>
+        /// 
+        /// <param name="EVSETargetFrequency">An EVSE target frequency.</param>
+        /// <param name="Dynamic_AC_CLResControlMode">The dynamic control mode.</param>
+        public ACChargeLoopResponse(RationalNumber?              EVSETargetFrequency,
+                                    Dynamic_AC_CLResControlMode  Dynamic_AC_CLResControlMode)
         {
 
             this.EVSETargetFrequency  = EVSETargetFrequency;
@@ -45,14 +66,29 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
 
         }
 
-        public AC_ChargeLoopResponse(RationalNumber?                EVSETargetFrequency,
-                                     Scheduled_AC_CLResControlMode  Scheduled_AC_CLResControlMode)
+        #endregion
+
+        #region AC_ChargeLoopResponse(EVSETargetFrequency, Scheduled_AC_CLResControlMode)
+
+        /// <summary>
+        /// Create a new scheduled AC charge loop response.
+        /// </summary>
+        /// <param name="MessageHeader">A message header.</param>
+        /// <param name="DisplayParameters">Optional display parameters.</param>
+        /// <param name="MeterInfoRequested">Whether meter information is requested.</param>
+        /// 
+        /// <param name="EVSETargetFrequency">An EVSE target frequency.</param>
+        /// <param name="Scheduled_AC_CLResControlMode">The scheduled control mode.</param>
+        public ACChargeLoopResponse(RationalNumber?                EVSETargetFrequency,
+                                    Scheduled_AC_CLResControlMode  Scheduled_AC_CLResControlMode)
         {
 
             this.EVSETargetFrequency  = EVSETargetFrequency;
             this.CLResControlMode     = Scheduled_AC_CLResControlMode;
 
         }
+
+        #endregion
 
         #endregion
 

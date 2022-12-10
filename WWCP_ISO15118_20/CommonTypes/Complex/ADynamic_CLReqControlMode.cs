@@ -17,24 +17,70 @@
 
 #region Usings
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
+    /// <summary>
+    /// The abstract dynamic charge loop control mode.
+    /// </summary>
     public abstract class ADynamic_CLReqControlMode : ACLReqControlMode
     {
 
-        public DateTime?       DepartureTime             { get; }
+        #region Properties
+
+        /// <summary>
+        /// The EV target energy request.
+        /// </summary>
+        [Mandatory]
         public RationalNumber  EVTargetEnergyRequest     { get; }
+
+        /// <summary>
+        /// The EV maximum energy request.
+        /// </summary>
+        [Mandatory]
         public RationalNumber  EVMaximumEnergyRequest    { get; }
+
+        /// <summary>
+        /// The EV minimum energy request.
+        /// </summary>
+        [Mandatory]
         public RationalNumber  EVMinimumEnergyRequest    { get; }
+
+        /// <summary>
+        /// The optional departure time.
+        /// </summary>
+        [Optional]
+        public DateTime?       DepartureTime             { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new abstract dynamic charge loop control mode.
+        /// </summary>
+        /// <param name="EVTargetEnergyRequest">An EV target energy request.</param>
+        /// <param name="EVMaximumEnergyRequest">An EV maximum energy request.</param>
+        /// <param name="EVMinimumEnergyRequest">An EV minimum energy request.</param>
+        /// <param name="DepartureTime">An optional departure time.</param>
+        public ADynamic_CLReqControlMode(RationalNumber  EVTargetEnergyRequest,
+                                         RationalNumber  EVMaximumEnergyRequest,
+                                         RationalNumber  EVMinimumEnergyRequest,
+                                         DateTime?       DepartureTime)
+        {
+
+            this.EVTargetEnergyRequest   = EVTargetEnergyRequest;
+            this.EVMaximumEnergyRequest  = EVMaximumEnergyRequest;
+            this.EVMinimumEnergyRequest  = EVMinimumEnergyRequest;
+            this.DepartureTime           = DepartureTime;
+
+        }
+
+        #endregion
 
 
         #region Documentation
@@ -53,6 +99,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         // </xs:complexType>
 
         #endregion
+
 
     }
 

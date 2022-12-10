@@ -17,11 +17,9 @@
 
 #region Usings
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
@@ -36,6 +34,14 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         // <xs:complexType name="CLReqControlModeType" abstract="true"/>
 
         #endregion
+
+
+        /// <summary>
+        /// Return a JSON representation of this object.
+        /// </summary>
+        /// <param name="CustomRationalNumberSerializer">A delegate to serialize custom rational numbers.</param>
+        public abstract JObject ToJSON(CustomJObjectSerializerDelegate<RationalNumber>? CustomRationalNumberSerializer = null);
+
 
     }
 

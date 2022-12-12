@@ -18,22 +18,92 @@
 #region Usings
 
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
+using org.GraphDefined.Vanaheimr.Illias;
 
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118_20.AC
 {
 
+    /// <summary>
+    /// The AC CPD request energy transfer mode.
+    /// </summary>
     public class AC_CPDReqEnergyTransferMode
     {
 
+        #region Properties
+
+        /// <summary>
+        /// The EV maximum charge power.
+        /// </summary>
+        [Mandatory]
         public RationalNumber   EVMaximumChargePower       { get; }
+
+        /// <summary>
+        /// The optional EV maximum charge power on phase 2.
+        /// </summary>
+        [Optional]
         public RationalNumber?  EVMaximumChargePower_L2    { get; }
+
+        /// <summary>
+        /// The optional EV maximum charge power on phase 3.
+        /// </summary>
+        [Optional]
         public RationalNumber?  EVMaximumChargePower_L3    { get; }
 
+
+        /// <summary>
+        /// The EV minimum charge power.
+        /// </summary>
+        [Mandatory]
         public RationalNumber   EVMinimumChargePower       { get; }
+
+        /// <summary>
+        /// The optional EV minimum charge power on phase 2.
+        /// </summary>
+        [Optional]
         public RationalNumber?  EVMinimumChargePower_L2    { get; }
+
+        /// <summary>
+        /// The optional EV minimum charge power on phase 3.
+        /// </summary>
+        [Optional]
         public RationalNumber?  EVMinimumChargePower_L3    { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new AC CPD request energy transfer mode.
+        /// </summary>
+        /// <param name="eVMaximumChargePower">An EV maximum charge power.</param>
+        /// <param name="eVMaximumChargePower_L2">An optional EV maximum charge power on phase 2.</param>
+        /// <param name="eVMaximumChargePower_L3">An optional EV maximum charge power on phase 3.</param>
+        /// 
+        /// <param name="eVMinimumChargePower">An EV minimum charge power.</param>
+        /// <param name="eVMinimumChargePower_L2">An optional EV minimum charge power on phase 2.</param>
+        /// <param name="eVMinimumChargePower_L3">An optional EV minimum charge power on phase 3.</param>
+        public AC_CPDReqEnergyTransferMode(RationalNumber   EVMaximumChargePower,
+                                           RationalNumber?  EVMaximumChargePower_L2,
+                                           RationalNumber?  EVMaximumChargePower_L3,
+
+                                           RationalNumber   EVMinimumChargePower,
+                                           RationalNumber?  EVMinimumChargePower_L2,
+                                           RationalNumber?  EVMinimumChargePower_L3)
+        {
+
+            this.EVMaximumChargePower     = EVMaximumChargePower;
+            this.EVMaximumChargePower_L2  = EVMaximumChargePower_L2;
+            this.EVMaximumChargePower_L3  = EVMaximumChargePower_L3;
+
+            this.EVMinimumChargePower     = EVMinimumChargePower;
+            this.EVMinimumChargePower_L2  = EVMinimumChargePower_L2;
+            this.EVMinimumChargePower_L3  = EVMinimumChargePower_L3;
+
+        }
+
+        #endregion
 
 
         #region Documentation

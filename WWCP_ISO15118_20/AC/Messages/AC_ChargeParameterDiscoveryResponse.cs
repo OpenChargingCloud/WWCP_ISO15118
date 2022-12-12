@@ -24,10 +24,46 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.AC
 {
 
+    /// <summary>
+    /// The AC charge parameter discovery response.
+    /// </summary>
     public class AC_ChargeParameterDiscoveryResponse : AChargeParameterDiscoveryResponse
     {
 
+        #region Properties
+
+        /// <summary>
+        /// The AC CPD response energy transfer mode.
+        /// </summary>
         public AC_CPDResEnergyTransferMode? AC_CPDResEnergyTransferMode { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new AC charge parameter discovery response.
+        /// </summary>
+        /// <param name="Request">The AC charge parameter discovery request leading to this result.</param>
+        /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
+        /// <param name="ResponseCode">A message response code.</param>
+        /// <param name="AC_CPDResEnergyTransferMode">An AC CPD response energy transfer mode.</param>
+        public AC_ChargeParameterDiscoveryResponse(AC_ChargeParameterDiscoveryRequest  Request,
+                                                   MessageHeader                       MessageHeader,
+                                                   ResponseCodes                       ResponseCode,
+                                                   AC_CPDResEnergyTransferMode?        AC_CPDResEnergyTransferMode)
+
+            : base(Request,
+                   MessageHeader,
+                   ResponseCode)
+
+        {
+
+            this.AC_CPDResEnergyTransferMode = AC_CPDResEnergyTransferMode;
+
+        }
+
+        #endregion
 
 
         #region Documentation
@@ -46,6 +82,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
 
         #endregion
 
+
+
+        public override bool Equals(AChargeParameterDiscoveryResponse? AV2GResponse)
+        {
+            throw new NotImplementedException();
+        }
 
     }
 

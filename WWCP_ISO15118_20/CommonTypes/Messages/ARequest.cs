@@ -129,6 +129,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #endregion
 
 
+        #region Documentation
+
+        // <xs:complexType name = "V2GRequestType" abstract="true">
+        //     <xs:complexContent>
+        //         <xs:extension base="V2GMessageType"/>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
+
         #region IEquatable<ARequest<TRequest>> Members
 
         #region Equals(Object)

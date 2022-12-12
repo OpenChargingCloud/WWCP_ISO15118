@@ -24,10 +24,40 @@ using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 namespace cloud.charging.open.protocols.ISO15118_20.AC
 {
 
+    /// <summary>
+    /// The AC charge parameter discovery request.
+    /// </summary>
     public class AC_ChargeParameterDiscoveryRequest : AChargeParameterDiscoveryRequest
     {
 
+        #region Properties
+
+        /// <summary>
+        /// The AC CPD request energy transfer mode.
+        /// </summary>
         public AC_CPDReqEnergyTransferMode?  AC_CPDReqEnergyTransferMode    { get; }
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new AC charge parameter discovery request.
+        /// </summary>
+        /// <param name="MessageHeader">A message header.</param>
+        /// <param name="AC_CPDReqEnergyTransferMode">An AC CPD request energy transfer mode.</param>
+        public AC_ChargeParameterDiscoveryRequest(MessageHeader                 MessageHeader,
+                                                  AC_CPDReqEnergyTransferMode?  AC_CPDReqEnergyTransferMode   = null)
+
+            : base(MessageHeader)
+
+        {
+
+            this.AC_CPDReqEnergyTransferMode = AC_CPDReqEnergyTransferMode;
+
+        }
+
+        #endregion
 
 
         #region Documentation

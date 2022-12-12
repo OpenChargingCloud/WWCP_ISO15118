@@ -101,9 +101,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="Request">The ISO 15118-20 V2G request leading to this result.</param>
         /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
         /// <param name="ResponseCode">A message response code.</param>
-        public AResponse(TRequest           Request,
-                            MessageHeader      MessageHeader,
-                            ResponseCodes  ResponseCode)
+        public AResponse(TRequest       Request,
+                         MessageHeader  MessageHeader,
+                         ResponseCodes  ResponseCode)
 
             : base(MessageHeader,
                    ResponseCode)
@@ -202,6 +202,20 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
         #endregion
 
+
+        #region Documentation
+
+        // <xs:complexType name="V2GResponseType" abstract="true">
+        //     <xs:complexContent>
+        //         <xs:extension base="V2GMessageType">
+        //             <xs:sequence>
+        //                 <xs:element name="ResponseCode" type="responseCodeType"/>
+        //             </xs:sequence>
+        //         </xs:extension>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
         #region Operator overloading
 

@@ -29,9 +29,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
 
         public RationalNumber   EVTargetCurrent           { get; }
         public RationalNumber   EVTargetVoltage           { get; }
+
         public RationalNumber?  EVMaximumChargePower      { get; }
         public RationalNumber?  EVMinimumChargePower      { get; }
         public RationalNumber?  EVMaximumChargeCurrent    { get; }
+
         public RationalNumber?  EVMaximumVoltage          { get; }
         public RationalNumber?  EVMinimumVoltage          { get; }
 

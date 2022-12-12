@@ -28,9 +28,32 @@ using System.Threading.Tasks;
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
-    public abstract class AChargeParameterDiscoveryResponse : AResponse
+    /// <summary>
+    /// The abstract charge parameter discovery response.
+    /// </summary>
+    public abstract class AChargeParameterDiscoveryResponse : AResponse<AChargeParameterDiscoveryRequest,
+                                                                        AChargeParameterDiscoveryResponse>
     {
 
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new abstract charge parameter discovery response.
+        /// </summary>
+        /// <param name="Request">The abstract charge parameter discovery request leading to this result.</param>
+        /// <param name="MessageHeader">An ISO 15118-20 V2G common message header.</param>
+        /// <param name="ResponseCode">A message response code.</param>
+        public AChargeParameterDiscoveryResponse(AChargeParameterDiscoveryRequest  Request,
+                                                 MessageHeader                     MessageHeader,
+                                                 ResponseCodes                     ResponseCode)
+
+            : base(Request,
+                   MessageHeader,
+                   ResponseCode)
+
+        { }
+
+        #endregion
 
     }
 

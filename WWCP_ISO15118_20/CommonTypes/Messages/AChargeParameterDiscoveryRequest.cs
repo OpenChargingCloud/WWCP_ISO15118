@@ -15,22 +15,39 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-#endregion
-
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
-    public abstract class AChargeParameterDiscoveryRequest : ARequest
+    /// <summary>
+    /// The abstract charge parameter discovery request.
+    /// </summary>
+    public abstract class AChargeParameterDiscoveryRequest : ARequest<AChargeParameterDiscoveryRequest>
     {
 
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new abstract charge parameter discovery request.
+        /// </summary>
+        /// <param name="MessageHeader">A message header.</param>
+        protected AChargeParameterDiscoveryRequest(MessageHeader MessageHeader)
+
+            : base(MessageHeader)
+
+        { }
+
+        #endregion
+
+
+        #region Documentation
+
+        // <xs:complexType name="ChargeParameterDiscoveryReqType" abstract="true">
+        //     <xs:complexContent>
+        //         <xs:extension base="V2GRequestType"/>
+        //     </xs:complexContent>
+        // </xs:complexType>
+
+        #endregion
 
     }
 

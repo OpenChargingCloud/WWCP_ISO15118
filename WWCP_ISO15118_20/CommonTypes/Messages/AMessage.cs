@@ -56,6 +56,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #endregion
 
 
+        #region Documentation
+
+        // <xs:complexType name="V2GMessageType" abstract="true">
+        //     <xs:sequence>
+        //         <xs:element name="Header" type="MessageHeaderType"/>
+        //     </xs:sequence>
+        // </xs:complexType>
+
+        #endregion
+
         #region IEquatable<AMessage> Members
 
         #region Equals(Object)

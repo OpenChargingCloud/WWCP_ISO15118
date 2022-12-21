@@ -607,51 +607,52 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// </summary>
         public override String ToString()
 
-            => new String[] {
+            => new String?[] {
 
                    PresentSOC.                HasValue
                        ? "present SOC: "             + PresentSOC.               Value.ToString()
-                       : "",
+                       : null,
 
                    MinimumSOC.                HasValue
                        ? "minimum SOC: "             + MinimumSOC.               Value.ToString()
-                       : "",
+                       : null,
 
                    TargetSOC.                 HasValue
                        ? "target SOC: "              + TargetSOC.                Value.ToString()
-                       : "",
+                       : null,
 
                    MaximumSOC.                HasValue
                        ? "maximum SOC: "             + MaximumSOC.               Value.ToString()
-                       : "",
+                       : null,
 
 
                    RemainingTimeToMinimumSOC. HasValue
                        ? "till minimum SOC: "        + RemainingTimeToMinimumSOC.Value.ToString()
-                       : "",
+                       : null,
 
                    RemainingTimeToTargetSOC.  HasValue
                        ? "till target SOC: "         + RemainingTimeToTargetSOC. Value.ToString()
-                       : "",
+                       : null,
 
                    RemainingTimeToMaximumSOC. HasValue
                        ? "till maximum SOC: "        + RemainingTimeToMaximumSOC.Value.ToString()
-                       : "",
+                       : null,
 
 
                    ChargingComplete.          HasValue
                        ? "charging complete: "       + ChargingComplete.         Value.ToString()
-                       : "",
+                       : null,
 
                    BatteryEnergyCapacity.     HasValue
                        ? "battery energy capacity: " + BatteryEnergyCapacity.    Value.ToString()
-                       : "",
+                       : null,
 
                    InletHot.                  HasValue
                        ? "inlet hot: "               + InletHot.                 Value.ToString()
-                       : ""
+                       : null
 
-            }.AggregateWith(", ");
+               }.Where(text => text is not null).
+                 AggregateWith(", ");
 
         #endregion
 

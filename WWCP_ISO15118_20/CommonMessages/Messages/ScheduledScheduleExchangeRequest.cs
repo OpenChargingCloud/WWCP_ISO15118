@@ -494,29 +494,30 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => new String[] {
+            => new String?[] {
 
                    DepartureTime.HasValue
                        ? "departure time: " + DepartureTime.Value.ToIso8601()
-                       : "",
+                       : null,
 
                    EVTargetEnergyRequest  is not null
                        ? "target energy: "  + EVTargetEnergyRequest
-                       : "",
+                       : null,
 
                    EVMaximumEnergyRequest is not null
                        ? "maximum energy: " + EVMaximumEnergyRequest
-                       : "",
+                       : null,
 
                    EVMinimumEnergyRequest is not null
                        ? "minimum energy: " + EVMinimumEnergyRequest
-                       : "",
+                       : null,
 
                    EVEnergyOffer          is not null
                        ? "energy offer: " + EVEnergyOffer
-                       : ""
+                       : null
 
-            }.AggregateWith(", ");
+               }.Where(text => text is not null).
+                 AggregateWith(", ");
 
         #endregion
 

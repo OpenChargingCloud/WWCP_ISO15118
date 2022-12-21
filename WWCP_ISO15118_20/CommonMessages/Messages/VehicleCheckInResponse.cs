@@ -413,21 +413,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => new String[] {
+            => new String?[] {
 
                    ParkingSpace.HasValue
                        ? "parking space: "   + ParkingSpace
-                       : "",
+                       : null,
 
                    DeviceLocation.HasValue
                        ? "device location: " + DeviceLocation
-                       : "",
+                       : null,
 
                    TargetDistance.HasValue
                        ? "target distance: " + TargetDistance
-                       : ""
+                       : null
 
-            }.AggregateWith(", ");
+               }.Where(text => text is not null).
+                 AggregateWith(", ");
 
         #endregion
 

@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2021-2022 GraphDefined GmbH
+ * Copyright (c) 2021-2023 GraphDefined GmbH
  * This file is part of WWCP ISO 15118-20 <https://github.com/OpenChargingCloud/WWCP_ISO15118_20>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

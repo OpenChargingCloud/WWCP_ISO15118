@@ -36,6 +36,46 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         public RationalNumber?  EVMinimumDischargePower_L3    { get; }
 
 
+        public BPT_AC_CPDReqEnergyTransferMode(RationalNumber   EVMaximumChargePower,
+                                               RationalNumber?  EVMaximumChargePower_L2,
+                                               RationalNumber?  EVMaximumChargePower_L3,
+
+                                               RationalNumber   EVMinimumChargePower,
+                                               RationalNumber?  EVMinimumChargePower_L2,
+                                               RationalNumber?  EVMinimumChargePower_L3,
+
+                                               RationalNumber   eVMaximumDischargePower,
+                                               RationalNumber?  eVMaximumDischargePower_L2,
+                                               RationalNumber?  eVMaximumDischargePower_L3,
+
+                                               RationalNumber   eVMinimumDischargePower,
+                                               RationalNumber?  eVMinimumDischargePower_L2,
+                                               RationalNumber?  eVMinimumDischargePower_L3)
+
+            : base(EVMaximumChargePower,
+                   EVMaximumChargePower_L2,
+                   EVMaximumChargePower_L3,
+
+                   EVMinimumChargePower,
+                   EVMinimumChargePower_L2,
+                   EVMinimumChargePower_L3)
+
+        {
+
+            this.EVMaximumDischargePower     = eVMaximumDischargePower;
+            this.EVMaximumDischargePower_L2  = eVMaximumDischargePower_L2;
+            this.EVMaximumDischargePower_L3  = eVMaximumDischargePower_L3;
+
+            this.EVMinimumDischargePower     = eVMinimumDischargePower;
+            this.EVMinimumDischargePower_L2  = eVMinimumDischargePower_L2;
+            this.EVMinimumDischargePower_L3  = eVMinimumDischargePower_L3;
+
+        }
+
+
+
+
+
         #region Documentation
 
         // <xs:complexType name="BPT_AC_CPDReqEnergyTransferModeType">

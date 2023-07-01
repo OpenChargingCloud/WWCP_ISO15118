@@ -17,6 +17,10 @@
 
 #region Usings
 
+using Newtonsoft.Json.Linq;
+
+using org.GraphDefined.Vanaheimr.Illias;
+
 using cloud.charging.open.protocols.ISO15118_20.CommonTypes;
 
 #endregion
@@ -38,6 +42,38 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
         public RationalNumber?  EVMinimumVoltage          { get; }
 
 
+        public Scheduled_DC_CLReqControlMode(RationalNumber?  EVTargetEnergyRequest,
+                                             RationalNumber?  EVMaximumEnergyRequest,
+                                             RationalNumber?  EVMinimumEnergyRequest,
+
+                                             RationalNumber   EVTargetCurrent,
+                                             RationalNumber   EVTargetVoltage,
+                                             RationalNumber?  EVMaximumChargePower,
+                                             RationalNumber?  EVMinimumChargePower,
+                                             RationalNumber?  EVMaximumChargeCurrent,
+                                             RationalNumber?  EVMaximumVoltage,
+                                             RationalNumber?  EVMinimumVoltage)
+
+            : base(EVTargetEnergyRequest,
+                   EVMaximumEnergyRequest,
+                   EVMinimumEnergyRequest)
+
+        {
+
+            this.EVTargetCurrent         = EVTargetCurrent;
+            this.EVTargetVoltage         = EVTargetVoltage;
+            this.EVMaximumChargePower    = EVMaximumChargePower;
+            this.EVMinimumChargePower    = EVMinimumChargePower;
+            this.EVMaximumChargeCurrent  = EVMaximumChargeCurrent;
+            this.EVMaximumVoltage        = EVMaximumVoltage;
+            this.EVMinimumVoltage        = EVMinimumVoltage;
+
+        }
+
+
+
+
+
         #region Documentation
 
         // <xs:complexType name="Scheduled_DC_CLReqControlModeType">
@@ -57,6 +93,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.DCP
         // </xs:complexType>
 
         #endregion
+
+
+        public override JObject ToJSON(CustomJObjectSerializerDelegate<RationalNumber>? CustomRationalNumberSerializer = null)
+        {
+            throw new NotImplementedException();
+        }
+
 
     }
 

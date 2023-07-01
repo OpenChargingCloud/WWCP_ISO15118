@@ -36,6 +36,67 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         public RationalNumber?  EVMinimumDischargePower_L3    { get; }
 
 
+        public BPT_Scheduled_AC_CLReqControlMode(RationalNumber?  EVTargetEnergyRequest,
+                                                 RationalNumber?  EVMaximumEnergyRequest,
+                                                 RationalNumber?  EVMinimumEnergyRequest,
+
+                                                 RationalNumber?  EVMaximumChargePower,
+                                                 RationalNumber?  EVMaximumChargePower_L2,
+                                                 RationalNumber?  EVMaximumChargePower_L3,
+
+                                                 RationalNumber?  EVMinimumChargePower,
+                                                 RationalNumber?  EVMinimumChargePower_L2,
+                                                 RationalNumber?  EVMinimumChargePower_L3,
+
+                                                 RationalNumber   EVPresentActivePower,
+                                                 RationalNumber?  EVPresentActivePower_L2,
+                                                 RationalNumber?  EVPresentActivePower_L3,
+
+                                                 RationalNumber?  EVPresentReactivePower,
+                                                 RationalNumber?  EVPresentReactivePower_L2,
+                                                 RationalNumber?  EVPresentReactivePower_L3,
+
+                                                 RationalNumber?  EVMaximumDischargePower,
+                                                 RationalNumber?  EVMaximumDischargePower_L2,
+                                                 RationalNumber?  EVMaximumDischargePower_L3,
+
+                                                 RationalNumber?  EVMinimumDischargePower,
+                                                 RationalNumber?  EVMinimumDischargePower_L2,
+                                                 RationalNumber?  EVMinimumDischargePower_L3)
+
+            : base(EVTargetEnergyRequest,
+                   EVMaximumEnergyRequest,
+                   EVMinimumEnergyRequest,
+
+                   EVMaximumChargePower,
+                   EVMaximumChargePower_L2,
+                   EVMaximumChargePower_L3,
+
+                   EVMinimumChargePower,
+                   EVMinimumChargePower_L2,
+                   EVMinimumChargePower_L3,
+
+                   EVPresentActivePower,
+                   EVPresentActivePower_L2,
+                   EVPresentActivePower_L3,
+
+                   EVPresentReactivePower,
+                   EVPresentReactivePower_L2,
+                   EVPresentReactivePower_L3)
+
+        {
+
+            this.EVMaximumDischargePower     = EVMaximumDischargePower;
+            this.EVMaximumDischargePower_L2  = EVMaximumDischargePower_L2;
+            this.EVMaximumDischargePower_L3  = EVMaximumDischargePower_L3;
+
+            this.EVMinimumDischargePower     = EVMinimumDischargePower;
+            this.EVMinimumDischargePower_L2  = EVMinimumDischargePower_L2;
+            this.EVMinimumDischargePower_L3  = EVMinimumDischargePower_L3;
+
+        }
+
+
         #region Documentation
 
         // <xs:complexType name="BPT_Scheduled_AC_CLReqControlModeType">
@@ -54,6 +115,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         // </xs:complexType>
 
         #endregion
+
 
     }
 

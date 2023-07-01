@@ -28,15 +28,44 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     public class WPT_ChargeParameterDiscoveryRequest : AChargeParameterDiscoveryRequest
     {
 
-        public RationalNumber   EVPCMaxReceivablePower         { get; }
+        public RationalNumber       EVPCMaxReceivablePower         { get; }
         public UInt16               SDMaxGroundClearence           { get; }
         public UInt16               SDMinGroundClearence           { get; }
-        public RationalNumber   EVPCNaturalFrequency           { get; }
+        public RationalNumber       EVPCNaturalFrequency           { get; }
 
         public Boolean              EVPCDeviceLocalControl         { get; }
 
         public IEnumerable<Byte[]>  VendorSpecificDataContainer    { get; }
 
+
+        public WPT_ChargeParameterDiscoveryRequest(MessageHeader        MessageHeader,
+
+                                                   RationalNumber       EVPCMaxReceivablePower,
+                                                   UInt16               SDMaxGroundClearence,
+                                                   UInt16               SDMinGroundClearence,
+                                                   RationalNumber       EVPCNaturalFrequency,
+
+                                                   Boolean              EVPCDeviceLocalControl,
+
+                                                   IEnumerable<Byte[]>  VendorSpecificDataContainer)
+
+            : base(MessageHeader)
+
+        {
+
+            this.EVPCMaxReceivablePower       = EVPCMaxReceivablePower;
+            this.SDMaxGroundClearence         = SDMaxGroundClearence;
+            this.SDMinGroundClearence         = SDMinGroundClearence;
+            this.EVPCNaturalFrequency         = EVPCNaturalFrequency;
+
+            this.EVPCDeviceLocalControl       = EVPCDeviceLocalControl;
+
+            this.VendorSpecificDataContainer  = VendorSpecificDataContainer;
+
+        }
+
+
     }
+
 
 }

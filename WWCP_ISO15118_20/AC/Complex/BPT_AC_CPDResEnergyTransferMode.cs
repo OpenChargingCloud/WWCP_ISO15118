@@ -36,6 +36,61 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         public RationalNumber?  EVSEMinimumDischargePower_L3    { get; }
 
 
+        public BPT_AC_CPDResEnergyTransferMode(RationalNumber   EVSEMaximumChargePower,
+                                               RationalNumber   EVSEMinimumChargePower,
+                                               RationalNumber   EVSENominalFrequency,
+
+                                               RationalNumber   EVSEMaximumDischargePower,
+                                               RationalNumber?  EVSEMaximumDischargePower_L2,
+                                               RationalNumber?  EVSEMaximumDischargePower_L3,
+
+                                               RationalNumber   EVSEMinimumDischargePower,
+                                               RationalNumber?  EVSEMinimumDischargePower_L2,
+                                               RationalNumber?  EVSEMinimumDischargePower_L3,
+
+                                               RationalNumber?  EVSEMaximumChargePowerL2   = null,
+                                               RationalNumber?  EVSEMaximumChargePowerL3   = null,
+
+                                               RationalNumber?  EVSEMinimumChargePowerL2   = null,
+                                               RationalNumber?  EVSEMinimumChargePowerL3   = null,
+
+                                               RationalNumber?  EVSEPresentActivePower     = null,
+                                               RationalNumber?  EVSEPresentActivePowerL2   = null,
+                                               RationalNumber?  EVSEPresentActivePowerL3   = null,
+
+                                               RationalNumber?  MaximumPowerAsymmetry      = null,
+                                               RationalNumber?  EVSEPowerRampLimitation    = null)
+
+            : base(EVSEMaximumChargePower,
+                   EVSEMinimumChargePower,
+                   EVSENominalFrequency,
+
+                   EVSEMaximumChargePowerL2,
+                   EVSEMaximumChargePowerL3,
+
+                   EVSEMinimumChargePowerL2,
+                   EVSEMinimumChargePowerL3,
+
+                   EVSEPresentActivePower,
+                   EVSEPresentActivePowerL2,
+                   EVSEPresentActivePowerL3,
+
+                   MaximumPowerAsymmetry,
+                   EVSEPowerRampLimitation)
+
+        {
+
+            this.EVSEMaximumDischargePower     = EVSEMaximumDischargePower;
+            this.EVSEMaximumDischargePower_L2  = EVSEMaximumDischargePower_L2;
+            this.EVSEMaximumDischargePower_L3  = EVSEMaximumDischargePower_L3;
+
+            this.EVSEMinimumDischargePower     = EVSEMinimumDischargePower;
+            this.EVSEMinimumDischargePower_L2  = EVSEMinimumDischargePower_L2;
+            this.EVSEMinimumDischargePower_L3  = EVSEMinimumDischargePower_L3;
+
+        }
+
+
         #region Documentation
 
         // <xs:complexType name="BPT_AC_CPDResEnergyTransferModeType">
@@ -54,6 +109,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         // </xs:complexType>
 
         #endregion
+
 
     }
 

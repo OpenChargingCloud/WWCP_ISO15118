@@ -600,7 +600,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
 
                EVSEMaximumChargePower.Equals(AC_CPDResEnergyTransferMode.EVSEMaximumChargePower) &&
                EVSEMinimumChargePower.Equals(AC_CPDResEnergyTransferMode.EVSEMinimumChargePower) &&
-               EVSENominalFrequency.  Equals(AC_CPDResEnergyTransferMode.EVSENominalFrequency)   &&
+               EVSENominalFrequency.  Equals(AC_CPDResEnergyTransferMode.EVSENominalFrequency);
 
 
 
@@ -626,8 +626,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
 
 
 
-               SubCertificates.Count().Equals(AC_CPDResEnergyTransferMode.SubCertificates.Count()) &&
-               SubCertificates.All(subCertificate => AC_CPDResEnergyTransferMode.SubCertificates.Contains(subCertificate));
+               //SubCertificates.Count().Equals(AC_CPDResEnergyTransferMode.SubCertificates.Count()) &&
+               //SubCertificates.All(subCertificate => AC_CPDResEnergyTransferMode.SubCertificates.Contains(subCertificate));
 
         #endregion
 
@@ -644,8 +644,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
             unchecked
             {
 
-                return Certificate.    GetHashCode()  * 5 ^
-                       SubCertificates.CalcHashCode() * 3 ^
+                return //Certificate.    GetHashCode()  * 5 ^
+                       //SubCertificates.CalcHashCode() * 3 ^
 
                        base.           GetHashCode();
 
@@ -663,10 +663,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
 
             => String.Concat(
 
-                   Certificate.ToString().SubstringMax(30),
+                   //Certificate.ToString().SubstringMax(30),
                    ", ",
 
-                   SubCertificates.Count(),
+                   //SubCertificates.Count(),
                    " sub certificate(s)"
 
                );

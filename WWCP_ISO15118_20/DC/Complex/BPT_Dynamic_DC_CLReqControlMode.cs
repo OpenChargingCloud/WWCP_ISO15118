@@ -31,8 +31,50 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
         public RationalNumber   EVMaximumDischargePower      { get; }
         public RationalNumber   EVMinimumDischargePower      { get; }
         public RationalNumber   EVMaximumDischargeCurrent    { get; }
+
         public RationalNumber?  EVMaximumV2XEnergyRequest    { get; }
         public RationalNumber?  EVMinimumV2XEnergyRequest    { get; }
+
+
+        public BPT_Dynamic_DC_CLReqControlMode(RationalNumber   EVTargetEnergyRequest,
+                                               RationalNumber   EVMaximumEnergyRequest,
+                                               RationalNumber   EVMinimumEnergyRequest,
+                                               DateTime?        DepartureTime,
+
+                                               RationalNumber   EVMaximumChargePower,
+                                               RationalNumber   EVMinimumChargePower,
+                                               RationalNumber   EVMaximumChargeCurrent,
+                                               RationalNumber   EVMaximumVoltage,
+                                               RationalNumber   EVMinimumVoltage,
+
+                                               RationalNumber   EVMaximumDischargePower,
+                                               RationalNumber   EVMinimumDischargePower,
+                                               RationalNumber   EVMaximumDischargeCurrent,
+
+                                               RationalNumber?  EVMaximumV2XEnergyRequest,
+                                               RationalNumber?  EVMinimumV2XEnergyRequest)
+
+            : base(EVTargetEnergyRequest,
+                   EVMaximumEnergyRequest,
+                   EVMinimumEnergyRequest,
+                   DepartureTime,
+
+                   EVMaximumChargePower,
+                   EVMinimumChargePower,
+                   EVMaximumChargeCurrent,
+                   EVMaximumVoltage,
+                   EVMinimumVoltage)
+
+        {
+
+            this.EVMaximumDischargePower    = EVMaximumDischargePower;
+            this.EVMinimumDischargePower    = EVMinimumDischargePower;
+            this.EVMaximumDischargeCurrent  = EVMaximumDischargeCurrent;
+
+            this.EVMaximumV2XEnergyRequest  = EVMaximumV2XEnergyRequest;
+            this.EVMinimumV2XEnergyRequest  = EVMinimumV2XEnergyRequest;
+
+        }
 
 
         #region Documentation
@@ -52,6 +94,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
         // </xs:complexType>
 
         #endregion
+
 
     }
 

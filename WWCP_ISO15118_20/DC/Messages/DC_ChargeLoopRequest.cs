@@ -31,6 +31,25 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
         public ACLReqControlMode?  CLReqControlMode    { get; }
 
 
+        public DC_ChargeLoopRequest(MessageHeader       MessageHeader,
+                                    Boolean             MeterInfoRequested,
+                                    DisplayParameters?  DisplayParameters,
+
+                                    RationalNumber      EVPresentVoltage,
+                                    ACLReqControlMode?  CLReqControlMode)
+
+            : base(MessageHeader,
+                   MeterInfoRequested,
+                   DisplayParameters)
+
+        {
+
+            this.EVPresentVoltage = EVPresentVoltage;
+            this.CLReqControlMode = CLReqControlMode;
+
+        }
+
+
         #region Documentation
 
         // <xs:complexType name="DC_ChargeLoopReqType">
@@ -45,6 +64,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
         // </xs:complexType>
 
         #endregion
+
 
     }
 

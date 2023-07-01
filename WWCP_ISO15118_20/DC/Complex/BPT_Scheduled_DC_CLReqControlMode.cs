@@ -33,6 +33,43 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
         public RationalNumber?  EVMaximumDischargeCurrent    { get; }
 
 
+        public BPT_Scheduled_DC_CLReqControlMode(RationalNumber?  EVTargetEnergyRequest,
+                                                 RationalNumber?  EVMaximumEnergyRequest,
+                                                 RationalNumber?  EVMinimumEnergyRequest,
+
+                                                 RationalNumber   EVTargetCurrent,
+                                                 RationalNumber   EVTargetVoltage,
+                                                 RationalNumber?  EVMaximumChargePower,
+                                                 RationalNumber?  EVMinimumChargePower,
+                                                 RationalNumber?  EVMaximumChargeCurrent,
+                                                 RationalNumber?  EVMaximumVoltage,
+                                                 RationalNumber?  EVMinimumVoltage,
+
+                                                 RationalNumber?  EVMaximumDischargePower,
+                                                 RationalNumber?  EVMinimumDischargePower,
+                                                 RationalNumber?  EVMaximumDischargeCurrent)
+
+            : base(EVTargetEnergyRequest,
+                   EVMaximumEnergyRequest,
+                   EVMinimumEnergyRequest,
+
+                   EVTargetCurrent,
+                   EVTargetVoltage,
+                   EVMaximumChargePower,
+                   EVMinimumChargePower,
+                   EVMaximumChargeCurrent,
+                   EVMaximumVoltage,
+                   EVMinimumVoltage)
+
+        {
+
+            this.EVMaximumDischargePower    = EVMaximumDischargePower;
+            this.EVMinimumDischargePower    = EVMinimumDischargePower;
+            this.EVMaximumDischargeCurrent  = EVMaximumDischargeCurrent;
+
+        }
+
+
         #region Documentation
 
         // <xs:complexType name="BPT_Scheduled_DC_CLReqControlModeType">
@@ -48,6 +85,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.DC
         // </xs:complexType>
 
         #endregion
+
 
     }
 

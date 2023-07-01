@@ -210,6 +210,19 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
 
 
 
+        public static Boolean TryParse(JObject                             JSON,
+                                       out Scheduled_AC_CLReqControlMode?  Scheduled_AC_CLReqControlMode,
+                                       out String?                         ErrorResponse)
+        {
+
+            ErrorResponse                  = null;
+            Scheduled_AC_CLReqControlMode  = null;
+
+            return false;
+
+        }
+
+
         public override JObject ToJSON(CustomJObjectSerializerDelegate<RationalNumber>? CustomRationalNumberSerializer = null)
         {
             throw new NotImplementedException();

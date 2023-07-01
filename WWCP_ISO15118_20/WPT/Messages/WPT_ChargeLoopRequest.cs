@@ -28,13 +28,40 @@ namespace cloud.charging.open.protocols.ISO15118_20.WPT
     {
 
         public WPT_EVResultTypes                   EVResultCode                         { get; }
-        public RationalNumber                  EVPCPowerOutput                      { get; }
+        public RationalNumber                      EVPCPowerOutput                      { get; }
         public WPT_EVPCChargeDiagnosticsTypes      EVPCChargeDiagnostics                { get; }
-        public RationalNumber?                 EVPCOperatingFrequency               { get; }
+        public RationalNumber?                     EVPCOperatingFrequency               { get; }
 
         public WPT_EVPCPowerControlParameterType?  EVPCPowerControlParameter            { get; }
 
         public IEnumerable<Byte[]>                 ManufacturerSpecificDataContainer    { get; }
+
+
+        public WPT_ChargeLoopRequest(MessageHeader                       MessageHeader,
+                                     Boolean                             MeterInfoRequested,
+                                     DisplayParameters?                  DisplayParameters,
+
+                                     WPT_EVResultTypes                   EVResultCode,
+                                     RationalNumber                      EVPCPowerOutput,
+                                     WPT_EVPCChargeDiagnosticsTypes      EVPCChargeDiagnostics,
+                                     RationalNumber?                     EVPCOperatingFrequency,
+                                     WPT_EVPCPowerControlParameterType?  EVPCPowerControlParameter,
+                                     IEnumerable<Byte[]>                 ManufacturerSpecificDataContainer)
+
+            : base(MessageHeader,
+                   MeterInfoRequested,
+                   DisplayParameters)
+
+        {
+
+            this.EVResultCode                       = EVResultCode;
+            this.EVPCPowerOutput                    = EVPCPowerOutput;
+            this.EVPCChargeDiagnostics              = EVPCChargeDiagnostics;
+            this.EVPCOperatingFrequency             = EVPCOperatingFrequency;
+            this.EVPCPowerControlParameter          = EVPCPowerControlParameter;
+            this.ManufacturerSpecificDataContainer  = ManufacturerSpecificDataContainer;
+
+        }
 
     }
 

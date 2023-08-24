@@ -57,7 +57,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         ///// <summary>
         ///// An optional token to cancel this request.
         ///// </summary>
-        //CancellationToken?  CancellationToken    { get; }
+        //CancellationToken  CancellationToken    { get; }
 
     }
 

@@ -150,13 +150,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                                              "EV power schedule",
                                              CommonMessages.EVPowerSchedule.TryParse,
                                              out EVPowerSchedule? EVPowerSchedule,
-                                             out ErrorResponse))
+                                             out ErrorResponse) ||
+                    EVPowerSchedule is null)
                 {
                     return false;
                 }
-
-                if (EVPowerSchedule is null)
-                    return false;
 
                 #endregion
 
@@ -166,13 +164,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                                              "EV absolute price schedule",
                                              CommonMessages.EVAbsolutePriceSchedule.TryParse,
                                              out EVAbsolutePriceSchedule? EVAbsolutePriceSchedule,
-                                             out ErrorResponse))
+                                             out ErrorResponse) ||
+                    EVAbsolutePriceSchedule is null)
                 {
                     return false;
                 }
-
-                if (EVAbsolutePriceSchedule is null)
-                    return false;
 
                 #endregion
 
@@ -346,13 +342,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   EVPowerSchedule,
-                   ", ",
-                   EVAbsolutePriceSchedule
-
-               );
+            => $"{EVPowerSchedule}, {EVAbsolutePriceSchedule}";
 
         #endregion
 

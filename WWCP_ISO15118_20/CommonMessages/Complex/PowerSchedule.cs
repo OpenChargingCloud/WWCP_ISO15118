@@ -42,12 +42,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         public DateTime                         TimeAnchor              { get; }
 
         /// <summary>
-        /// The available engery.
+        /// The optional available engery.
         /// </summary>
         public RationalNumber?                  AvailableEnergy         { get; }
 
         /// <summary>
-        /// The power tolerance.
+        /// The optional power tolerance.
         /// </summary>
         public RationalNumber?                  PowerTolerance          { get; }
 
@@ -65,8 +65,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Create a new power schedule.
         /// </summary>
         /// <param name="TimeAnchor">The time anchor.</param>
-        /// <param name="AvailableEnergy">The available engery.</param>
-        /// <param name="PowerTolerance">The power tolerance.</param>
+        /// <param name="AvailableEnergy">The optional available engery.</param>
+        /// <param name="PowerTolerance">The optional power tolerance.</param>
         /// <param name="PowerScheduleEntries">The enumeration of power schedule entries.</param>
         public PowerSchedule(DateTime                         TimeAnchor,
                              RationalNumber?                  AvailableEnergy,
@@ -269,7 +269,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                                : null,
 
                            PowerTolerance is not null
-                               ? new JProperty("powerTolerance",        PowerTolerance.Value. ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("powerTolerance",        PowerTolerance. Value.ToJSON(CustomRationalNumberSerializer))
                                : null
 
                        );
@@ -403,16 +403,14 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                    TimeAnchor.ToIso8601(),
 
                    AvailableEnergy is not null
-                       ? ", " + AvailableEnergy.ToString() + " kW"
+                       ? $", {AvailableEnergy} kW"
                        : "",
 
                    PowerTolerance is not null
-                       ? ", " + PowerTolerance.ToString()
+                       ? $", {PowerTolerance}"
                        : "",
 
-                   ", ",
-                   PowerScheduleEntries.Count(),
-                   " power schedule entry/entries"
+                   $", {PowerScheduleEntries.Count()} power schedule entry/entries"
 
                );
 

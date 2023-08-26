@@ -334,7 +334,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
         #endregion
 
-        #region GetHashCode()
+        #region (override) GetHashCode()
 
         /// <summary>
         /// Return the hash code of this object.

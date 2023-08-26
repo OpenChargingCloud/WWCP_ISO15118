@@ -303,13 +303,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   Value,
-                   "^",
-                   Exponent
-
-               );
+            => $"{Value}^{Exponent}";
 
         #endregion
 

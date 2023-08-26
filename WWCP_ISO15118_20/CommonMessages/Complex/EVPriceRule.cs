@@ -324,14 +324,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   EnergyFee,
-                   " >= ",
-                   PowerRangeStart,
-                   " kW"
-
-               );
+            => $"{EnergyFee} >= {PowerRangeStart} kW";
 
         #endregion
 

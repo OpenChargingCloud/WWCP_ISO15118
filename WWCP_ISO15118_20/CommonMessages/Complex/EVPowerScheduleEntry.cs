@@ -325,14 +325,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   Duration.TotalSeconds,
-                   " seconds, ",
-                   Power.ToString(),
-                   " kW"
-
-               );
+            => $"{Power} kW for {Duration.TotalSeconds} second(s)";
 
         #endregion
 

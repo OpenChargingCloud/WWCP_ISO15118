@@ -399,13 +399,16 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                    Power.ToString(),
                    " kW",
+                   PowerL2 is not null || PowerL3 is not null
+                       ? " (L1)"
+                       : " (common)",
 
                    PowerL2 is not null
-                       ? ", " + PowerL2.ToString() + " kW (L2)"
+                       ? $", {PowerL2.Value} kW (L2)"
                        : "",
 
                    PowerL3 is not null
-                       ? ", " + PowerL3.ToString() + " kW (L3)"
+                       ? $", {PowerL3.Value} kW (L3)"
                        : ""
 
                );

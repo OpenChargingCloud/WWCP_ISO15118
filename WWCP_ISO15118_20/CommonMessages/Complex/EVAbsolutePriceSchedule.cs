@@ -56,7 +56,6 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         /// <summary>
         /// The enumeration of EV price rule stacks.
-        /// [max 1024]
         /// </summary>
         [Mandatory]
         public IEnumerable<EVPriceRuleStack>  EVPriceRuleStacks    { get; }
@@ -71,7 +70,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="TimeAnchor">A time anchor.</param>
         /// <param name="Currency">A currency.</param>
         /// <param name="PriceAlgorithm">A price algorithm.</param>
-        /// <param name="EVPriceRuleStacks">An enumeration of EV price rule stacks.</param>
+        /// <param name="EVPriceRuleStacks">An enumeration of EV price rule stacks (max 1024).</param>
         public EVAbsolutePriceSchedule(DateTime                       TimeAnchor,
                                        Currency                       Currency,
                                        PriceAlgorithm_Id              PriceAlgorithm,
@@ -215,11 +214,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 #region EVPriceRuleStacks    [mandatory]
 
-                if (!JSON.ParseMandatoryHashSet("evPriceRuleStack",
-                                                "EV price rule stack",
-                                                EVPriceRuleStack.TryParse,
-                                                out HashSet<EVPriceRuleStack>? EVPriceRuleStacks,
-                                                out ErrorResponse))
+                if (!JSON.ParseMandatoryJSON("evPriceRuleStack",
+                                             "EV price rule stack",
+                                             EVPriceRuleStack.TryParse,
+                                             out IEnumerable<EVPriceRuleStack>? EVPriceRuleStacks,
+                                             out ErrorResponse))
                 {
                     return false;
                 }
@@ -396,19 +395,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   TimeAnchor.ToIso8601(),
-                   ", ",
-                   Currency.ISOCode,
-                   ", ",
-                   PriceAlgorithm,
-                   ", ",
-
-                   EVPriceRuleStacks.Count(),
-                   " EV price rule stack(s)"
-
-               );
+            => $"{TimeAnchor}, {Currency.ISOCode}, {PriceAlgorithm}, {EVPriceRuleStacks.Count()} EV price rule stack(s)";
 
         #endregion
 

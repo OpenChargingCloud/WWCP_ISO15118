@@ -338,7 +338,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.XMLSchema
 
         #endregion
 
-        #region GetHashCode()
+        #region (override) GetHashCode()
 
         /// <summary>
         /// Return the hash code of this object.

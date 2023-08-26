@@ -44,7 +44,6 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         /// <summary>
         /// The enumeration of EV price rules.
-        /// [max 8]
         /// </summary>
         [Mandatory]
         public IEnumerable<EVPriceRule>  EVPriceRules    { get; }
@@ -57,7 +56,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Create a new EV price rule stack.
         /// </summary>
         /// <param name="Duration">The duration.</param>
-        /// <param name="EVPriceRules">An enumeration of EV price rules.</param>
+        /// <param name="EVPriceRules">An enumeration of EV price rules (max 8).</param>
         public EVPriceRuleStack(TimeSpan                  Duration,
                                 IEnumerable<EVPriceRule>  EVPriceRules)
         {
@@ -331,15 +330,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   Duration,
-                   " second(s), ",
-
-                   EVPriceRules.Count(),
-                   " EV price rule(s)"
-
-               );
+            => $"{Duration.TotalSeconds} second(s), {EVPriceRules.Count()} EV price rule(s)";
 
         #endregion
 

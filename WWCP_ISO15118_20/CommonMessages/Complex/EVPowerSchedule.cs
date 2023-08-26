@@ -44,7 +44,6 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         /// <summary>
         /// The enumeration of EV power schedule entries.
-        /// [max 1024]
         /// </summary>
         [Mandatory]
         public IEnumerable<EVPowerScheduleEntry>  EVPowerScheduleEntries    { get; }

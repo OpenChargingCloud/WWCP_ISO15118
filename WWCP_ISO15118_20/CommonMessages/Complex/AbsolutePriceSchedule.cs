@@ -153,6 +153,25 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             this.OverstayRules               = OverstayRules;
             this.AdditionalSelectedServices  = AdditionalSelectedServices?.Distinct() ?? Array.Empty<AdditionalService>();
 
+            unchecked
+            {
+
+                hashCode = this.Id.                        GetHashCode()        * 31 ^
+                           this.Currency.                  GetHashCode()        * 29 ^
+                           this.Language.                  GetHashCode()        * 23 ^
+                           this.PriceAlgorithmId.          GetHashCode()        * 19 ^
+                           this.PriceRuleStacks.           CalcHashCode()       * 17 ^
+
+                          (this.MinimumCost?.              GetHashCode()  ?? 0) * 13 ^
+                          (this.MaximumCost?.              GetHashCode()  ?? 0) * 11 ^
+                           this.TaxRules.                  CalcHashCode()       *  7 ^
+                          (this.OverstayRules?.            GetHashCode()  ?? 0) *  5 ^
+                           this.AdditionalSelectedServices.CalcHashCode()       *  3 ^
+
+                           base.                           GetHashCode();
+
+            }
+
         }
 
         #endregion
@@ -441,20 +460,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 #endregion
 
 
-                AbsolutePriceSchedule = new AbsolutePriceSchedule(Id,
-                                                                  TimeAnchor,
-                                                                  PriceScheduleId,
-                                                                  Currency,
-                                                                  Language,
-                                                                  PriceAlgorithmId,
-                                                                  PriceRuleStacks,
+                AbsolutePriceSchedule = new AbsolutePriceSchedule(
+                                            Id,
+                                            TimeAnchor,
+                                            PriceScheduleId,
+                                            Currency,
+                                            Language,
+                                            PriceAlgorithmId,
+                                            PriceRuleStacks,
 
-                                                                  Description,
-                                                                  MinimumCost,
-                                                                  MaximumCost,
-                                                                  TaxRules,
-                                                                  OverstayRules,
-                                                                  AdditionalSelectedServices);
+                                            Description,
+                                            MinimumCost,
+                                            MaximumCost,
+                                            TaxRules,
+                                            OverstayRules,
+                                            AdditionalSelectedServices
+                                        );
 
                 if (CustomAbsolutePriceScheduleParser is not null)
                     AbsolutePriceSchedule = CustomAbsolutePriceScheduleParser(JSON,
@@ -649,31 +670,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #region (override) GetHashCode()
 
+        private readonly Int32 hashCode;
+
         /// <summary>
-        /// Return the HashCode of this object.
+        /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-
-                return Id.                         GetHashCode()        * 31 ^
-                       Currency.                   GetHashCode()        * 29 ^
-                       Language.                   GetHashCode()        * 23 ^
-                       PriceAlgorithmId.           GetHashCode()        * 19 ^
-                       PriceRuleStacks.            CalcHashCode()       * 17 ^
-
-                      (MinimumCost?.               GetHashCode()  ?? 0) * 13 ^
-                      (MaximumCost?.               GetHashCode()  ?? 0) * 11 ^
-                      (TaxRules?.                  CalcHashCode() ?? 0) *  7 ^
-                      (OverstayRules?.             GetHashCode()  ?? 0) *  5 ^
-                      (AdditionalSelectedServices?.CalcHashCode() ?? 0) *  3 ^
-
-                       base.                       GetHashCode();
-
-            }
-        }
+            => hashCode;
 
         #endregion
 

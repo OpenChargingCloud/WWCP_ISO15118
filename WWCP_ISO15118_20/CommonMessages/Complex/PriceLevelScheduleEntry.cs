@@ -54,7 +54,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Create a new price level schedule entry.
         /// </summary>
         /// <param name="Duration">The duration.</param>
-        /// <param name="PriceLevel"> The price level.</param>
+        /// <param name="PriceLevel">The price level.</param>
         public PriceLevelScheduleEntry(TimeSpan  Duration,
                                        Byte      PriceLevel)
         {
@@ -320,16 +320,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   "price level '",
-                   PriceLevel,
-
-                   "' for ",
-                   Duration.TotalSeconds,
-                   " second(s)"
-
-               );
+            => $"Price level '{PriceLevel}' for {Duration.TotalSeconds} second(s)";
 
         #endregion
 

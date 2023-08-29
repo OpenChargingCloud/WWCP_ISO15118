@@ -82,6 +82,18 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             this.Fee          = Fee;
             this.Description  = Description;
 
+            unchecked
+            {
+
+                hashCode = this.StartTime.   GetHashCode()       * 11 ^
+                           this.Period.      GetHashCode()       *  7 ^
+                           this.Fee.         GetHashCode()       *  5 ^
+                          (this.Description?.GetHashCode() ?? 0) *  3 ^
+
+                           base.             GetHashCode();
+
+            }
+
         }
 
         #endregion
@@ -218,10 +230,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 #endregion
 
 
-                OverstayRule = new OverstayRule(StartTime,
-                                                Period,
-                                                Fee,
-                                                Description);
+                OverstayRule = new OverstayRule(
+                                   StartTime,
+                                   Period,
+                                   Fee,
+                                   Description
+                               );
 
                 if (CustomOverstayRuleParser is not null)
                     OverstayRule = CustomOverstayRuleParser(JSON,
@@ -241,7 +255,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #endregion
 
-        #region ToJSON(CustomOverstayRuleSerializer = null,CustomRationalNumberSerializer = null)
+        #region ToJSON(CustomOverstayRuleSerializer = null, CustomRationalNumberSerializer = null)
 
         /// <summary>
         /// Return a JSON representation of this object.
@@ -356,24 +370,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #region (override) GetHashCode()
 
+        private readonly Int32 hashCode;
+
         /// <summary>
-        /// Return the HashCode of this object.
+        /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-
-                return StartTime.   GetHashCode()       * 11 ^
-                       Period.      GetHashCode()       *  7 ^
-                       Fee.         GetHashCode()       *  5 ^
-                      (Description?.GetHashCode() ?? 0) *  3 ^
-
-                       base.        GetHashCode();
-
-            }
-        }
+            => hashCode;
 
         #endregion
 
@@ -384,20 +387,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   StartTime.ToIso8601(),
-                   ", ",
-                   Period.TotalSeconds,
-                   " second(s), ",
-                   Fee,
-                   " fee",
-
-                   Description.HasValue
-                       ? ", description: \"" + Description.Value + "\""
-                       : ""
-
-               );
+            => $"{StartTime}, {Period.TotalSeconds} second(s), {Fee} fee{(Description.HasValue
+                                                                              ? ", description: \"" + Description.Value + "\""
+                                                                              : "")}";
 
         #endregion
 

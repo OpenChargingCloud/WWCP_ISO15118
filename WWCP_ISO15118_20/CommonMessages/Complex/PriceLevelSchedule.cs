@@ -66,7 +66,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="TimeAnchor">A time anchor of the price schedule.</param>
         /// <param name="PriceScheduleId">An unique identification of the price schedule.</param>
         /// <param name="NumberOfPriceLevels">The number of prive levels.</param>
-        /// <param name="PriceLevelScheduleEntries">An enumeration of sub certificates [max 3].</param>
+        /// <param name="PriceLevelScheduleEntries">An enumeration of price level schedule entries [max 1024].</param>
         /// <param name="Description">An optional description of the price schedule.</param>
         public PriceLevelSchedule(PriceLevelSchedule_Id                 Id,
                                   DateTime                              TimeAnchor,
@@ -80,6 +80,10 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                    Description)
 
         {
+
+            if (!PriceLevelScheduleEntries.Any())
+                throw new ArgumentException("The given enumeration of price level schedule entries must not be empty!",
+                                            nameof(PriceLevelScheduleEntries));
 
             this.Id                         = Id;
             this.NumberOfPriceLevels        = NumberOfPriceLevels;
@@ -425,17 +429,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   Id,
-                   ", ",
-                   NumberOfPriceLevels,
-                   " price level(s), ",
-
-                   PriceLevelScheduleEntries.Count(),
-                   " price level schedule entry/entries"
-
-               );
+            => $"{Id}, {NumberOfPriceLevels} price level(s), {PriceLevelScheduleEntries.Count()} price level schedule entry/entries";
 
         #endregion
 

@@ -46,7 +46,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// The optional name of the tax rule.
         /// </summary>
         [Optional]
-        public Name?       TaxRuleName                  { get; }
+        public Name?           TaxRuleName                  { get; }
 
         /// <summary>
         /// The tax rate.
@@ -118,6 +118,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             this.AppliesMinimumMaximumCost  = AppliesMinimumMaximumCost;
             this.TaxRuleName                = TaxRuleName;
             this.TaxIncludedInPrice         = TaxIncludedInPrice;
+
+            unchecked
+            {
+
+                hashCode = this.TaxRuleId.                GetHashCode()       * 23 ^
+                           this.TaxRate.                  GetHashCode()       * 19 ^
+                           this.AppliesToEnergyFee.       GetHashCode()       * 17 ^
+                           this.AppliesToParkingFee.      GetHashCode()       * 13 ^
+                           this.AppliesToOverstayFee.     GetHashCode()       * 11 ^
+                           this.AppliesMinimumMaximumCost.GetHashCode()       *  7 ^
+                          (this.TaxRuleName?.             GetHashCode() ?? 0) *  5 ^
+                          (this.TaxIncludedInPrice?.      GetHashCode() ?? 0) *  3 ^
+
+                           base.                          GetHashCode();
+
+            }
 
         }
 
@@ -460,28 +476,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #region (override) GetHashCode()
 
+        private readonly Int32 hashCode;
+
         /// <summary>
-        /// Return the HashCode of this object.
+        /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-
-                return TaxRuleId.                GetHashCode()       * 23 ^
-                       TaxRate.                  GetHashCode()       * 19 ^
-                       AppliesToEnergyFee.       GetHashCode()       * 17 ^
-                       AppliesToParkingFee.      GetHashCode()       * 13 ^
-                       AppliesToOverstayFee.     GetHashCode()       * 11 ^
-                       AppliesMinimumMaximumCost.GetHashCode()       *  7 ^
-                      (TaxRuleName?.             GetHashCode() ?? 0) *  5 ^
-                      (TaxIncludedInPrice?.      GetHashCode() ?? 0) *  3 ^
-
-                       base.                     GetHashCode();
-
-            }
-        }
+            => hashCode;
 
         #endregion
 

@@ -71,6 +71,17 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             this.PriceScheduleId  = PriceScheduleId;
             this.Description      = Description;
 
+            unchecked
+            {
+
+                hashCode = TimeAnchor.     GetHashCode()       * 7 ^
+                           PriceScheduleId.GetHashCode()       * 5 ^
+                          (Description?.   GetHashCode() ?? 0) * 3 ^
+
+                           base.GetHashCode();
+
+            }
+
         }
 
         #endregion
@@ -171,23 +182,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #region (override) GetHashCode()
 
+        private readonly Int32 hashCode;
+
         /// <summary>
-        /// Return the HashCode of this object.
+        /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-
-                return TimeAnchor.     GetHashCode()       * 7 ^
-                       PriceScheduleId.GetHashCode()       * 5 ^
-                      (Description?.   GetHashCode() ?? 0) * 3 ^
-
-                       base.           GetHashCode();
-
-            }
-        }
+            => hashCode;
 
         #endregion
 
@@ -198,18 +199,9 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   PriceScheduleId,
-                   " (",
-                   TimeAnchor.ToIso8601(),
-                   ")",
-
-                   Description.HasValue
-                       ? ", description: " + Description.Value
-                       : ""
-
-               );
+            => $"{PriceScheduleId} ({TimeAnchor}){(Description.HasValue
+                                                       ? ", description: " + Description.Value
+                                                       : "")}";
 
         #endregion
 

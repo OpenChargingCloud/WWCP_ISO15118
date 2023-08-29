@@ -322,13 +322,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   Name,
-                   ": ",
-                   Fee
-
-               );
+            => $"{Name}: {Fee}";
 
         #endregion
 

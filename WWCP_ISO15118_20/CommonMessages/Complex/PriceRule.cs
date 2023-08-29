@@ -100,6 +100,20 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             this.CarbonDioxideEmission          = CarbonDioxideEmission;
             this.RenewableGenerationPercentage  = RenewableGenerationPercentage;
 
+            unchecked
+            {
+
+                hashCode = this.PowerRangeStart.               GetHashCode()       * 17 ^
+                           this.EnergyFee.                     GetHashCode()       * 13 ^
+                          (this.ParkingFee?.                   GetHashCode() ?? 0) * 11 ^
+                          (this.ParkingFeePeriod?.             GetHashCode() ?? 0) *  7 ^
+                          (this.CarbonDioxideEmission?.        GetHashCode() ?? 0) *  5 ^
+                          (this.RenewableGenerationPercentage?.GetHashCode() ?? 0) *  3 ^
+
+                           base.                               GetHashCode();
+
+            }
+
         }
 
         #endregion
@@ -228,16 +242,12 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                 if (JSON.ParseOptional("ParkingFeePeriod",
                                        "parking fee period",
-                                       out UInt64? parkingFeePeriod,
+                                       out TimeSpan? ParkingFeePeriod,
                                        out ErrorResponse))
                 {
                     if (ErrorResponse is not null)
                         return false;
                 }
-
-                var ParkingFeePeriod = parkingFeePeriod.HasValue
-                                           ? new TimeSpan?(TimeSpan.FromSeconds(parkingFeePeriod.Value))
-                                           : null;
 
                 #endregion
 
@@ -269,12 +279,14 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 #endregion
 
 
-                PriceRule = new PriceRule(PowerRangeStart,
-                                          EnergyFee,
-                                          ParkingFee,
-                                          ParkingFeePeriod,
-                                          CarbonDioxideEmission,
-                                          RenewableGenerationPercentage);
+                PriceRule = new PriceRule(
+                                PowerRangeStart,
+                                EnergyFee,
+                                ParkingFee,
+                                ParkingFeePeriod,
+                                CarbonDioxideEmission,
+                                RenewableGenerationPercentage
+                            );
 
                 if (CustomPriceRuleParser is not null)
                     PriceRule = CustomPriceRuleParser(JSON,
@@ -307,23 +319,23 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                                 new JProperty("powerRangeStart",                PowerRangeStart. ToJSON(CustomRationalNumberSerializer)),
-                                 new JProperty("energyFee",                      EnergyFee.       ToJSON(CustomRationalNumberSerializer)),
+                                 new JProperty("powerRangeStart",                 PowerRangeStart. ToJSON(CustomRationalNumberSerializer)),
+                                 new JProperty("energyFee",                       EnergyFee.       ToJSON(CustomRationalNumberSerializer)),
 
                            ParkingFee is not null
-                               ? new JProperty("parkingFee",                     ParkingFee.Value.ToJSON(CustomRationalNumberSerializer))
+                               ? new JProperty("parkingFee",                      ParkingFee.Value.ToJSON(CustomRationalNumberSerializer))
                                : null,
 
                            ParkingFeePeriod.HasValue
-                               ? new JProperty("parkingFeePeriod",               (UInt64) Math.Round(ParkingFeePeriod.Value.TotalSeconds, 0))
+                               ? new JProperty("parkingFeePeriod",                (UInt64) Math.Round(ParkingFeePeriod.Value.TotalSeconds, 0))
                                : null,
 
                            CarbonDioxideEmission.HasValue
-                               ? new JProperty("carbonDioxideEmission",          CarbonDioxideEmission.Value)
+                               ? new JProperty("carbonDioxideEmission",           CarbonDioxideEmission.Value)
                                : null,
 
                            RenewableGenerationPercentage.HasValue
-                               ? new JProperty("renewableGenerationPercentage",  RenewableGenerationPercentage.Value)
+                               ? new JProperty("renewableGenerationPercentage",   RenewableGenerationPercentage.Value)
                                : null
 
                        );
@@ -428,26 +440,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #region (override) GetHashCode()
 
+        private readonly Int32 hashCode;
+
         /// <summary>
-        /// Return the HashCode of this object.
+        /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-
-                return PowerRangeStart.               GetHashCode()       * 17 ^
-                       EnergyFee.                     GetHashCode()       * 13 ^
-                      (ParkingFee?.                   GetHashCode() ?? 0) * 11 ^
-                      (ParkingFeePeriod?.             GetHashCode() ?? 0) *  7 ^
-                      (CarbonDioxideEmission?.        GetHashCode() ?? 0) *  5 ^
-                      (RenewableGenerationPercentage?.GetHashCode() ?? 0) *  3 ^
-
-                       base.                          GetHashCode();
-
-            }
-        }
+            => hashCode;
 
         #endregion
 

@@ -52,8 +52,8 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
     /// A description.
     /// </summary>
     public readonly struct Description : IId,
-                                        IEquatable<Description>,
-                                        IComparable<Description>
+                                         IEquatable<Description>,
+                                         IComparable<Description>
     {
 
         #region Data

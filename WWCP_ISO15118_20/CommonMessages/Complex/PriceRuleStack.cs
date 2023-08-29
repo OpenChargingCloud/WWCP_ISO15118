@@ -60,8 +60,22 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                               IEnumerable<PriceRule>  PriceRules)
         {
 
+            if (!PriceRules.Any())
+                throw new ArgumentException("The given enumeration of price rules must not be empty!",
+                                            nameof(PriceRules));
+
             this.Duration    = Duration;
             this.PriceRules  = PriceRules.Distinct();
+
+            unchecked
+            {
+
+                hashCode = this.Duration.  GetHashCode()  * 5 ^
+                           this.PriceRules.CalcHashCode() * 3 ^
+
+                           base.           GetHashCode();
+
+            }
 
         }
 
@@ -303,22 +317,13 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
         #region (override) GetHashCode()
 
+        private readonly Int32 hashCode;
+
         /// <summary>
-        /// Return the HashCode of this object.
+        /// Return the hash code of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
-        {
-            unchecked
-            {
-
-                return Duration.  GetHashCode()  * 5 ^
-                       PriceRules.CalcHashCode() * 3 ^
-
-                       base.      GetHashCode();
-
-            }
-        }
+            => hashCode;
 
         #endregion
 
@@ -329,15 +334,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         public override String ToString()
 
-            => String.Concat(
-
-                   Duration.TotalSeconds,
-                   " second(s), ",
-
-                   PriceRules.Count(),
-                   " price rule(s)"
-
-               );
+            => $"{Duration.TotalSeconds} second(s), {PriceRules.Count()} price rule(s)";
 
         #endregion
 

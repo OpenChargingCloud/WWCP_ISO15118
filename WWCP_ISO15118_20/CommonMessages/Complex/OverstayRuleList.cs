@@ -200,9 +200,11 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                 #endregion
 
 
-                OverstayRuleList = new OverstayRuleList(OverstayRules,
-                                                        OverstayTimeThreshold,
-                                                        OverstayPowerThreshold);
+                OverstayRuleList = new OverstayRuleList(
+                                       OverstayRules,
+                                       OverstayTimeThreshold,
+                                       OverstayPowerThreshold
+                                   );
 
                 if (CustomOverstayRuleListParser is not null)
                     OverstayRuleList = CustomOverstayRuleListParser(JSON,
@@ -373,8 +375,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             => String.Concat(
 
-                   OverstayRules.Count(),
-                   " overstay rule(s)",
+                   $"{OverstayRules.Count()} overstay rule(s)",
 
                    OverstayTimeThreshold.HasValue
                        ? ", time threshold: " + OverstayTimeThreshold.Value.TotalSeconds + " second(s)"

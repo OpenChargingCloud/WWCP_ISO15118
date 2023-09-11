@@ -15,26 +15,19 @@
  * limitations under the License.
  */
 
-#region Usings
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-#endregion
-
 namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
-    public readonly struct NumericIDType
+
+    /// <summary>
+    /// A nummeric identifier type.
+    /// </summary>
+    public readonly struct NumericIdType
     {
 
         /// <summary>
         /// 1 - 4294967295
         /// </summary>
         public UInt32  Value    { get; }
-
 
     }
 

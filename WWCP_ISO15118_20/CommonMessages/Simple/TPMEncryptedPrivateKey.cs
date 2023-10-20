@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// Extention methods for TPM encrypted private keys.
+    /// Extension methods for TPM encrypted private keys.
     /// </summary>
     public static class TPMEncryptedPrivateKeyExtensions
     {

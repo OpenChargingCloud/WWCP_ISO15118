@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// Extention methods for e-mobility account identifications.
+    /// Extension methods for e-mobility account identifications.
     /// </summary>
     public static class EMAIdExtensions
     {

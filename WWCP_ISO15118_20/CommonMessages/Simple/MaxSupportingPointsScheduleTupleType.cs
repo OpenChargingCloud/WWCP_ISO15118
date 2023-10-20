@@ -26,7 +26,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// Extention methods for max supporting points schedule tuple types.
+    /// Extension methods for max supporting points schedule tuple types.
     /// </summary>
     public static class MaxSupportingPointsScheduleTupleTypeExtensions
     {

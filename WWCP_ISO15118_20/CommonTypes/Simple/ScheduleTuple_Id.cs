@@ -26,7 +26,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// Extention methods for (dis-)charging schedule tuple identifications.
+    /// Extension methods for (dis-)charging schedule tuple identifications.
     /// </summary>
     public static class ScheduleTupleIdExtensions
     {

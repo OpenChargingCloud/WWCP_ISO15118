@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// Extention methods for message identifications.
+    /// Extension methods for message identifications.
     /// </summary>
     public static class MessageIdExtensions
     {

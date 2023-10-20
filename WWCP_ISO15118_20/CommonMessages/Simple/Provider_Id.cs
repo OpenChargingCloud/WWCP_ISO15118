@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// Extention methods for provider identifications.
+    /// Extension methods for provider identifications.
     /// </summary>
     public static class ProviderIdExtensions
     {

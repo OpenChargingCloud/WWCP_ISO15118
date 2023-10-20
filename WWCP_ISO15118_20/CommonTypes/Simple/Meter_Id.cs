@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// Extention methods for meter identifications.
+    /// Extension methods for meter identifications.
     /// </summary>
     public static class MeterIdExtensions
     {

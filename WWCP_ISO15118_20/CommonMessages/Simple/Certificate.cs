@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// Extention methods for certificates.
+    /// Extension methods for certificates.
     /// </summary>
     public static class CertificateExtensions
     {

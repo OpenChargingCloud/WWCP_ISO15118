@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.XMLSchema
 {
 
     /// <summary>
-    /// Extention methods for XML identifications.
+    /// Extension methods for XML identifications.
     /// </summary>
     public static class XMLIdExtensions
     {

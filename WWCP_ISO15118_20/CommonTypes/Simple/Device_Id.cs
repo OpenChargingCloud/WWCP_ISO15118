@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// Extention methods for device identifications.
+    /// Extension methods for device identifications.
     /// </summary>
     public static class DeviceIdExtensions
     {

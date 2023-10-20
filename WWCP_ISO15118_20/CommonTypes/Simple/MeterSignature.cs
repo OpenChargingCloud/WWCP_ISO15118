@@ -30,7 +30,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// Extention methods for meter signatures.
+    /// Extension methods for meter signatures.
     /// </summary>
     public static class MeterSignatureExtensions
     {

@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// Extention methods for EVSE identifications.
+    /// Extension methods for EVSE identifications.
     /// </summary>
     public static class EVSEIdExtensions
     {

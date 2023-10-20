@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// Extention methods for DH public keys.
+    /// Extension methods for DH public keys.
     /// </summary>
     public static class DHPublicKeyExtensions
     {

@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 {
 
     /// <summary>
-    /// Extention methods for tax rule identifications.
+    /// Extension methods for tax rule identifications.
     /// </summary>
     public static class TaxRuleIdExtensions
     {

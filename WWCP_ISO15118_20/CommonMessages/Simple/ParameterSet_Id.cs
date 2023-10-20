@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// Extention methods for parameter set identifications.
+    /// Extension methods for parameter set identifications.
     /// </summary>
     public static class ParameterSetIdExtensions
     {

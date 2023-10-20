@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// Extention methods for gen challenges.
+    /// Extension methods for gen challenges.
     /// </summary>
     public static class GenChallengeExtensions
     {

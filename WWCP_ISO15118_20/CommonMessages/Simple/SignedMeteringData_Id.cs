@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 {
 
     /// <summary>
-    /// Extention methods for signed metering data identifications.
+    /// Extension methods for signed metering data identifications.
     /// </summary>
     public static class SignedMeteringDataIdExtensions
     {

@@ -74,7 +74,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Request">The service selection request leading to this response.</param>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomServiceSelectionResponseParser">A delegate to parse custom service selection responses.</param>
+        /// <param name="CustomServiceSelectionResponseParser">An optional delegate to parse custom service selection responses.</param>
         public static ServiceSelectionResponse Parse(ServiceSelectionRequest                                 Request,
                                                      JObject                                                 JSON,
                                                      CustomJObjectParserDelegate<ServiceSelectionResponse>?  CustomServiceSelectionResponseParser   = null)
@@ -105,7 +105,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="ServiceSelectionResponse">The parsed service selection response.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomServiceSelectionResponseParser">A delegate to parse custom service selection responses.</param>
+        /// <param name="CustomServiceSelectionResponseParser">An optional delegate to parse custom service selection responses.</param>
         public static Boolean TryParse(ServiceSelectionRequest                                 Request,
                                        JObject                                                 JSON,
                                        out ServiceSelectionResponse?                           ServiceSelectionResponse,

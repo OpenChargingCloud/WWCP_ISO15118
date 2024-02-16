@@ -117,7 +117,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a power delivery request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomPowerDeliveryRequestParser">A delegate to parse custom power delivery requests.</param>
+        /// <param name="CustomPowerDeliveryRequestParser">An optional delegate to parse custom power delivery requests.</param>
         public static PowerDeliveryRequest Parse(JObject                                             JSON,
                                                  CustomJObjectParserDelegate<PowerDeliveryRequest>?  CustomPowerDeliveryRequestParser   = null)
         {
@@ -163,7 +163,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="PowerDeliveryRequest">The parsed power delivery request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomPowerDeliveryRequestParser">A delegate to parse custom power delivery requests.</param>
+        /// <param name="CustomPowerDeliveryRequestParser">An optional delegate to parse custom power delivery requests.</param>
         public static Boolean TryParse(JObject                                             JSON,
                                        out PowerDeliveryRequest?                           PowerDeliveryRequest,
                                        out String?                                         ErrorResponse,

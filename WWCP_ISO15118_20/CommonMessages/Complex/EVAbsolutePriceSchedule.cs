@@ -113,7 +113,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of an EV absolute price schedule.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomEVAbsolutePriceScheduleParser">A delegate to parse custom EV absolute price schedules.</param>
+        /// <param name="CustomEVAbsolutePriceScheduleParser">An optional delegate to parse custom EV absolute price schedules.</param>
         public static EVAbsolutePriceSchedule Parse(JObject                                                JSON,
                                                     CustomJObjectParserDelegate<EVAbsolutePriceSchedule>?  CustomEVAbsolutePriceScheduleParser   = null)
         {
@@ -159,7 +159,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="EVAbsolutePriceSchedule">The parsed EV absolute price schedule.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomEVAbsolutePriceScheduleParser">A delegate to parse custom EV absolute price schedules.</param>
+        /// <param name="CustomEVAbsolutePriceScheduleParser">An optional delegate to parse custom EV absolute price schedules.</param>
         public static Boolean TryParse(JObject                                                JSON,
                                        out EVAbsolutePriceSchedule?                           EVAbsolutePriceSchedule,
                                        out String?                                            ErrorResponse,

@@ -86,7 +86,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of an energy offer.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomEVEnergyOfferParser">A delegate to parse custom energy offers.</param>
+        /// <param name="CustomEVEnergyOfferParser">An optional delegate to parse custom energy offers.</param>
         public static EVEnergyOffer Parse(JObject                                      JSON,
                                           CustomJObjectParserDelegate<EVEnergyOffer>?  CustomEVEnergyOfferParser   = null)
         {
@@ -132,7 +132,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="EVEnergyOffer">The parsed energy offer.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomEVEnergyOfferParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomEVEnergyOfferParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                      JSON,
                                        out EVEnergyOffer?                           EVEnergyOffer,
                                        out String?                                  ErrorResponse,

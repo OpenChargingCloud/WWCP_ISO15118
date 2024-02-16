@@ -135,7 +135,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of signed metering data.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomSignedMeteringDataParser">A delegate to parse custom signed metering datas.</param>
+        /// <param name="CustomSignedMeteringDataParser">An optional delegate to parse custom signed metering datas.</param>
         public static SignedMeteringData Parse(JObject                                           JSON,
                                                CustomJObjectParserDelegate<SignedMeteringData>?  CustomSignedMeteringDataParser   = null)
         {
@@ -181,7 +181,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="SignedMeteringData">The parsed signed metering data.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomSignedMeteringDataParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomSignedMeteringDataParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                           JSON,
                                        out SignedMeteringData?                           SignedMeteringData,
                                        out String?                                       ErrorResponse,

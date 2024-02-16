@@ -125,7 +125,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Parse the given JSON representation of a receipt.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomReceiptParser">A delegate to parse custom receipts.</param>
+        /// <param name="CustomReceiptParser">An optional delegate to parse custom receipts.</param>
         public static Receipt Parse(JObject                                JSON,
                                     CustomJObjectParserDelegate<Receipt>?  CustomReceiptParser   = null)
         {
@@ -171,7 +171,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="Receipt">The parsed receipt.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomReceiptParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomReceiptParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                JSON,
                                        out Receipt?                           Receipt,
                                        out String?                            ErrorResponse,

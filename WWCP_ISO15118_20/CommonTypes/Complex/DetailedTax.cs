@@ -84,7 +84,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Parse the given JSON representation of a detailed tax.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomDetailedTaxParser">A delegate to parse custom detailed taxes.</param>
+        /// <param name="CustomDetailedTaxParser">An optional delegate to parse custom detailed taxes.</param>
         public static DetailedTax Parse(JObject                                    JSON,
                                         CustomJObjectParserDelegate<DetailedTax>?  CustomDetailedTaxParser   = null)
         {
@@ -130,7 +130,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="DetailedTax">The parsed detailed tax.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomDetailedTaxParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomDetailedTaxParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                    JSON,
                                        out DetailedTax?                           DetailedTax,
                                        out String?                                ErrorResponse,

@@ -86,7 +86,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.XMLDSig
         /// Parse the given JSON representation of a X.509 issuer serial.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomX509IssuerSerialParser">A delegate to parse custom X.509 issuer serials.</param>
+        /// <param name="CustomX509IssuerSerialParser">An optional delegate to parse custom X.509 issuer serials.</param>
         public static X509IssuerSerial Parse(JObject                                         JSON,
                                              CustomJObjectParserDelegate<X509IssuerSerial>?  CustomX509IssuerSerialParser   = null)
         {
@@ -132,7 +132,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.XMLDSig
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="X509IssuerSerial">The parsed X.509 issuer serial.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomX509IssuerSerialParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomX509IssuerSerialParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                         JSON,
                                        out X509IssuerSerial?                           X509IssuerSerial,
                                        out String?                                     ErrorResponse,

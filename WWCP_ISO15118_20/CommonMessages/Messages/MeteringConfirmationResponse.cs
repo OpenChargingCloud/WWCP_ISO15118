@@ -75,7 +75,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Request">The metering confirmation request leading to this response.</param>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomMeteringConfirmationResponseParser">A delegate to parse custom metering confirmation responses.</param>
+        /// <param name="CustomMeteringConfirmationResponseParser">An optional delegate to parse custom metering confirmation responses.</param>
         public static MeteringConfirmationResponse Parse(MeteringConfirmationRequest                                        Request,
                                                          JObject                                                     JSON,
                                                          CustomJObjectParserDelegate<MeteringConfirmationResponse>?  CustomMeteringConfirmationResponseParser   = null)
@@ -106,7 +106,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="MeteringConfirmationResponse">The parsed metering confirmation response.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomMeteringConfirmationResponseParser">A delegate to parse custom metering confirmation responses.</param>
+        /// <param name="CustomMeteringConfirmationResponseParser">An optional delegate to parse custom metering confirmation responses.</param>
         public static Boolean TryParse(MeteringConfirmationRequest                                 Request,
                                        JObject                                                     JSON,
                                        out MeteringConfirmationResponse?                           MeteringConfirmationResponse,

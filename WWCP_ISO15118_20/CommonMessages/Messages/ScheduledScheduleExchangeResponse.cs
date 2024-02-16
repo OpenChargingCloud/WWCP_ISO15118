@@ -97,7 +97,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Request">The schedule exchange request leading to this response.</param>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomScheduledScheduleExchangeResponseParser">A delegate to parse custom scheduled schedule exchange responses.</param>
+        /// <param name="CustomScheduledScheduleExchangeResponseParser">An optional delegate to parse custom scheduled schedule exchange responses.</param>
         public static ScheduledScheduleExchangeResponse Parse(ScheduleExchangeRequest                                          Request,
                                                               JObject                                                          JSON,
                                                               CustomJObjectParserDelegate<ScheduledScheduleExchangeResponse>?  CustomScheduledScheduleExchangeResponseParser   = null)
@@ -128,7 +128,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="ScheduledScheduleExchangeResponse">The parsed scheduled schedule exchange response.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomScheduledScheduleExchangeResponseParser">A delegate to parse custom scheduled schedule exchange responses.</param>
+        /// <param name="CustomScheduledScheduleExchangeResponseParser">An optional delegate to parse custom scheduled schedule exchange responses.</param>
         public static Boolean TryParse(ScheduleExchangeRequest                                          Request,
                                        JObject                                                          JSON,
                                        out ScheduledScheduleExchangeResponse?                           ScheduledScheduleExchangeResponse,

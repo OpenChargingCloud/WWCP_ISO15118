@@ -183,7 +183,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of an abstract authorization request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomAuthorizationRequestParser">A delegate to parse custom abstract authorization requests.</param>
+        /// <param name="CustomAuthorizationRequestParser">An optional delegate to parse custom abstract authorization requests.</param>
         public static AuthorizationRequest Parse(JObject                                             JSON,
                                                  CustomJObjectParserDelegate<AuthorizationRequest>?  CustomAuthorizationRequestParser   = null)
         {
@@ -229,7 +229,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="AuthorizationRequest">The parsed abstract authorization request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomAuthorizationRequestParser">A delegate to parse custom abstract authorization requests.</param>
+        /// <param name="CustomAuthorizationRequestParser">An optional delegate to parse custom abstract authorization requests.</param>
         public static Boolean TryParse(JObject                                             JSON,
                                        out AuthorizationRequest?                           AuthorizationRequest,
                                        out String?                                         ErrorResponse,

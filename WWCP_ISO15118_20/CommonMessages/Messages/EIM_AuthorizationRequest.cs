@@ -61,7 +61,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of an external identification means authorization mode request type.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomEIM_AuthorizationRequestParser">A delegate to parse custom external identification means authorization mode request types.</param>
+        /// <param name="CustomEIM_AuthorizationRequestParser">An optional delegate to parse custom external identification means authorization mode request types.</param>
         public static EIM_AuthorizationRequest Parse(JObject                                                     JSON,
                                                          CustomJObjectParserDelegate<EIM_AuthorizationRequest>?  CustomEIM_AuthorizationRequestParser   = null)
         {
@@ -107,7 +107,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="EIM_AReqAuthorizationRequest">The parsed external identification means authorization request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomEIM_AuthorizationRequestParser">A delegate to parse custom external identification means authorization mode request types.</param>
+        /// <param name="CustomEIM_AuthorizationRequestParser">An optional delegate to parse custom external identification means authorization mode request types.</param>
         public static Boolean TryParse(JObject                                                 JSON,
                                        out EIM_AuthorizationRequest?                           EIM_AReqAuthorizationRequest,
                                        out String?                                             ErrorResponse,

@@ -65,7 +65,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a dynamic EV power profile.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomDynamicEVPowerProfileParser">A delegate to parse custom dynamic EV power profiles.</param>
+        /// <param name="CustomDynamicEVPowerProfileParser">An optional delegate to parse custom dynamic EV power profiles.</param>
         public static DynamicEVPowerProfile Parse(JObject                                              JSON,
                                                   CustomJObjectParserDelegate<DynamicEVPowerProfile>?  CustomDynamicEVPowerProfileParser   = null)
         {
@@ -111,7 +111,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="DynamicEVPowerProfile">The parsed dynamic EV power profile.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomDynamicEVPowerProfileParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomDynamicEVPowerProfileParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                              JSON,
                                        out DynamicEVPowerProfile?                           DynamicEVPowerProfile,
                                        out String?                                          ErrorResponse,

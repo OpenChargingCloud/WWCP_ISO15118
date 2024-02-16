@@ -119,7 +119,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="ParameterSet">The parsed parameter set.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomParameterSetParser">A delegate to parse custom parameter sets.</param>
+        /// <param name="CustomParameterSetParser">An optional delegate to parse custom parameter sets.</param>
         public static Boolean TryParse(JObject                                     JSON,
                                        out ParameterSet?                           ParameterSet,
                                        out String?                                 ErrorResponse,

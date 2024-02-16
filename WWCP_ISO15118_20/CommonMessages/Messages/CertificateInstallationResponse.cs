@@ -127,7 +127,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Request">The certificate installation request leading to this response.</param>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomCertificateInstallationResponseParser">A delegate to parse custom certificate installation responses.</param>
+        /// <param name="CustomCertificateInstallationResponseParser">An optional delegate to parse custom certificate installation responses.</param>
         public static CertificateInstallationResponse Parse(CertificateInstallationRequest                                 Request,
                                                             JObject                                                        JSON,
                                                             CustomJObjectParserDelegate<CertificateInstallationResponse>?  CustomCertificateInstallationResponseParser   = null)
@@ -158,7 +158,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="CertificateInstallationResponse">The parsed certificate installation response.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomCertificateInstallationResponseParser">A delegate to parse custom certificate installation responses.</param>
+        /// <param name="CustomCertificateInstallationResponseParser">An optional delegate to parse custom certificate installation responses.</param>
         public static Boolean TryParse(CertificateInstallationRequest                                 Request,
                                        JObject                                                        JSON,
                                        out CertificateInstallationResponse?                           CertificateInstallationResponse,

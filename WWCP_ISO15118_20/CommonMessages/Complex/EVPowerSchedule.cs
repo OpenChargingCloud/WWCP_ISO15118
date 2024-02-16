@@ -92,7 +92,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of an EV power schedule.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomEVPowerScheduleParser">A delegate to parse custom EV power schedules.</param>
+        /// <param name="CustomEVPowerScheduleParser">An optional delegate to parse custom EV power schedules.</param>
         public static EVPowerSchedule Parse(JObject                                        JSON,
                                             CustomJObjectParserDelegate<EVPowerSchedule>?  CustomEVPowerScheduleParser   = null)
         {
@@ -138,7 +138,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="EVPowerSchedule">The parsed EV power schedule.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomEVPowerScheduleParser">A delegate to parse custom EV power schedules.</param>
+        /// <param name="CustomEVPowerScheduleParser">An optional delegate to parse custom EV power schedules.</param>
         public static Boolean TryParse(JObject                                        JSON,
                                        out EVPowerSchedule?                           EVPowerSchedule,
                                        out String?                                    ErrorResponse,

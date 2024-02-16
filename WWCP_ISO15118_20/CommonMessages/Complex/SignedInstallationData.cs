@@ -226,7 +226,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of signed installation data.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomSignedInstallationDataParser">A delegate to parse custom signed installation data.</param>
+        /// <param name="CustomSignedInstallationDataParser">An optional delegate to parse custom signed installation data.</param>
         public static SignedInstallationData Parse(JObject                                               JSON,
                                                    CustomJObjectParserDelegate<SignedInstallationData>?  CustomSignedInstallationDataParser   = null)
         {
@@ -272,7 +272,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="SignedInstallationData">The parsed signed installation data.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomSignedInstallationDataParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomSignedInstallationDataParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                               JSON,
                                        out SignedInstallationData?                           SignedInstallationData,
                                        out String?                                           ErrorResponse,

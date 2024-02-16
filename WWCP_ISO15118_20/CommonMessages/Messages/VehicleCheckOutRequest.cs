@@ -97,7 +97,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a vehicle checkOut request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomVehicleCheckOutRequestParser">A delegate to parse custom vehicle checkOut requests.</param>
+        /// <param name="CustomVehicleCheckOutRequestParser">An optional delegate to parse custom vehicle checkOut requests.</param>
         public static VehicleCheckOutRequest Parse(JObject                                               JSON,
                                                    CustomJObjectParserDelegate<VehicleCheckOutRequest>?  CustomVehicleCheckOutRequestParser   = null)
         {
@@ -143,7 +143,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="VehicleCheckOutRequest">The parsed vehicle checkOut request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomVehicleCheckOutRequestParser">A delegate to parse custom vehicle checkOut requests.</param>
+        /// <param name="CustomVehicleCheckOutRequestParser">An optional delegate to parse custom vehicle checkOut requests.</param>
         public static Boolean TryParse(JObject                                               JSON,
                                        out VehicleCheckOutRequest?                           VehicleCheckOutRequest,
                                        out String?                                           ErrorResponse,

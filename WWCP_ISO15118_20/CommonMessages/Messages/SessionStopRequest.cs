@@ -107,7 +107,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a session stop request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomSessionStopRequestParser">A delegate to parse custom session stop requests.</param>
+        /// <param name="CustomSessionStopRequestParser">An optional delegate to parse custom session stop requests.</param>
         public static SessionStopRequest Parse(JObject                                           JSON,
                                                CustomJObjectParserDelegate<SessionStopRequest>?  CustomSessionStopRequestParser   = null)
         {
@@ -153,7 +153,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="SessionStopRequest">The parsed session stop request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomSessionStopRequestParser">A delegate to parse custom session stop requests.</param>
+        /// <param name="CustomSessionStopRequestParser">An optional delegate to parse custom session stop requests.</param>
         public static Boolean TryParse(JObject                                           JSON,
                                        out SessionStopRequest?                           SessionStopRequest,
                                        out String?                                       ErrorResponse,

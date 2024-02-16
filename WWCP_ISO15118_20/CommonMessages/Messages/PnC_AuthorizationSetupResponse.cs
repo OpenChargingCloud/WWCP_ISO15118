@@ -108,7 +108,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Request">The authorization setup request leading to this response.</param>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomPnC_AuthorizationSetupResponseParser">A delegate to parse custom plug and charge authorization setup responses.</param>
+        /// <param name="CustomPnC_AuthorizationSetupResponseParser">An optional delegate to parse custom plug and charge authorization setup responses.</param>
         public static PnC_AuthorizationSetupResponse Parse(AuthorizationSetupRequest                                     Request,
                                                            JObject                                                       JSON,
                                                            CustomJObjectParserDelegate<PnC_AuthorizationSetupResponse>?  CustomPnC_AuthorizationSetupResponseParser   = null)
@@ -139,7 +139,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="AuthorizationSetupResponse">The parsed plug and charge authorization setup response.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomPnC_AuthorizationSetupResponseParser">A delegate to parse custom plug and charge authorization setup responses.</param>
+        /// <param name="CustomPnC_AuthorizationSetupResponseParser">An optional delegate to parse custom plug and charge authorization setup responses.</param>
         public static Boolean TryParse(AuthorizationSetupRequest                                     Request,
                                        JObject                                                       JSON,
                                        out PnC_AuthorizationSetupResponse?                           AuthorizationSetupResponse,

@@ -73,7 +73,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Request">The authorization setup request leading to this response.</param>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomEIM_AuthorizationSetupResponseParser">A delegate to parse custom external identification means authorization setup responses.</param>
+        /// <param name="CustomEIM_AuthorizationSetupResponseParser">An optional delegate to parse custom external identification means authorization setup responses.</param>
         public static EIM_AuthorizationSetupResponse Parse(AuthorizationSetupRequest                                     Request,
                                                            JObject                                                       JSON,
                                                            CustomJObjectParserDelegate<EIM_AuthorizationSetupResponse>?  CustomEIM_AuthorizationSetupResponseParser   = null)
@@ -104,7 +104,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="AuthorizationSetupResponse">The parsed external identification means authorization setup response.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomEIM_AuthorizationSetupResponseParser">A delegate to parse custom external identification means authorization setup responses.</param>
+        /// <param name="CustomEIM_AuthorizationSetupResponseParser">An optional delegate to parse custom external identification means authorization setup responses.</param>
         public static Boolean TryParse(AuthorizationSetupRequest                                     Request,
                                        JObject                                                       JSON,
                                        out EIM_AuthorizationSetupResponse?                           AuthorizationSetupResponse,

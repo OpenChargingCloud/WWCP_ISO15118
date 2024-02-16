@@ -86,7 +86,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of an EV price rule.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomEVPriceRuleParser">A delegate to parse custom EV price rules.</param>
+        /// <param name="CustomEVPriceRuleParser">An optional delegate to parse custom EV price rules.</param>
         public static EVPriceRule Parse(JObject                                    JSON,
                                         CustomJObjectParserDelegate<EVPriceRule>?  CustomEVPriceRuleParser   = null)
         {
@@ -132,7 +132,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="EVPriceRule">The parsed EV price rule.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomEVPriceRuleParser">A delegate to parse custom EV price rules.</param>
+        /// <param name="CustomEVPriceRuleParser">An optional delegate to parse custom EV price rules.</param>
         public static Boolean TryParse(JObject                                    JSON,
                                        out EVPriceRule?                           EVPriceRule,
                                        out String?                                ErrorResponse,

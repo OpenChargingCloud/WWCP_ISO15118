@@ -160,7 +160,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a dynamic schedule exchange request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomDynamicScheduleExchangeRequestParser">A delegate to parse custom dynamic schedule exchange requests.</param>
+        /// <param name="CustomDynamicScheduleExchangeRequestParser">An optional delegate to parse custom dynamic schedule exchange requests.</param>
         public static DynamicScheduleExchangeRequest Parse(JObject                                                       JSON,
                                                            CustomJObjectParserDelegate<DynamicScheduleExchangeRequest>?  CustomDynamicScheduleExchangeRequestParser   = null)
         {
@@ -206,7 +206,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="DynamicScheduleExchangeRequest">The parsed dynamic schedule exchange request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomDynamicScheduleExchangeRequestParser">A delegate to parse custom dynamic schedule exchange requests.</param>
+        /// <param name="CustomDynamicScheduleExchangeRequestParser">An optional delegate to parse custom dynamic schedule exchange requests.</param>
         public static Boolean TryParse(JObject                                                       JSON,
                                        out DynamicScheduleExchangeRequest?                           DynamicScheduleExchangeRequest,
                                        out String?                                                   ErrorResponse,

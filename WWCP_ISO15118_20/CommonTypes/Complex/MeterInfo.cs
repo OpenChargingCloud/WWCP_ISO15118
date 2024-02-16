@@ -144,7 +144,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Parse the given JSON representation of energy meter information.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomMeterInfoParser">A delegate to parse custom energy meter information.</param>
+        /// <param name="CustomMeterInfoParser">An optional delegate to parse custom energy meter information.</param>
         public static MeterInfo Parse(JObject                                  JSON,
                                       CustomJObjectParserDelegate<MeterInfo>?  CustomMeterInfoParser   = null)
         {
@@ -190,7 +190,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="MeterInfo">The parsed energy meter information.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomMeterInfoParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomMeterInfoParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                  JSON,
                                        out MeterInfo?                           MeterInfo,
                                        out String?                              ErrorResponse,

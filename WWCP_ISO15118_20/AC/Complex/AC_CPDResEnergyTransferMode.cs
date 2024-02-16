@@ -205,7 +205,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         /// Parse the given JSON representation of an AC CPD response energy transfer mode.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomAC_CPDResEnergyTransferModeParser">A delegate to parse custom AC CPD response energy transfer modes.</param>
+        /// <param name="CustomAC_CPDResEnergyTransferModeParser">An optional delegate to parse custom AC CPD response energy transfer modes.</param>
         public static AC_CPDResEnergyTransferMode Parse(JObject                                                    JSON,
                                                         CustomJObjectParserDelegate<AC_CPDResEnergyTransferMode>?  CustomAC_CPDResEnergyTransferModeParser   = null)
         {
@@ -251,7 +251,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="AC_CPDResEnergyTransferMode">The parsed AC CPD response energy transfer mode.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomAC_CPDResEnergyTransferModeParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomAC_CPDResEnergyTransferModeParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                                    JSON,
                                        out AC_CPDResEnergyTransferMode?                           AC_CPDResEnergyTransferMode,
                                        out String?                                                ErrorResponse,

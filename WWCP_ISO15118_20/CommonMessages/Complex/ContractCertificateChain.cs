@@ -94,7 +94,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a contract certificate chain.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomContractCertificateChainParser">A delegate to parse custom contract certificate chains.</param>
+        /// <param name="CustomContractCertificateChainParser">An optional delegate to parse custom contract certificate chains.</param>
         public static ContractCertificateChain Parse(JObject                                                 JSON,
                                                      CustomJObjectParserDelegate<ContractCertificateChain>?  CustomContractCertificateChainParser   = null)
         {
@@ -140,7 +140,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="ContractCertificateChain">The parsed contract certificate chain.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomContractCertificateChainParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomContractCertificateChainParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                                 JSON,
                                        out ContractCertificateChain?                           ContractCertificateChain,
                                        out String?                                             ErrorResponse,

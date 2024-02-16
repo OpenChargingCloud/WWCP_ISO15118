@@ -82,7 +82,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a selected service.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomSelectedServiceParser">A delegate to parse custom selected services.</param>
+        /// <param name="CustomSelectedServiceParser">An optional delegate to parse custom selected services.</param>
         public static SelectedService Parse(JObject                                        JSON,
                                             CustomJObjectParserDelegate<SelectedService>?  CustomSelectedServiceParser   = null)
         {
@@ -128,7 +128,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="SelectedService">The parsed selected service.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomSelectedServiceParser">A delegate to parse custom selected services.</param>
+        /// <param name="CustomSelectedServiceParser">An optional delegate to parse custom selected services.</param>
         public static Boolean TryParse(JObject                                        JSON,
                                        out SelectedService?                           SelectedService,
                                        out String?                                    ErrorResponse,

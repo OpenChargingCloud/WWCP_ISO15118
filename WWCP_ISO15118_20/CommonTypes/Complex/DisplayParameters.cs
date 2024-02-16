@@ -170,7 +170,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Parse the given JSON representation of display parameters.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomDisplayParametersParser">A delegate to parse custom display parameterss.</param>
+        /// <param name="CustomDisplayParametersParser">An optional delegate to parse custom display parameterss.</param>
         public static DisplayParameters Parse(JObject                                          JSON,
                                               CustomJObjectParserDelegate<DisplayParameters>?  CustomDisplayParametersParser   = null)
         {
@@ -216,7 +216,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="DisplayParameters">The parsed display parameters.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomDisplayParametersParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomDisplayParametersParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                          JSON,
                                        out DisplayParameters?                           DisplayParameters,
                                        out String?                                      ErrorResponse,

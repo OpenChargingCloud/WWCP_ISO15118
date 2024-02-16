@@ -127,7 +127,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         /// Parse the given JSON representation of a AC charge loop request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomACChargeLoopRequestParser">A delegate to parse custom AC charge loop requests.</param>
+        /// <param name="CustomACChargeLoopRequestParser">An optional delegate to parse custom AC charge loop requests.</param>
         public static ACChargeLoopRequest Parse(JObject                                            JSON,
                                                 CustomJObjectParserDelegate<ACChargeLoopRequest>?  CustomACChargeLoopRequestParser   = null)
         {
@@ -173,7 +173,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="ACChargeLoopRequest">The parsed AC charge loop request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomACChargeLoopRequestParser">A delegate to parse custom AC charge loop requests.</param>
+        /// <param name="CustomACChargeLoopRequestParser">An optional delegate to parse custom AC charge loop requests.</param>
         public static Boolean TryParse(JObject                                            JSON,
                                        out ACChargeLoopRequest?                           ACChargeLoopRequest,
                                        out String?                                        ErrorResponse,

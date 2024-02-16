@@ -95,7 +95,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a (dis-)charging schedule tuple.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomScheduleTupleParser">A delegate to parse custom (dis-)charging schedule tuples.</param>
+        /// <param name="CustomScheduleTupleParser">An optional delegate to parse custom (dis-)charging schedule tuples.</param>
         public static ScheduleTuple Parse(JObject                                      JSON,
                                           CustomJObjectParserDelegate<ScheduleTuple>?  CustomScheduleTupleParser   = null)
         {
@@ -141,7 +141,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="ScheduleTuple">The parsed (dis-)charging schedule tuple.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomScheduleTupleParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomScheduleTupleParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                      JSON,
                                        out ScheduleTuple?                           ScheduleTuple,
                                        out String?                                  ErrorResponse,

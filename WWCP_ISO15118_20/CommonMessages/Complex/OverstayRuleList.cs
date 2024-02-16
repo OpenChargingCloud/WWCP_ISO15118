@@ -97,7 +97,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of an overstay rule list.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomOverstayRuleListParser">A delegate to parse custom overstay rule lists.</param>
+        /// <param name="CustomOverstayRuleListParser">An optional delegate to parse custom overstay rule lists.</param>
         public static OverstayRuleList Parse(JObject                                         JSON,
                                              CustomJObjectParserDelegate<OverstayRuleList>?  CustomOverstayRuleListParser   = null)
         {
@@ -143,7 +143,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="OverstayRuleList">The parsed overstay rule list.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomOverstayRuleListParser">A delegate to parse custom contract certificates.</param>
+        /// <param name="CustomOverstayRuleListParser">An optional delegate to parse custom contract certificates.</param>
         public static Boolean TryParse(JObject                                         JSON,
                                        out OverstayRuleList?                           OverstayRuleList,
                                        out String?                                     ErrorResponse,

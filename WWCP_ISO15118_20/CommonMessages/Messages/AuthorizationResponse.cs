@@ -94,7 +94,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Request">The authorization request leading to this response.</param>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomAuthorizationResponseParser">A delegate to parse custom authorization responses.</param>
+        /// <param name="CustomAuthorizationResponseParser">An optional delegate to parse custom authorization responses.</param>
         public static AuthorizationResponse Parse(AuthorizationRequest                                 Request,
                                                   JObject                                              JSON,
                                                   CustomJObjectParserDelegate<AuthorizationResponse>?  CustomAuthorizationResponseParser   = null)
@@ -125,7 +125,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="AuthorizationResponse">The parsed authorization response.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomAuthorizationResponseParser">A delegate to parse custom authorization responses.</param>
+        /// <param name="CustomAuthorizationResponseParser">An optional delegate to parse custom authorization responses.</param>
         public static Boolean TryParse(AuthorizationRequest                                 Request,
                                        JObject                                              JSON,
                                        out AuthorizationResponse?                           AuthorizationResponse,

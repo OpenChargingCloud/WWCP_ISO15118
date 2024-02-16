@@ -87,7 +87,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// Parse the given JSON representation of a session setup request.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomSessionSetupRequestParser">A delegate to parse custom session setup requests.</param>
+        /// <param name="CustomSessionSetupRequestParser">An optional delegate to parse custom session setup requests.</param>
         public static SessionSetupRequest Parse(JObject                                            JSON,
                                                 CustomJObjectParserDelegate<SessionSetupRequest>?  CustomSessionSetupRequestParser   = null)
         {
@@ -133,7 +133,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="SessionSetupRequest">The parsed session setup request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomSessionSetupRequestParser">A delegate to parse custom session setup requests.</param>
+        /// <param name="CustomSessionSetupRequestParser">An optional delegate to parse custom session setup requests.</param>
         public static Boolean TryParse(JObject                                            JSON,
                                        out SessionSetupRequest?                           SessionSetupRequest,
                                        out String?                                        ErrorResponse,

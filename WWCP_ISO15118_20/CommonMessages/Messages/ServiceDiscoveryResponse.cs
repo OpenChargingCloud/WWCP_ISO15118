@@ -124,7 +124,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// </summary>
         /// <param name="Request">The service discovery request leading to this response.</param>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomServiceDiscoveryResponseParser">A delegate to parse custom service discovery responses.</param>
+        /// <param name="CustomServiceDiscoveryResponseParser">An optional delegate to parse custom service discovery responses.</param>
         public static ServiceDiscoveryResponse Parse(ServiceDiscoveryRequest                                 Request,
                                                      JObject                                                 JSON,
                                                      CustomJObjectParserDelegate<ServiceDiscoveryResponse>?  CustomServiceDiscoveryResponseParser   = null)
@@ -155,7 +155,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="ServiceDiscoveryResponse">The parsed service discovery response.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomServiceDiscoveryResponseParser">A delegate to parse custom service discovery responses.</param>
+        /// <param name="CustomServiceDiscoveryResponseParser">An optional delegate to parse custom service discovery responses.</param>
         public static Boolean TryParse(ServiceDiscoveryRequest                                 Request,
                                        JObject                                                 JSON,
                                        out ServiceDiscoveryResponse?                           ServiceDiscoveryResponse,

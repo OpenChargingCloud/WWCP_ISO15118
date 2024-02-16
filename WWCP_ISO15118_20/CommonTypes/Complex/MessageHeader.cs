@@ -140,7 +140,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// Parse the given JSON representation of a message header.
         /// </summary>
         /// <param name="JSON">The JSON to be parsed.</param>
-        /// <param name="CustomMessageHeaderParser">A delegate to parse custom message headers.</param>
+        /// <param name="CustomMessageHeaderParser">An optional delegate to parse custom message headers.</param>
         public static MessageHeader Parse(JObject                                      JSON,
                                           CustomJObjectParserDelegate<MessageHeader>?  CustomMessageHeaderParser   = null)
         {
@@ -186,7 +186,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="MessageHeader">The parsed message header request.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomMessageHeaderParser">A delegate to parse custom message headers.</param>
+        /// <param name="CustomMessageHeaderParser">An optional delegate to parse custom message headers.</param>
         public static Boolean TryParse(JObject                                      JSON,
                                        out MessageHeader?                           MessageHeader,
                                        out String?                                  ErrorResponse,

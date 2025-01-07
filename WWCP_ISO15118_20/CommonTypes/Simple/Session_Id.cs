@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright (c) 2021-2024 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2021-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of WWCP ISO 15118-20 <https://github.com/OpenChargingCloud/WWCP_ISO15118_20>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -186,7 +186,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         public Session_Id Clone
 
             => new(
-                   new String(InternalId?.ToCharArray())
+                   InternalId.CloneString()
                );
 
         #endregion

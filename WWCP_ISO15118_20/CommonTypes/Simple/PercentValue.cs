@@ -58,7 +58,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         #region Data
 
         /// <summary>
-        /// The nummeric value of the percent value.
+        /// The numeric value of the percent value.
         /// </summary>
         public readonly Byte Value;
 
@@ -411,7 +411,6 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <summary>
         /// Return the HashCode of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
 
             => Value.GetHashCode();

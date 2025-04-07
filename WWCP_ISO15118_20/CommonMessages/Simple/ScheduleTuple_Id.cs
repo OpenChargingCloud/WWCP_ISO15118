@@ -58,7 +58,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         #region Data
 
         /// <summary>
-        /// The nummeric value of the schedule tuple identification.
+        /// The numeric value of the schedule tuple identification.
         /// </summary>
         public readonly UInt32 Value;
 
@@ -397,7 +397,6 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
         /// <summary>
         /// Return the HashCode of this object.
         /// </summary>
-        /// <returns>The HashCode of this object.</returns>
         public override Int32 GetHashCode()
 
             => Value.GetHashCode();

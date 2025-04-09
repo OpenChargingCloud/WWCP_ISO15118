@@ -130,7 +130,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
         /// <param name="JSON">The JSON to be parsed.</param>
         /// <param name="EVSEStatusType">The parsed EVSE status chain.</param>
         /// <param name="ErrorResponse">An optional error response.</param>
-        /// <param name="CustomEVSEStatusTypeParser">An optional delegate to parse custom EVSE statuss.</param>
+        /// <param name="CustomEVSEStatusTypeParser">An optional delegate to parse custom EVSE status.</param>
         public static Boolean TryParse(JObject                                       JSON,
                                        out EVSEStatusType?                           EVSEStatusType,
                                        out String?                                   ErrorResponse,

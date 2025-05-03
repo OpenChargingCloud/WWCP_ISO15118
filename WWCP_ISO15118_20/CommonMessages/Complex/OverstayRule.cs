@@ -268,7 +268,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                                 new JProperty("startTime",    StartTime.ToIso8601()),
+                                 new JProperty("startTime",    StartTime.ToISO8601()),
                                  new JProperty("period",       (UInt64) Math.Round(Period.TotalSeconds, 0)),
                                  new JProperty("fee",          Fee.ToJSON(CustomRationalNumberSerializer)),
 

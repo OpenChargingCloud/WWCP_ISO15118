@@ -266,7 +266,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                           new JProperty("timeAnchor",         TimeAnchor.ToIso8601()),
+                           new JProperty("timeAnchor",         TimeAnchor.ToISO8601()),
                            new JProperty("currency",           Currency.ISOCode),
                            new JProperty("priceAlgorithm",     PriceAlgorithm.ToString()),
                            new JProperty("evPriceRuleStacks",  new JArray(EVPriceRuleStacks.Select(evPriceRuleStack => evPriceRuleStack.ToJSON(CustomEVPriceRuleStackSerializer,

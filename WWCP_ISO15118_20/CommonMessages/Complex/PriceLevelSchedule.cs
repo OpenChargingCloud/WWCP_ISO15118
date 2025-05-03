@@ -298,7 +298,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             var json = JSONObject.Create(
 
                                  new JProperty("id",                         Id.             ToString()),
-                                 new JProperty("timeAnchor",                 TimeAnchor.     ToIso8601()),
+                                 new JProperty("timeAnchor",                 TimeAnchor.     ToISO8601()),
                                  new JProperty("priceScheduleId",            PriceScheduleId.ToString()),
                                  new JProperty("numberOfPriceLevels",        NumberOfPriceLevels),
                                  new JProperty("priceLevelScheduleEntries",  new JArray(PriceLevelScheduleEntries.Select(priceLevelScheduleEntry => priceLevelScheduleEntry.ToJSON(CustomPriceLevelScheduleEntrySerializer)))),

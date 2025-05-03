@@ -308,7 +308,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
             var json = JSONObject.Create(
 
-                                 new JProperty("timeAnchor",                TimeAnchor.             ToIso8601()),
+                                 new JProperty("timeAnchor",                TimeAnchor.             ToISO8601()),
 
                            EnergyCosts is not null
                                ? new JProperty("energyCosts",               EnergyCosts.            ToJSON(CustomDetailedCostSerializer,

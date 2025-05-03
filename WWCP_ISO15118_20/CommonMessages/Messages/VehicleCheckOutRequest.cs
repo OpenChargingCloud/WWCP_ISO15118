@@ -234,7 +234,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                            new JProperty("messageHeader",     MessageHeader.   ToJSON(CustomMessageHeaderSerializer)),
                            new JProperty("evCheckOutStatus",  EVCheckOutStatus.AsText()),
-                           new JProperty("checkOutTime",      CheckOutTime.    ToIso8601())
+                           new JProperty("checkOutTime",      CheckOutTime.    ToISO8601())
 
                        );
 
@@ -357,7 +357,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
                    EVCheckOutStatus.AsText(),
                    ", ",
-                   CheckOutTime.ToIso8601()
+                   CheckOutTime.ToISO8601()
 
                );
 

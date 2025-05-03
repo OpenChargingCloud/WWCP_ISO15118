@@ -405,7 +405,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                                  new JProperty("messageHeader",               MessageHeader.                  ToJSON(CustomMessageHeaderSerializer)),
                                  new JProperty("maximumSupportingPoints",     MaximumSupportingPoints),
 
-                                 new JProperty("departureTime",               DepartureTime.                  ToIso8601()),
+                                 new JProperty("departureTime",               DepartureTime.                  ToISO8601()),
                                  new JProperty("evTargetEnergyRequest",       EVTargetEnergyRequest.          ToJSON(CustomRationalNumberSerializer)),
                                  new JProperty("evMaximumEnergyRequest",      EVMaximumEnergyRequest.         ToJSON(CustomRationalNumberSerializer)),
                                  new JProperty("evMinimumEnergyRequest",      EVMinimumEnergyRequest.         ToJSON(CustomRationalNumberSerializer)),
@@ -566,7 +566,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             => String.Concat(
 
-                   DepartureTime.ToIso8601(),  ", ",
+                   DepartureTime.ToISO8601(),  ", ",
 
                    EVTargetEnergyRequest,  " kWh, ",
                    EVMaximumEnergyRequest, " kWh, ",

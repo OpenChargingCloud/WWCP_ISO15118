@@ -244,7 +244,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             var json = JSONObject.Create(
 
-                                 new JProperty("timeAnchor",                TimeAnchor.ToIso8601()),
+                                 new JProperty("timeAnchor",                TimeAnchor.ToISO8601()),
 
                                  new JProperty("evPowerProfileEntries",     new JArray(EVPowerProfileEntries.Select(powerScheduleEntry => powerScheduleEntry.ToJSON(CustomPowerScheduleEntrySerializer,
                                                                                                                                                                     CustomRationalNumberSerializer)))),
@@ -381,7 +381,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
 
             => String.Concat(
 
-                   TimeAnchor.ToIso8601(),
+                   TimeAnchor.ToISO8601(),
                    ": ",
 
                    EVPowerProfileEntries.Count(),

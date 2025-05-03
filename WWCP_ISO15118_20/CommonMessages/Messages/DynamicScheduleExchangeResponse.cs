@@ -510,7 +510,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                                : null,
 
                            DepartureTime.HasValue
-                               ? new JProperty("departureTime",           DepartureTime.Value.ToIso8601())
+                               ? new JProperty("departureTime",           DepartureTime.Value.ToISO8601())
                                : null,
 
                            MinimumSOC.HasValue

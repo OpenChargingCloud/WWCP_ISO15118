@@ -369,7 +369,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
                                : null,
 
                            MeterTimestamp.HasValue
-                               ? new JProperty("meterTimestamp",            MeterTimestamp.         Value.ToIso8601())
+                               ? new JProperty("meterTimestamp",            MeterTimestamp.         Value.ToISO8601())
                                : null
 
                        );
@@ -539,7 +539,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
                        : "",
 
                    MeterTimestamp.HasValue
-                       ? ", meter timestamp: " +   MeterTimestamp.         Value.ToIso8601()
+                       ? ", meter timestamp: " +   MeterTimestamp.         Value.ToISO8601()
                        : ""
 
                );

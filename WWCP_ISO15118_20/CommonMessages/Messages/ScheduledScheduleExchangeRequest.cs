@@ -336,7 +336,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
                                  new JProperty("maximumSupportingPoints",  MaximumSupportingPoints),
 
                            DepartureTime.HasValue
-                               ? new JProperty("departureTime",            DepartureTime.Value.         ToIso8601())
+                               ? new JProperty("departureTime",            DepartureTime.Value.         ToISO8601())
                                : null,
 
                            EVTargetEnergyRequest  is not null
@@ -496,7 +496,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonMessages
             => new String?[] {
 
                    DepartureTime.HasValue
-                       ? "departure time: " + DepartureTime.Value.ToIso8601()
+                       ? "departure time: " + DepartureTime.Value.ToISO8601()
                        : null,
 
                    EVTargetEnergyRequest  is not null

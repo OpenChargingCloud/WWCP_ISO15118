@@ -290,7 +290,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
             var json = JSONObject.Create(
 
                            new JProperty("sessionId",  SessionId.ToString()),
-                           new JProperty("timestamp",  Timestamp.ToIso8601())
+                           new JProperty("timestamp",  Timestamp.ToISO8601())
 
                        );
 
@@ -411,7 +411,7 @@ namespace cloud.charging.open.protocols.ISO15118_20.CommonTypes
 
                    SessionId,
                    " / ",
-                   Timestamp.ToIso8601()
+                   Timestamp.ToISO8601()
 
                );
 

@@ -1,4 +1,4 @@
-# WWCP ISO/IEC 15118-20
+# WWCP ISO/IEC 15118
 
 This software will allow the communication between World Wide Charging
 Protocol (WWCP) entities and entities implementing

@@ -1,0 +1,40 @@
+/*
+ * Copyright (c) 2021-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+namespace cloud.charging.open.protocols.ISO15118.SLAC.Selection
+{
+
+    /// <summary>
+    /// Strategy for picking one EVSE among the candidates that responded to
+    /// the EV's CM_SLAC_PARM.REQ. Per ISO 15118-3 the EV "shall select the
+    /// EVSE with the lowest signal attenuation" — implemented by
+    /// <see cref="LowestAverageAttenuationSelector"/>.
+    /// </summary>
+    public interface IEVSESelector
+    {
+
+        /// <summary>
+        /// Pick one candidate. Implementations should consider only candidates
+        /// with <see cref="EVSECandidate.HasAttenuationProfile"/> set, since a
+        /// candidate without a profile cannot be ranked. Returns null if no
+        /// candidate is selectable.
+        /// </summary>
+        EVSECandidate? Select(IReadOnlyList<EVSECandidate> Candidates);
+
+    }
+
+}

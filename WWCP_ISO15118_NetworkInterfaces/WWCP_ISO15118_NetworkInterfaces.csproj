@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Vanaheimr.V2G.NetworkInterfaces</RootNamespace>
+    <AssemblyName>Vanaheimr.V2G.NetworkInterfaces</AssemblyName>
+    <Description>IPv6 link-local interface discovery and scope-id helpers for the Vanaheimr V2G stack (SLAC, SDP, V2GTP).</Description>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+</Project>

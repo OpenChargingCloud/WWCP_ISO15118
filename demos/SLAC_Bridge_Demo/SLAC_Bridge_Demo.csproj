@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>SLAC.Demo.Bridge</RootNamespace>
+    <AssemblyName>SLAC.Demo.Bridge</AssemblyName>
+    <!-- AfPacketSocket is Linux-only; the build still succeeds on other OSes
+         but the binary won't run there. Suppress the SupportedOSPlatform
+         warning so non-Linux developers can still compile the solution. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\WWCP_ISO15118_SLAC\WWCP_ISO15118_SLAC.csproj" />
+  </ItemGroup>
+
+</Project>

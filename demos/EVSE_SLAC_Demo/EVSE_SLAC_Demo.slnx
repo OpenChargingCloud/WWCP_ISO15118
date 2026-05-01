@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/Dependencies/">
+    <Project Path="../../WWCP_ISO15118_SLAC/WWCP_ISO15118_SLAC.csproj" />
+  </Folder>
+  <Project Path="EVSE_SLAC_Demo.csproj" />
+</Solution>

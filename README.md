@@ -31,6 +31,12 @@ Most changes are intended to simplify the daily operations business, high availa
   - Helper classes for collections are avoided and _IEnumerable<...>_ is used instead.
 - ...
 
+### Future
+
+Currently not in scope:
+ - ISO 15118-202 Extensible SECC Discovery Protocol (ESDP)
+ - ISO 15118-202 EventNotification Protocol
+
 
 ### Your participation
 

@@ -1,15 +1,22 @@
 # WWCP ISO/IEC 15118
 
 This software will allow the communication between World Wide Charging
-Protocol (WWCP) entities and entities implementing
-_ISO/IEC 15118-20_ and _ISO/IEC 15118-8_ for wireless communication.
+Protocol (WWCP) entities and entities implementing low-level ISO 15118
+protocols like _Signal Level Attenuation Characterization (SLAC)_, _SECC
+Discovery Protocol (SDP)_, _Vehicle-To-Grid Transport Protocol (V2GTP)_,
+_ISO/IEC 15118-2_, _ISO/IEC 15118-20_ and _ISO/IEC 15118-8_ for wireless
+communication.
+
 The focus of this protocol are the communication aspects between an
 electric vehicle and an e-mobility charging station.
 
 
 ## Implementation details
 
-In order to make development and debugging 1024 times easier, this _ISO/IEC 15118_ implementation comes with additional JSON (de-)serialization. As, as far as we know, no other project has yet defined a JSON schemata for ISO/IEC 15118, we defined our own, which adopts some JSON-LD concepts like the "@context" property.
+For all protocols there are different attack vectors and pentests implemented.
+
+In order to make development and debugging 1024 times easier, this _ISO/IEC 15118_ implementation comes with additional JSON (de-)serialization.
+As, as far as we know, no other project has yet defined a JSON schemata for ISO/IEC 15118, we defined our own, which adopts some JSON-LD concepts like the "@context" property.
 
 
 ## Differences to the official protocol specification

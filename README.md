@@ -10,6 +10,11 @@ communication.
 The focus of this protocol are the communication aspects between an
 electric vehicle and an e-mobility charging station.
 
+In addition, this library implements multiple attack vectors and
+penetration-testing workflows for the different subprotocols of ISO/IEC 15118.
+An overview of the numerous research papers, vulnerability disclosures,
+and practitioner whitepapers on this topic is available [here](SecurityResearch.md).
+
 
 ## Implementation details
 

@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/Dependencies/">
-    <Project Path="../../WWCP_ISO15118_NetworkInterfaces/WWCP_ISO15118_NetworkInterfaces.csproj" />
-    <Project Path="../../WWCP_ISO15118_SDP/WWCP_ISO15118_SDP.csproj" />
-    <Project Path="../../WWCP_ISO15118_V2GTP/WWCP_ISO15118_V2GTP.csproj" />
-  </Folder>
-  <Project Path="SECC_SDP_Demo.csproj" />
-</Solution>

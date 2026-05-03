@@ -11,8 +11,11 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
   </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\..\WWCP_ISO15118_SDP\WWCP_ISO15118_SDP.csproj" />
+    <ProjectReference Include="..\..\..\WWCP_ISO15118_NetworkInterfaces\WWCP_ISO15118_NetworkInterfaces.csproj" />
+    <ProjectReference Include="..\..\..\WWCP_ISO15118_SDP\WWCP_ISO15118_SDP.csproj" />
+    <ProjectReference Include="..\..\..\WWCP_ISO15118_V2GTP\WWCP_ISO15118_V2GTP.csproj" />
   </ItemGroup>
 
 </Project>

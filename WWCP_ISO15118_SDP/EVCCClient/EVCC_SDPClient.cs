@@ -38,20 +38,35 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
     /// configured PLC interface and waits for an SDP_Response from the SECC.
     ///
     /// One <see cref="EVCC_SDPClient"/> instance can run multiple discoveries
-    /// sequentially via <see cref="DiscoverAsync"/>. The instance is *not*
+    /// sequentially via <see cref="Discover"/>. The instance is *not*
     /// safe for concurrent discoveries on the same socket.
     /// </summary>
     public sealed class EVCC_SDPClient : IAsyncDisposable
     {
 
+        #region Data
+
         private readonly EVCC_SDPClientOptions    clientOptions;
         private readonly ILogger<EVCC_SDPClient>  logger;
         private          Socket?                  socket;
 
-        public event Action<SDP_Request>?                      RequestSent;
-        public event Action<SDP_Response, IPEndPoint>?         ResponseReceived;
-        public event Action<Byte[],      IPEndPoint, String>?  MalformedResponseReceived;
+        #endregion
 
+        #region Events
+
+        public event Action<SDP_Request>?                       RequestSent;
+        public event Action<SDP_Response, IPEndPoint>?          ResponseReceived;
+        public event Action<Byte[],       IPEndPoint, String>?  MalformedResponseReceived;
+
+        #endregion
+
+        #region Constructor(s)
+
+        /// <summary>
+        /// Create a new EVCC_SDPClient with the given options and logger.
+        /// </summary>
+        /// <param name="ClientOptions">The options to configure the client's behavior and policies.</param>
+        /// <param name="logger"></param>
         public EVCC_SDPClient(EVCC_SDPClientOptions     ClientOptions,
                               ILogger<EVCC_SDPClient>?  logger   = null)
         {
@@ -61,33 +76,46 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
 
         }
 
+        #endregion
+
+
+        #region Discover(CancellationToken)
+
         /// <summary>
-        /// Run the SDP discovery cycle.
+        /// Perform SDP discovery: send an SDP_Request and await valid SDP_Response(s) according to the configured policies.
         /// </summary>
-        public async Task<SDP_DiscoveryResult> DiscoverAsync(CancellationToken ct = default)
+        /// <param name="CancellationToken">A cancellation token to abort the discovery process.</param>
+        public async Task<SDP_DiscoveryResult> Discover(CancellationToken CancellationToken = default)
         {
 
             EnsureSocketOpen();
 
-            var sw         = Stopwatch.StartNew();
-            var deadline   = DateTimeOffset.UtcNow + clientOptions.TotalDeadline;
-            var attempts   = 0;
-            var rejects    = new List<(SDP_Response, String)>();
+            var sw          = Stopwatch.StartNew();
+            var deadline    = DateTimeOffset.UtcNow + clientOptions.TotalDeadline;
+            var attempts    = 0;
+            var rejects     = new List<(SDP_Response, String)>();
 
             // Build the request once – its bytes do not change between retries.
-            var request    = new SDP_Request(clientOptions.RequestedSecurity, clientOptions.RequestedTransport);
-            var reqBytes   = clientOptions.RawPayloadSerializer is { } custom
-                                 ? V2GTP_Frame.Wrap(V2GTP_PayloadType.SdpRequest, custom(request)).ToArray()
-                                 : request.EncodeFrame();
+            var sdpRequest  = new SDP_Request(
+                                  clientOptions.RequestedSecurity,
+                                  clientOptions.RequestedTransport
+                              );
 
-            var multicast  = V2GMulticast.SDPSendEndpoint;
-            var collected  = new List<(SDP_Response, IPEndPoint)>();
+            var reqBytes    = clientOptions.RawPayloadSerializer is { } custom
+                                  ? V2GTP_Frame.Wrap(
+                                        V2GTP_PayloadType.SdpRequest,
+                                        custom(sdpRequest)
+                                    ).ToArray()
+                                  : sdpRequest.EncodeFrame();
+
+            var multicast   = V2GMulticast.SDPSendEndpoint;
+            var collected   = new List<(SDP_Response, IPEndPoint)>();
 
             while (attempts < clientOptions.MaxRetries && DateTimeOffset.UtcNow < deadline)
             {
 
                 attempts++;
-                ct.ThrowIfCancellationRequested();
+                CancellationToken.ThrowIfCancellationRequested();
 
                 // ---- send ---------------------------------------------------
                 try
@@ -100,7 +128,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
                                   reqBytes,
                                   SocketFlags.None,
                                   multicast,
-                                  ct
+                                  CancellationToken
                               ).ConfigureAwait(false);
 
                         logger.LogDebug(
@@ -110,7 +138,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
                             clientOptions.Interface.Name
                         );
 
-                        RequestSent?.Invoke(request);
+                        RequestSent?.Invoke(sdpRequest);
 
                     }
 
@@ -122,12 +150,13 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
                 }
 
                 // ---- await response (within per-attempt timeout) ----------
-                using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
                 attemptCts.CancelAfter(clientOptions.PerAttemptTimeout);
 
                 try
                 {
-                    await foreach (var (resp, from) in ReceiveResponsesAsync(attemptCts.Token).ConfigureAwait(false))
+                    await foreach (var (resp, from) in ReceiveResponses(attemptCts.Token).
+                                                           ConfigureAwait(false))
                     {
 
                         var rejectReason = Validate(resp);
@@ -158,7 +187,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
 
                     }
                 }
-                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                catch (OperationCanceledException) when (!CancellationToken.IsCancellationRequested)
                 {
                     // per-attempt timeout – fall through to next retry
                 }
@@ -188,25 +217,39 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
 
         }
 
-        private async IAsyncEnumerable<(SDP_Response, IPEndPoint)> ReceiveResponsesAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+        #endregion
+
+        #region (private) ReceiveResponses(CancellationToken)
+
+        private async IAsyncEnumerable<(SDP_Response, IPEndPoint)> ReceiveResponses([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken CancellationToken)
         {
 
             var buffer = new byte[1500];
             EndPoint remote = new IPEndPoint(IPAddress.IPv6Any, 0);
 
-            while (!ct.IsCancellationRequested)
+            while (!CancellationToken.IsCancellationRequested)
             {
 
                 SocketReceiveFromResult rx;
                 try
                 {
-                    rx = await socket!.ReceiveFromAsync(buffer, SocketFlags.None, remote, ct).ConfigureAwait(false);
+
+                    if (socket is null)
+                        yield break;
+
+                    rx = await socket.ReceiveFromAsync(
+                                   buffer,
+                                   SocketFlags.None,
+                                   remote,
+                                   CancellationToken
+                               ).ConfigureAwait(false);
+
                 }
                 catch (OperationCanceledException) { yield break; }
                 catch (ObjectDisposedException)    { yield break; }
 
-                var datagram = buffer.AsMemory(0, rx.ReceivedBytes);
-                var from     = (IPEndPoint)rx.RemoteEndPoint;
+                var datagram  = buffer.AsMemory(0, rx.ReceivedBytes);
+                var from      = (IPEndPoint) rx.RemoteEndPoint;
 
                 V2GTP_Frame frame;
                 try
@@ -226,10 +269,15 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
                     continue;
                 }
 
-                SDP_Response? resp = null;
-                string?      err  = null;
-                try { resp = SDP_Response.Decode(frame.Payload.Span); }
-                catch (Exception ex) { err = ex.Message; }
+                SDP_Response? resp  = null;
+                String?       err   = null;
+                try
+                {
+                    resp = SDP_Response.Decode(frame.Payload.Span);
+                }
+                catch (Exception ex) {
+                    err = ex.Message;
+                }
 
                 if (resp is null)
                 {
@@ -243,24 +291,32 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
 
         }
 
-        private String? Validate(SDP_Response resp)
+        #endregion
+
+        #region Validate(SDPResponse)
+
+        private String? Validate(SDP_Response SDPResponse)
         {
 
-            if (clientOptions.RejectNoTlsResponses && resp.Security == SDP_Security.NoTLS)
+            if (clientOptions.RejectNoTlsResponses && SDPResponse.Security == SDP_Security.NoTLS)
                 return "no-TLS response rejected by policy (RejectNoTlsResponses=true)";
 
-            if (resp.TransportProtocol != SDP_TransportProtocol.TCP)
-                return $"unsupported transport protocol 0x{(byte)resp.TransportProtocol:X2}";
+            if (SDPResponse.TransportProtocol != SDP_TransportProtocol.TCP)
+                return $"unsupported transport protocol 0x{(byte)SDPResponse.TransportProtocol:X2}";
 
-            if (clientOptions.RequireLinkLocalSeccAddress && !resp.SeccIPAddress.IsIPv6LinkLocal)
-                return $"SECC address {resp.SeccIPAddress} is not link-local";
+            if (clientOptions.RequireLinkLocalSeccAddress && !SDPResponse.SeccIPAddress.IsIPv6LinkLocal)
+                return $"SECC address {SDPResponse.SeccIPAddress} is not link-local";
 
-            if (resp.SeccPort == 0)
+            if (SDPResponse.SeccPort == 0)
                 return "SECC port is zero";
 
             return null;
 
         }
+
+        #endregion
+
+        #region EnsureSocketOpen()
 
         private void EnsureSocketOpen()
         {
@@ -268,29 +324,43 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
             if (socket is not null)
                 return;
 
-            var sock = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp)
-            {
-                DualMode = false,
-            };
-            sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            var sock = new Socket(AddressFamily.InterNetworkV6, SocketType.Dgram, ProtocolType.Udp) {
+                           DualMode = false,
+                       };
 
-            // Bind to an ephemeral port on the V2G interface; that's where the
-            // SECC will unicast its response back.
-            var local = new IPEndPoint(
-                new IPAddress(clientOptions.Interface.LinkLocalIPAddress.GetAddressBytes(), clientOptions.Interface.Index),
-                port: 0);
-            sock.Bind(local);
+            sock.SetSocketOption(
+                SocketOptionLevel.Socket,
+                SocketOptionName.ReuseAddress,
+                true
+            );
+
+            // Bind to a random ephemeral port on the V2G interface.
+            // That's where the SECC will unicast its response back.
+            var unicastPort = new IPEndPoint(
+                                  new IPAddress(
+                                      clientOptions.Interface.LinkLocalIPAddress.GetAddressBytes(),
+                                      clientOptions.Interface.Index
+                                  ),
+                                  port: 0
+                              );
+            sock.Bind(unicastPort);
 
             // Pin outgoing multicast to our interface.
-            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastInterface, clientOptions.Interface.Index);
+            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastInterface,  clientOptions.Interface.Index);
             sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastTimeToLive, 1);
-            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastLoopback, false);
+            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastLoopback,   false);
 
             socket = sock;
+
             logger.LogInformation("EVCC SDP client ready on [{Addr}%{Scope}]:{Port}",
-                local.Address, clientOptions.Interface.Index, ((IPEndPoint)sock.LocalEndPoint!).Port);
+                unicastPort.Address, clientOptions.Interface.Index, ((IPEndPoint) sock.LocalEndPoint!).Port);
 
         }
+
+        #endregion
+
+
+        #region DisposeAsync()
 
         public ValueTask DisposeAsync()
         {
@@ -298,6 +368,8 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
             socket = null;
             return ValueTask.CompletedTask;
         }
+
+        #endregion
 
     }
 

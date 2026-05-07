@@ -176,10 +176,10 @@ This is abstracted via `IPlcChipController`.
 
 Provided implementations:
 
-- `SimulatedChipController`  
+- `SimulatedChipController`
   For UDP simulation. Records the configured `NID` / `NMK` and reports the AVLN as ready immediately or after optional artificial delays.
 
-- `QcaChipController`  
+- `QcaChipController`
   Linux-only implementation for qca7000-class hardware. Sends `CM_SET_KEY.REQ` / `CM_SET_KEY.CNF` to the local chip and waits briefly for the AVLN to come up.
 
 ## Hybrid bridge
@@ -331,3 +331,7 @@ If you need the ISO 15118-3 / HomePlug Green PHY **pairing and network bootstrap
 - simulation and bridging support
 
 In short: it is the **SLAC and AVLN bring-up layer** that prepares the PLC link so the rest of ISO 15118 can start.
+<<<<<<< HEAD
+=======
+
+>>>>>>> 312faf3191da4a8f48185325fb7c8229f33ab7cd

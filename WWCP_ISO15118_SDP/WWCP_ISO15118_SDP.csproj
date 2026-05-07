@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <RootNamespace>cloud.charging.open.protocols.ISO15118.Sdp</RootNamespace>
-    <AssemblyName>cloud.charging.open.protocols.ISO15118.Sdp</AssemblyName>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118.SDP</RootNamespace>
+    <AssemblyName>cloud.charging.open.protocols.ISO15118.SDP</AssemblyName>
     <Description>SECC Discovery Protocol (SDP) per ISO 15118-2 and ISO 15118-20: messages, server, client, and pentest hooks.</Description>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

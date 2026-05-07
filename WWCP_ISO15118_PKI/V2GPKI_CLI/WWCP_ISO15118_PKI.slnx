@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../WWCP_ISO15118_PKIBuilder/WWCP_ISO15118_PKIBuilder.csproj" Id="8147eb41-fc3d-4bd5-8e5f-96d5d60e131c" />
+  <Project Path="../WWCP_ISO15118_PKIBuilderTests/WWCP_ISO15118_PKIBuilderTests.csproj" />
+  <Project Path="V2GPKI_CLI\WWCP_ISO15118_PKI.csproj" />
+</Solution>

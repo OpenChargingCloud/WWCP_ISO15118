@@ -48,9 +48,10 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
                            };
 
             var results  = new List<VerificationResult> {
-                               VerifyChain("secc",         h, trust, h.SeccLeaf,       h.CpoSubCa2, h.CpoSubCa1),
-                               VerifyChain("contract",     h, trust, h.ContractLeaf,   h.MoSubCa2,  h.MoSubCa1),
-                               VerifyChain("oem_prov",     h, trust, h.OemProvLeaf,    h.OemSubCa2, h.OemSubCa1),
+                               VerifyChain("secc",         h, trust, h.SeccLeaf,       h.CpoSubCa2,     h.CpoSubCa1),
+                               VerifyChain("contract",     h, trust, h.ContractLeaf,   h.MoSubCa2,      h.MoSubCa1),
+                               VerifyChain("oem_prov",     h, trust, h.OemProvLeaf,    h.OemSubCa2,     h.OemSubCa1),
+                               VerifyChain("vehicle",      h, trust, h.VehicleLeaf,    h.VehicleSubCa2, h.VehicleSubCa1),
                                VerifyChain("cps_signing",  h, trust, h.CpsSigningLeaf, h.CpsSubCa)
                            };
 
@@ -156,7 +157,7 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
             if (V2GAlgorithms.IsSignatureOnly(hierarchy.Algorithm) && hasKeyAgreement)
                 throw new InvalidOperationException($"{leaf.Profile.Role} {hierarchy.Algorithm} certificate must not carry keyAgreement");
 
-            if (!V2GAlgorithms.IsSignatureOnly(hierarchy.Algorithm) && !hasKeyAgreement && leaf.Profile.Role is V2GRole.SECCLeaf or V2GRole.ContractCertLeaf or V2GRole.OEMProvCertLeaf)
+            if (!V2GAlgorithms.IsSignatureOnly(hierarchy.Algorithm) && !hasKeyAgreement && leaf.Profile.Role is V2GRole.SECCLeaf or V2GRole.ContractCertLeaf or V2GRole.OEMProvCertLeaf or V2GRole.VehicleLeaf)
                 throw new InvalidOperationException($"{leaf.Profile.Role} ECDSA certificate is missing keyAgreement");
 
         }
@@ -181,6 +182,7 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
 
                 case V2GRole.ContractCertLeaf:
                 case V2GRole.OEMProvCertLeaf:
+                case V2GRole.VehicleLeaf:
                     if (hierarchy.Options.Flavor != V2GProfileFlavor.Strict15118_2)
                         RequireEku(eku, KeyPurposeID.id_kp_clientAuth, "clientAuth", leaf);
                     if (eku.Contains(KeyPurposeID.id_kp_serverAuth.Id))

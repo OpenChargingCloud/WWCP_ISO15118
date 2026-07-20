@@ -28,13 +28,16 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
     /// Full V2G PKI hierarchy:
     ///
     ///   V2G Root CA
-    ///   ├── CPO Sub-CA 1 ─── CPO Sub-CA 2 ─── SECC Leaf
-    ///   ├──  MO Sub-CA 1 ───  MO Sub-CA 2 ─── Contract Cert Leaf
-    ///   ├── OEM Sub-CA 1 ─── OEM Sub-CA 2 ─── OEM Prov Cert Leaf
-    ///   └── CPS Sub-CA   ──────────────────── CPS Signing Leaf
+    ///   ├── CPO     Sub-CA 1 ─── CPO     Sub-CA 2 ─── SECC Leaf         (TLS server)
+    ///   ├──  MO     Sub-CA 1 ───  MO     Sub-CA 2 ─── Contract Cert Leaf (PnC, app layer)
+    ///   ├── OEM     Sub-CA 1 ─── OEM     Sub-CA 2 ─── OEM Prov Cert Leaf (provisioning)
+    ///   ├── Vehicle Sub-CA 1 ─── Vehicle Sub-CA 2 ─── Vehicle Leaf      (TLS client, -20 mTLS)
+    ///   └── CPS     Sub-CA   ────────────────────────  CPS Signing Leaf
     ///
-    /// Two intermediates on CPO/MO/OEM mirror the real-world deployment topology
-    /// (operator vs sub-operator). CPS uses a single intermediate.
+    /// Two intermediates on CPO/MO/OEM/Vehicle mirror the real-world deployment topology
+    /// (operator vs sub-operator). CPS uses a single intermediate. The Vehicle branch is the
+    /// CharIN 2nd-gen V2G PKI's dedicated TLS-client identity for ISO 15118-20 mutual TLS,
+    /// kept separate from the Contract cert (application-layer PnC only).
     /// </summary>
     public class V2GHierarchy
     {
@@ -57,6 +60,10 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
         public required V2GIssued          OemSubCa2         { get; init; }
         public required V2GIssued          OemProvLeaf       { get; init; }
 
+        public required V2GIssued          VehicleSubCa1     { get; init; }
+        public required V2GIssued          VehicleSubCa2     { get; init; }
+        public required V2GIssued          VehicleLeaf       { get; init; }
+
         public required V2GIssued          CpsSubCa          { get; init; }
         public required V2GIssued          CpsSigningLeaf    { get; init; }
 
@@ -73,6 +80,9 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
             yield return OemSubCa1;
             yield return OemSubCa2;
             yield return OemProvLeaf;
+            yield return VehicleSubCa1;
+            yield return VehicleSubCa2;
+            yield return VehicleLeaf;
             yield return CpsSubCa;
             yield return CpsSigningLeaf;
 
@@ -255,6 +265,53 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
 
 
 
+            var veh1            = V2GCertificateBuilder.Issue(
+                                      V2GCertProfile.ForRole(
+                                          V2GRole.VehicleSubCA1,
+                                          V2GProfileOptions,
+                                          CommonNameSuffix
+                                      ),
+                                      V2GAlgorithm,
+                                      SecureRandom,
+                                      root,
+                                      revocation:  V2GRevocationInfo.ForIssuer(
+                                                       RevocationBaseURL,
+                                                       root
+                                                   )
+                                  );
+
+            var veh2            = V2GCertificateBuilder.Issue(
+                                      V2GCertProfile.ForRole(
+                                          V2GRole.VehicleSubCA2,
+                                          V2GProfileOptions,
+                                          CommonNameSuffix
+                                      ),
+                                      V2GAlgorithm,
+                                      SecureRandom,
+                                      veh1,
+                                      revocation:  V2GRevocationInfo.ForIssuer(
+                                                       RevocationBaseURL,
+                                                       veh1
+                                                   )
+                                  );
+
+            var vehicle         = V2GCertificateBuilder.Issue(
+                                      V2GCertProfile.ForRole(
+                                          V2GRole.VehicleLeaf,
+                                          V2GProfileOptions,
+                                          CommonNameSuffix
+                                      ),
+                                      V2GAlgorithm,
+                                      SecureRandom,
+                                      veh2,
+                                      revocation:  V2GRevocationInfo.ForIssuer(
+                                                       RevocationBaseURL,
+                                                       veh2
+                                                   )
+                                  );
+
+
+
             var cps             = V2GCertificateBuilder.Issue(
                                       V2GCertProfile.ForRole(
                                           V2GRole.CPSSubCA,
@@ -299,6 +356,9 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
                        OemSubCa1       = oem1,
                        OemSubCa2       = oem2,
                        OemProvLeaf     = oemProv,
+                       VehicleSubCa1   = veh1,
+                       VehicleSubCa2   = veh2,
+                       VehicleLeaf     = vehicle,
                        CpsSubCa        = cps,
                        CpsSigningLeaf  = cpsSigning
                    };

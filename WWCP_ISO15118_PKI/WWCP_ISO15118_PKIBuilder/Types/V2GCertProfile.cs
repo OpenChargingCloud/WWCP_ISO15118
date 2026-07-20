@@ -86,6 +86,9 @@ public sealed record V2GCertProfile(
 
             V2GRole.CPSSubCA  => SubCa(role, "CPS Sub-CA" + suffix,   ["V2G", "CPS"], pathLen: 0, options),
 
+            V2GRole.VehicleSubCA1 => SubCa(role, "Vehicle Sub-CA 1" + suffix, ["V2G", "Vehicle"], pathLen: 1, options),
+            V2GRole.VehicleSubCA2 => SubCa(role, "Vehicle Sub-CA 2" + suffix, ["V2G", "Vehicle"], pathLen: 0, options),
+
             V2GRole.SECCLeaf => new(role,
                 CommonName: "SECC" + suffix,
                 DomainComponents: ["V2G", "CPO"],
@@ -100,6 +103,27 @@ public sealed record V2GCertProfile(
                 Validity: TimeSpan.FromDays(365 * 2),
                 PolicyOids: options.Policies.Policies(options.Policies.EIMPolicy, options.Policies.PnCPolicy),
                 SubjectAltDnsNames: ["secc.v2g.local", "evse.v2g.local"]),
+
+            // The Vehicle cert is the EV's TLS *client* certificate for -20 mutual TLS —
+            // the clientAuth counterpart of the SECC leaf's serverAuth. It is a -20 construct
+            // (CharIN 2nd-gen "Vehicle" branch), so like the other EV-side leaves it omits the
+            // clientAuth EKU under the ISO 15118-2 strict profile. Validity mirrors the SECC
+            // TLS leaf (2y) rather than the CP's nominal 5y, matching this builder's own
+            // short-lived-leaf convention.
+            V2GRole.VehicleLeaf => new(role,
+                CommonName: "Vehicle" + suffix,
+                DomainComponents: ["V2G", "Vehicle"],
+                Organization: "V2G PKI",
+                Country: "DE",
+                IsCa: false,
+                PathLenConstraint: null,
+                KeyUsageBits: leafKeyUsage,
+                ExtendedKeyUsages: options.Flavor == V2GProfileFlavor.Strict15118_2
+                    ? []
+                    : [KeyPurposeID.id_kp_clientAuth],
+                Validity: TimeSpan.FromDays(365 * 2),
+                PolicyOids: options.Policies.Policies(options.Policies.EIMPolicy, options.Policies.PnCPolicy),
+                SubjectAltDnsNames: []),
 
             V2GRole.ContractCertLeaf => new(role,
                 CommonName: "Contract" + suffix,

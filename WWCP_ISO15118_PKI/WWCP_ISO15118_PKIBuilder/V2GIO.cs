@@ -93,8 +93,12 @@ public static class V2GIO
             ("09_oem_sub_ca_2",       V2GHierarchy.OemSubCa2),
             ("10_oem_prov_leaf",      V2GHierarchy.OemProvLeaf),
 
-            ("11_cps_sub_ca",         V2GHierarchy.CpsSubCa),
-            ("12_cps_signing_leaf",   V2GHierarchy.CpsSigningLeaf)
+            ("11_vehicle_sub_ca_1",   V2GHierarchy.VehicleSubCa1),
+            ("12_vehicle_sub_ca_2",   V2GHierarchy.VehicleSubCa2),
+            ("13_vehicle_leaf",       V2GHierarchy.VehicleLeaf),
+
+            ("14_cps_sub_ca",         V2GHierarchy.CpsSubCa),
+            ("15_cps_signing_leaf",   V2GHierarchy.CpsSigningLeaf)
 
         };
 
@@ -108,6 +112,8 @@ public static class V2GIO
                    V2GHierarchy.ContractLeaf, V2GHierarchy.MoSubCa2, V2GHierarchy.MoSubCa1, V2GHierarchy.Root);
         WriteChain(Path.Combine(baseDir, "chains", "oem_prov_chain.pem"),
                    V2GHierarchy.OemProvLeaf, V2GHierarchy.OemSubCa2, V2GHierarchy.OemSubCa1, V2GHierarchy.Root);
+        WriteChain(Path.Combine(baseDir, "chains", "vehicle_chain.pem"),
+                   V2GHierarchy.VehicleLeaf, V2GHierarchy.VehicleSubCa2, V2GHierarchy.VehicleSubCa1, V2GHierarchy.Root);
         WriteChain(Path.Combine(baseDir, "chains", "cps_signing_chain.pem"),
                    V2GHierarchy.CpsSigningLeaf, V2GHierarchy.CpsSubCa, V2GHierarchy.Root);
 

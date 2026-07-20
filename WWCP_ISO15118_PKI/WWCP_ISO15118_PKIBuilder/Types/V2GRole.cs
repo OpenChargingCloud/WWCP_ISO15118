@@ -55,14 +55,33 @@ public enum V2GRole
     /// <summary>CPS Sub-CA — issues CPS signing certs for CertificateInstallationRes.</summary>
     CPSSubCA,
 
+    /// <summary>Vehicle Sub-CA — issues Vehicle certs (the EV's TLS client identity in -20).</summary>
+    VehicleSubCA1,
+    VehicleSubCA2,
+
     /// <summary>SECC Leaf — TLS server cert presented by the charging station.</summary>
     SECCLeaf,
 
-    /// <summary>Contract Cert — EV's PnC identity. xmldsig in -2, mTLS in -20.</summary>
+    /// <summary>
+    /// Contract Cert — the EV's Plug &amp; Charge identity. Application layer only:
+    /// xmldsig in -2, and signs the -20 AuthorizationReq challenge. This is NOT the TLS
+    /// client certificate — per the CharIN 2nd-gen V2G PKI that is the Vehicle cert.
+    /// </summary>
     ContractCertLeaf,
 
-    /// <summary>OEM Provisioning Cert — factory-installed in vehicle. mTLS client in -20 EIM.</summary>
+    /// <summary>
+    /// OEM Provisioning Cert — factory-installed in the vehicle, used to provision
+    /// Contract certificates (DH-wrapped) out of band. Not a TLS client certificate.
+    /// </summary>
     OEMProvCertLeaf,
+
+    /// <summary>
+    /// Vehicle Cert — the EV's TLS client certificate for the ISO 15118-20 mutual-TLS
+    /// handshake (CharIN 2nd-gen V2G PKI "Vehicle" branch). Independent of EIM/PnC: the
+    /// EVCC always presents it as the TLS client, while the Contract cert stays application
+    /// layer and the OEM Prov cert stays provisioning only.
+    /// </summary>
+    VehicleLeaf,
 
     /// <summary>CPS Signing Cert — signs CertificateInstallationRes payloads (xmldsig).</summary>
     CPSSigningLeaf,

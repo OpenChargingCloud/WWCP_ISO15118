@@ -37,7 +37,7 @@ public sealed class V2GPKIBuilderTests
 
         var results = V2GVerifier.VerifyGood(hierarchy);
 
-        Assert.That(results, Has.Count.EqualTo(4));
+        Assert.That(results, Has.Count.EqualTo(5));
         Assert.That(results, Has.All.Matches<V2GVerifier.VerificationResult>(result => result.Ok));
     }
 
@@ -109,6 +109,41 @@ public sealed class V2GPKIBuilderTests
 
         Assert.That(HasKeyUsage(hierarchy.SeccLeaf.Certificate, KeyUsageBit.KeyAgreement), Is.False);
         Assert.That(HasKeyUsage(hierarchy.SeccLeaf.Certificate, KeyUsageBit.DigitalSignature), Is.True);
+    }
+
+    [TestCase(V2GAlgorithm.EcdsaP521)]
+    [TestCase(V2GAlgorithm.Ed448)]
+    public void Vehicle_leaf_is_tls_client_not_server(V2GAlgorithm algorithm)
+    {
+        var hierarchy = V2GHierarchy.Build(
+            algorithm,
+            Random(),
+            V2GProfileOptions: Options(V2GProfileFlavor.Strict15118_20, algorithm));
+
+        var eku = GetExtendedKeyUsageOids(hierarchy.VehicleLeaf.Certificate);
+
+        Assert.Multiple(() =>
+        {
+            // The Vehicle cert is the EV's TLS *client* identity: clientAuth, never serverAuth.
+            Assert.That(eku, Does.Contain(KeyPurposeID.id_kp_clientAuth.Id));
+            Assert.That(eku, Does.Not.Contain(KeyPurposeID.id_kp_serverAuth.Id));
+            Assert.That(hierarchy.VehicleLeaf.Certificate.GetBasicConstraints(), Is.LessThan(0), "Vehicle leaf must not be a CA");
+        });
+    }
+
+    [Test]
+    public void Vehicle_chain_writes_a_bundle()
+    {
+        var hierarchy = V2GHierarchy.Build(
+            V2GAlgorithm.EcdsaP521,
+            Random(),
+            V2GProfileOptions: Options(V2GProfileFlavor.Strict15118_20, V2GAlgorithm.EcdsaP521));
+
+        var outDir = Path.Combine(TestContext.CurrentContext.WorkDirectory, $"pki-{Guid.NewGuid():N}");
+        V2GIO.WriteHierarchy(hierarchy, outDir);
+
+        var baseDir = Path.Combine(outDir, "strict_15118_20_ecdsa_p521");
+        Assert.That(File.Exists(Path.Combine(baseDir, "chains", "vehicle_chain.pem")), Is.True);
     }
 
     [Test]

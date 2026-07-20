@@ -13,11 +13,17 @@ plus an optional set of deliberately evil malformed certificates for pentesting 
 
 ```
 V2G Root CA
-├── CPO Sub-CA 1 ── CPO Sub-CA 2 ── SECC Leaf            (TLS server, EVSE)
-├── MO  Sub-CA 1 ── MO  Sub-CA 2 ── Contract Cert Leaf   (PnC: xmldsig in -2 / mTLS in -20)
-├── OEM Sub-CA 1 ── OEM Sub-CA 2 ── OEM Prov Cert Leaf   (factory-installed in EV)
-└── CPS Sub-CA   ─────────────────  CPS Signing Leaf     (signs CertificateInstallationRes)
+├── CPO     Sub-CA 1 ── CPO     Sub-CA 2 ── SECC Leaf          (TLS server, EVSE)
+├── MO      Sub-CA 1 ── MO      Sub-CA 2 ── Contract Cert Leaf (PnC, application layer: xmldsig in -2 / signs -20 AuthorizationReq)
+├── OEM     Sub-CA 1 ── OEM     Sub-CA 2 ── OEM Prov Cert Leaf (factory-installed in EV; provisions Contract certs)
+├── Vehicle Sub-CA 1 ── Vehicle Sub-CA 2 ── Vehicle Leaf       (TLS client, EV — ISO 15118-20 mutual TLS)
+└── CPS     Sub-CA   ─────────────────────  CPS Signing Leaf   (signs CertificateInstallationRes)
 ```
+
+The **Vehicle** branch is the CharIN 2nd-generation V2G PKI's dedicated TLS-client identity
+for ISO 15118-20 mutual TLS. It is deliberately separate from the Contract certificate: the
+EVCC always presents the Vehicle cert as the TLS client, while the Contract cert stays at the
+application layer (Plug & Charge) and the OEM Provisioning cert stays provisioning-only.
 
 ## Algorithm profiles
 
@@ -143,7 +149,10 @@ var sslOptions  = new SslServerAuthenticationOptions {
 };
 ```
 
-For -20 mTLS, point the validation callback at the chain `contract_chain.pem` and pin against the **V2G Root** trust store (`v2g_root_trust.pem`).
+For -20 mTLS, the EVCC presents its **Vehicle** cert as the TLS client, so point the SECC's
+validation callback at `vehicle_chain.pem` and pin against the **V2G Root** trust store
+(`v2g_root_trust.pem`). The Contract cert (`contract_chain.pem`) is verified separately at the
+application layer during Plug & Charge authorization, not in the TLS handshake.
 
 ### Caveats
 

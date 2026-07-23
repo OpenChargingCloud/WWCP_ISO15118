@@ -92,6 +92,17 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
         /// </summary>
         public DuplicateResponseStrategy    DuplicateStrategy              { get; init; } = DuplicateResponseStrategy.AcceptFirst;
 
+        /// <summary>
+        /// Whether the socket loops outgoing multicast back to the local host
+        /// (<c>IPV6_MULTICAST_LOOP</c>). Off by default: on real hardware the
+        /// EVCC and SECC are distinct nodes and the EVCC must not hear itself.
+        /// Enable for single-host setups (tests, simulators, Docker/WSL interop),
+        /// where a SECC on the same host only ever sees the SDP_Request if the
+        /// kernel loops it back locally — with the default the discovery times
+        /// out even though both sides are healthy.
+        /// </summary>
+        public Boolean                      MulticastLoopback              { get; init; } = false;
+
 
 
         // ----- Pentest hooks ------------------------------------------------

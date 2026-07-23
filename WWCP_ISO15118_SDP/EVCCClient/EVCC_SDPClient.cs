@@ -345,10 +345,12 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
                               );
             sock.Bind(unicastPort);
 
-            // Pin outgoing multicast to our interface.
+            // Pin outgoing multicast to our interface. MulticastLoopback is policy (see the option):
+            // off for real hardware, on for single-host setups where the SECC lives on the same
+            // machine and only receives the SDP_Request via local loopback.
             sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastInterface,  clientOptions.Interface.Index);
             sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastTimeToLive, 1);
-            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastLoopback,   false);
+            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastLoopback,   clientOptions.MulticastLoopback);
 
             socket = sock;
 

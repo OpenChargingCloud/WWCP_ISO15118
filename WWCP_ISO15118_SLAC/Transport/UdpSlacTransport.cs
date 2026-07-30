@@ -53,8 +53,18 @@ public sealed class UdpSlacTransport : ISlacTransport
 
     public MACAddress LocalMac { get; }
 
+    /// <summary>
+    /// The endpoint the socket actually bound to. Constructed with port 0, this is where the
+    /// OS-assigned port can be read back — which is the only way to learn it without first binding
+    /// a throwaway socket, releasing it, and hoping nothing else takes the port in between.
+    /// </summary>
+    public IPEndPoint LocalEndpoint => (IPEndPoint) _socket.Client.LocalEndPoint!;
+
     public event EventHandler<DecodedFrame>? FrameReceived;
 
+    /// <param name="listenOn">
+    /// Pass port 0 to let the OS assign a free port — read it back via <see cref="LocalEndpoint"/>.
+    /// </param>
     public UdpSlacTransport(
         MACAddress localMac,
         IPEndPoint listenOn,

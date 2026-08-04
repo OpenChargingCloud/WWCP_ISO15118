@@ -11,9 +11,9 @@ until `bash download-schemas.sh` has run.
 
 ```xml
 <ItemGroup>
-  <ProjectReference Include="…\WWCP_ISO15118\Vanaheimr.V2G.Exi.Prototype\Vanaheimr.V2G.Exi.Prototype.csproj" />
-  <ProjectReference Include="…\WWCP_ISO15118\Vanaheimr.V2G.Exi.Iso15118_2\Vanaheimr.V2G.Exi.Iso15118_2.csproj" />
-  <ProjectReference Include="…\WWCP_ISO15118\Vanaheimr.V2G.Exi.Dispatch\Vanaheimr.V2G.Exi.Dispatch.csproj" />
+  <ProjectReference Include="…\WWCP_ISO15118\WWCP_ISO15118_EXI\WWCP_ISO15118_EXI.csproj" />
+  <ProjectReference Include="…\WWCP_ISO15118\WWCP_ISO15118_2\WWCP_ISO15118_2.csproj" />
+  <ProjectReference Include="…\WWCP_ISO15118\WWCP_ISO15118_EXI_Dispatch\WWCP_ISO15118_EXI_Dispatch.csproj" />
 </ItemGroup>
 ```
 
@@ -146,7 +146,7 @@ malformed *frame* — you get `false` and a reason. Malformed EXI *inside* a rec
 throw `InvalidDataException`, because at that point the peer has claimed a schema and then not
 followed it. `V2GTP.MaximumPayloadBytes` is the ceiling worth sizing a buffer against.
 
-**Plug & Charge signatures need `Vanaheimr.V2G.Exi.XmlDsig`, not the message set's own.** A
+**Plug & Charge signatures need `WWCP_ISO15118_XMLDSig`, not the message set's own.** A
 `SignedInfo` that Josev or EXIficient produced is encoded against `xmldsig-core-schema.xsd`
 *standalone*, which is a different grammar from the combined one each message set carries. Verify
 with the wrong one and every signature fails — locally consistent, interoperable with nobody.

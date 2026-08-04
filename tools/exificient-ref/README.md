@@ -48,15 +48,15 @@ schema-informed grammar) — the same convention cbV2G/cbexigen and our generato
 ## What was cross-checked
 
 Both of the SignedInfo fragments already byte-diffed against cbV2G
-([`Iso15118_2FragmentTests.cs`](../../Vanaheimr.V2G.Exi.Tests/Iso15118_2FragmentTests.cs),
-[`Iso15118_20FragmentTests.cs`](../../Vanaheimr.V2G.Exi.Tests/Iso15118_20FragmentTests.cs))
+([`Iso15118_2FragmentTests.cs`](../../WWCP_ISO15118_EXI_Tests/Iso15118_2FragmentTests.cs),
+[`Iso15118_20FragmentTests.cs`](../../WWCP_ISO15118_EXI_Tests/Iso15118_20FragmentTests.cs))
 were fed to EXIficient's **decoder** with the matching XSD entry point and
 `fragment=true`:
 
 | fixture | schema entry point | expected bytes (cbV2G-verified) |
 |---|---|---|
-| [`fixtures/iso2-signedinfo-expected.hex`](fixtures/iso2-signedinfo-expected.hex) | `Vanaheimr.V2G.Exi.Iso15118_2/Schemas/V2G_CI_MsgDef.xsd` | `Iso15118_2FragmentTests.SignedInfo_Fragment_MatchesCbV2G` |
-| [`fixtures/iso20-common-signedinfo-expected.hex`](fixtures/iso20-common-signedinfo-expected.hex) | `Vanaheimr.V2G.Exi.Iso15118_20.CommonMessages/Schemas/V2G_CI_CommonMessages.xsd` | `Iso15118_20FragmentTests.SignedInfo_Fragment_MatchesCbV2G` |
+| [`fixtures/iso2-signedinfo-expected.hex`](fixtures/iso2-signedinfo-expected.hex) | `WWCP_ISO15118_2/Schemas/V2G_CI_MsgDef.xsd` | `Iso15118_2FragmentTests.SignedInfo_Fragment_MatchesCbV2G` |
+| [`fixtures/iso20-common-signedinfo-expected.hex`](fixtures/iso20-common-signedinfo-expected.hex) | `WWCP_ISO15118_20.CommonMessages/Schemas/V2G_CI_CommonMessages.xsd` | `Iso15118_20FragmentTests.SignedInfo_Fragment_MatchesCbV2G` |
 
 Both decoded to exactly the expected `SignedInfo` content — same `CanonicalizationMethod`/
 `SignatureMethod`/`DigestMethod` algorithm URIs, same `Reference URI`, same base64
@@ -207,5 +207,5 @@ Note: encoding this same `SignedInfo` here with the **standalone** `xmldsig-core
 (`encode …/xmldsig-core-schema.xsd fragment …`) via EXIficient's *runtime* `XSDGrammarsBuilder` gives **244 B**
 — close but not byte-identical to Josev's **209 B** *pre-generated* grammar. So the faithful reproduction uses
 Josev's own jar/grammar, not EXIficient's runtime build of the same schema. See
-`Vanaheimr.V2G.Exi.Tests/Interop/JosevPnCSignatureDiag.cs` and
+`WWCP_ISO15118_EXI_Tests/Interop/JosevPnCSignatureDiag.cs` and
 `docs/interop-runs/2026-07-21-iso20-dc-pnc-tls/notes.md`.

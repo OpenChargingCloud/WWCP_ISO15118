@@ -19,7 +19,7 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parent.parent
-VECTORS = REPO / "Vanaheimr.V2G.Exi.Tests" / "Vectors" / "Primitives.vectors.json"
+VECTORS = REPO / "WWCP_ISO15118_EXI_Tests" / "Vectors" / "Primitives.vectors.json"
 
 
 def vector_arg(v: dict) -> str:

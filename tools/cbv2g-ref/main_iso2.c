@@ -6,7 +6,7 @@
  * fixtures, so the generated codec can be diffed against it.
  *
  * Development tool only; `dotnet test` never runs it. Regenerated hex is checked into
- * Vanaheimr.V2G.Exi.Tests/Vectors/Iso15118_2.vectors.json.
+ * WWCP_ISO15118_EXI_Tests/Vectors/Iso15118_2.vectors.json.
  *
  * Usage:  cbv2g_iso2 <VectorName>   ->  space-separated lowercase hex on stdout.
  */

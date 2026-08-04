@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118_2</RootNamespace>
+    <AssemblyName>WWCP_ISO15118_2</AssemblyName>
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <!-- The generator reads these to name the generated codec, so it does not collide with the
+         AppProtocol codec (both come from the same source generator). -->
+    <ExiGeneratedNamespace>cloud.charging.open.protocols.ISO15118_2.Generated</ExiGeneratedNamespace>
+    <ExiCodecClassName>Iso2Codec</ExiCodecClassName>
+    <!-- Signable elements that get an EXI fragment codec (XMLDSig, §8.5.3). -->
+    <ExiFragmentElements>AuthorizationReq MeteringReceiptReq SalesTariff SignedInfo</ExiFragmentElements>
+
+    <!-- Write the generated codec to obj/ for inspection. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="ExiGeneratedNamespace" />
+    <CompilerVisibleProperty Include="ExiCodecClassName" />
+    <CompilerVisibleProperty Include="ExiFragmentElements" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The whole ISO 15118-2 schema set is resolved as one collected set (linked by xs:import). -->
+    <AdditionalFiles Include="Schemas\V2G_CI_MsgDef.xsd" />
+    <AdditionalFiles Include="Schemas\V2G_CI_MsgHeader.xsd" />
+    <AdditionalFiles Include="Schemas\V2G_CI_MsgBody.xsd" />
+    <AdditionalFiles Include="Schemas\V2G_CI_MsgDataTypes.xsd" />
+    <AdditionalFiles Include="Schemas\xmldsig-core-schema.xsd" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The generated codec uses BitWriter / BitReader / ExiPrimitives from the prototype. -->
+    <ProjectReference Include="..\WWCP_ISO15118_EXI\WWCP_ISO15118_EXI.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_EXI_SourceGenerator\WWCP_ISO15118_EXI_SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+</Project>

@@ -4,7 +4,7 @@ A tiny CLI around EVerest's [libcbv2g](https://github.com/EVerest/libcbv2g) that
 encodes/decodes the ISO 15118 **SupportedAppProtocol** (SAP) handshake to and from
 wire-conformant EXI hex. It is the reference oracle used to (re)generate the
 `expectedHex` values in
-[`../../Vanaheimr.V2G.Exi.Tests/Vectors/AppProtocol.vectors.json`](../../Vanaheimr.V2G.Exi.Tests/Vectors/AppProtocol.vectors.json).
+[`../../WWCP_ISO15118_EXI_Tests/Vectors/AppProtocol.vectors.json`](../../WWCP_ISO15118_EXI_Tests/Vectors/AppProtocol.vectors.json).
 
 This is a **development tool only**. `dotnet test` never runs it — the tests read the
 checked-in vector JSON. You only need it to regenerate those vectors.

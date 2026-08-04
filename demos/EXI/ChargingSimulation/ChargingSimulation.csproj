@@ -10,6 +10,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Vanaheimr.V2G.Exi.Iso15118_2\Vanaheimr.V2G.Exi.Iso15118_2.csproj" />
+    <ProjectReference Include="..\..\..\WWCP_ISO15118_2\WWCP_ISO15118_2.csproj" />
   </ItemGroup>
 </Project>

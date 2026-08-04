@@ -43,16 +43,16 @@ red afterwards.
 
 | Project | Reference it when you need |
 |---|---|
-| `Vanaheimr.V2G.Exi.Prototype` | **Always.** Bit reader/writer, EXI primitives, and the hand-written SupportedAppProtocol handshake codec |
+| `WWCP_ISO15118_EXI` | **Always.** Bit reader/writer, EXI primitives, and the hand-written SupportedAppProtocol handshake codec |
 | `WWCP_ISO15118_V2GTP` | The 8-byte V2GTP header, its payload types, and the SDP framing |
-| `Vanaheimr.V2G.Exi.Iso15118_2` | ISO 15118-2 messages — what nearly every car on the road speaks today |
-| `Vanaheimr.V2G.Exi.Iso15118_20.CommonMessages` | ISO 15118-20 session, authorisation, service discovery, schedules |
-| `Vanaheimr.V2G.Exi.Iso15118_20.AC` / `.DC` | -20 energy transfer, one per mode |
-| `Vanaheimr.V2G.Exi.Iso15118_20.AC_DER_IEC` / `.AC_DER_SAE` | -20 with distributed energy resources |
-| `Vanaheimr.V2G.Exi.Iso15118_20.WPT` / `.ACDP` | -20 wireless and automatic connection device |
-| `Vanaheimr.V2G.Exi.XmlDsig` | The standalone W3C XMLDSig grammar. Plug & Charge needs it |
-| `Vanaheimr.V2G.Exi.Dispatch` | You are reading frames off a socket and want the payload type resolved for you |
-| `Vanaheimr.V2G.Exi.SourceGenerator` | Never directly. Every project above pulls it in as an analyzer |
+| `WWCP_ISO15118_2` | ISO 15118-2 messages — what nearly every car on the road speaks today |
+| `WWCP_ISO15118_20.CommonMessages` | ISO 15118-20 session, authorisation, service discovery, schedules |
+| `WWCP_ISO15118_20.AC` / `.DC` | -20 energy transfer, one per mode |
+| `WWCP_ISO15118_20.AC_DER_IEC` / `.AC_DER_SAE` | -20 with distributed energy resources |
+| `WWCP_ISO15118_20.WPT` / `.ACDP` | -20 wireless and automatic connection device |
+| `WWCP_ISO15118_XMLDSig` | The standalone W3C XMLDSig grammar. Plug & Charge needs it |
+| `WWCP_ISO15118_EXI_Dispatch` | You are reading frames off a socket and want the payload type resolved for you |
+| `WWCP_ISO15118_EXI_SourceGenerator` | Never directly. Every project above pulls it in as an analyzer |
 
 **[SECC_Example.md](SECC_Example.md)** is the whole thing put together: a charging station that
 accepts an EV, completes the handshake and answers its first message, in one file — with the four
@@ -65,11 +65,11 @@ type, and the sets do not reference each other:
 
 | Set | Project | Codec | Payload type |
 |---|---|---|--:|
-| Common | `…Iso15118_20.CommonMessages` | `CommonMessagesCodec` | `0x8002` |
-| AC | `…Iso15118_20.AC` | `AcCodec` | `0x8003` |
-| DC | `…Iso15118_20.DC` | `DcCodec` | `0x8004` |
-| ACDP | `…Iso15118_20.ACDP` | `AcdpCodec` | `0x8005` |
-| WPT | `…Iso15118_20.WPT` | `WptCodec` | `0x8006` |
+| Common | `WWCP_ISO15118_20.CommonMessages` | `CommonMessagesCodec` | `0x8002` |
+| AC | `WWCP_ISO15118_20.AC` | `AcCodec` | `0x8003` |
+| DC | `WWCP_ISO15118_20.DC` | `DcCodec` | `0x8004` |
+| ACDP | `WWCP_ISO15118_20.ACDP` | `AcdpCodec` | `0x8005` |
+| WPT | `WWCP_ISO15118_20.WPT` | `WptCodec` | `0x8006` |
 
 A -20 session interleaves two of them: the common messages carry the session and authorisation, the
 AC or DC set carries the energy transfer, on separate payload types over the same socket.
@@ -95,7 +95,7 @@ The types you write against are named after the XSD, not after the prose of the 
 `cloud.charging.open.protocols.ISO15118_20.<Set>.Generated`.
 
 Correctness is pinned against a reference encoder rather than against our own opinion. The vectors
-under `Vanaheimr.V2G.Exi.Tests/Vectors/` are bytes produced by cbV2G and EXIficient, and the rule is
+under `WWCP_ISO15118_EXI_Tests/Vectors/` are bytes produced by cbV2G and EXIficient, and the rule is
 in `CLAUDE.md`: never change wire semantics speculatively, only on a concrete byte diff against one
 of them.
 

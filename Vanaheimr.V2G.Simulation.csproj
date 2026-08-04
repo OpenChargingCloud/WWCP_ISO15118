@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>Vanaheimr.V2G.Simulation</RootNamespace>
+    <AssemblyName>Vanaheimr.V2G.Simulation</AssemblyName>
+    <!-- The BouncyCastle TLS backend (Transport/BouncyCastle/) is not AOT/trim-clean, so the
+         AOT-compatible guarantee is dropped. The default TLS path stays .NET SslStream. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Managed TLS stack for the ISO 15118-20-faithful TLS profile (P-521 / Ed448, exact -20
+         cipher-suite & curve pinning) that Windows Schannel cannot provide. Opt-in backend. -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- V2GTP header + SAP codec (Prototype), payload-type dispatch (Dispatch), and the four
+         message-set codecs this slice actually drives. WPT/ACDP are out of scope here. -->
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_EXI\WWCP_ISO15118_EXI.csproj" />
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_EXI_Dispatch\WWCP_ISO15118_EXI_Dispatch.csproj" />
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_2\WWCP_ISO15118_2.csproj" />
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_20.CommonMessages\WWCP_ISO15118_20.CommonMessages.csproj" />
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_XMLDSig\WWCP_ISO15118_XMLDSig.csproj" />
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_20.DC\WWCP_ISO15118_20.DC.csproj" />
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_20.AC\WWCP_ISO15118_20.AC.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SECC Discovery Protocol (SDP): the EVCC discovers the SECC's TCP/TLS endpoint before
+         connecting. Lightweight WWCP submodule projects (no Hermod). -->
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_SDP\WWCP_ISO15118_SDP.csproj" />
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_NetworkInterfaces\WWCP_ISO15118_NetworkInterfaces.csproj" />
+    <!-- SLAC (PLC pairing) — the stage before SDP. Note: this drags in the heavy transitive chain
+         SLAC -> Hermod -> Styx; a deliberate tradeoff (see docs/pki-model.md, "Hermod slim-down" TODO). -->
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_SLAC\WWCP_ISO15118_SLAC.csproj" />
+  </ItemGroup>
+</Project>

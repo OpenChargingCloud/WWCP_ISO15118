@@ -1,88 +1,69 @@
-# Where the schemas come from, and why they are in this repository
+# The schemas are not in this repository
 
-Every codec here is generated from the ISO 15118 XML schemas, which are checked in under each
-message set's `Schemas/` directory. The schemas are ISO's work, not ours. This note records where
-each set came from and why we ship them, so that nobody has to reconstruct the reasoning later.
+Every codec here is generated from the ISO 15118 XML schemas. They are not checked in, so a fresh
+clone will not build until you fetch them:
 
-Each `Schemas/README.md` carries the per-set provenance and file table; this is the part they share.
+```bash
+bash new/download-schemas.sh
+```
 
-## Two established practices
+That is one command, it needs `curl` and `unzip`, and it puts each schema where the build expects
+it. Then `dotnet test -c Release new/WWCP_ISO15118.EXI.slnx`.
 
-The open-source ISO 15118 implementations have settled on two different answers, and it is worth
-seeing both before reading ours.
+## Why you have to do this yourself
 
-**cbexigen / EVerest ships none.** Its README: *"In order to be able to produce a codec, the
-standards' XML schema files are required. These cannot be distributed with the code generator."*
-It offers `--auto-download-public-xsd` instead, which fetches them and makes the user accept the
-ISO Customer Licence Agreement at that moment — clauses 1 (ISO's copyright), 7, 8 and 9.
+The schemas are ISO's. ISO publishes them at <https://standards.iso.org/iso/15118/> under the ISO
+Customer Licence Agreement, and the permission it grants is to *use* them: *"You are permitted to
+use the electronic insert(s) available on this site, in their original format without any
+modifications for the purposes specified in their respective ISO standard(s)."* That is not a
+permission to redistribute, and running the script is you accepting the agreement — the same act as
+downloading them from the portal by hand. Nobody can accept it on your behalf, which is the whole
+reason this is a script you run rather than files we ship.
 
-**RISE-V2G ships them.** `RISE-V2G-Shared/src/main/resources/schemas/` has carried
-`V2G_CI_MsgDef.xsd`, `MsgHeader`, `MsgBody`, `MsgDataTypes`, `AppProtocol` and
-`xmldsig-core-schema.xsd` in a public Apache-2.0 repository for years.
+The open-source implementations split on this. **cbexigen** ships none and downloads on demand
+behind exactly that acceptance; its README says the schemas *"cannot be distributed with the code
+generator"*. **RISE-V2G** shipped the ISO 15118-2 set in a public Apache-2.0 tree for years, and
+this repository used to take its -2 copies from there. chargebyte's reading is that the RISE-V2G
+arrangement is legally shaky. We now follow cbexigen.
 
-The distinction the two are reacting to is that **publicly downloadable is not the same as
-redistributable**. ISO publishes the schemas at <https://standards.iso.org/iso/15118/>, and the
-terms there grant use, not onward distribution: *"You are permitted to use the electronic insert(s)
-available on this site, in their original format without any modifications for the purposes
-specified in their respective ISO standard(s)."*
-
-## What we do
-
-**We follow RISE-V2G: the schemas are checked in.** A codec generator whose input is missing cannot
-be built, cannot be tested against a byte-level oracle, and cannot be reviewed by anyone who has not
-separately bought or downloaded the standard. That cost is paid on every clone, by every
-contributor, forever; the alternative is a copy of a file ISO itself publishes.
-
-**Nothing here has been edited by us.** Where two sets carry a file of the same name whose bytes
-differ, that is because the upstream copies differ, not because one was changed here.
-
-That is not quite the same as saying every file is an original, and the difference is worth being
-exact about, because ISO's terms permit use *"in their original format without any modifications"*:
-
-- The seven **-20** sets came from ISO directly and are originals.
-- Four of the six **-2** files — `V2G_CI_MsgDef`, `MsgHeader`, `MsgBody`, `MsgDataTypes` — carry
-  ISO's own header comment naming the catalogue entry, intact. RISE-V2G passed them on unchanged.
-- The **-2 copy of `xmldsig-core-schema.xsd` is not an original.** It is a stripped variant: no XML
-  declaration, no DOCTYPE internal subset, `version="0.1"`, 98 lines apart from the W3C file the
-  -20 sets carry. It is W3C's schema rather than ISO's, so ISO's terms do not reach it — but it is
-  also not what W3C publishes.
-
-That last one is left alone deliberately rather than tidied towards the original, because
-`SignedInfo` is in the -2 fragment list and two checked-in vectors pin its bytes. RISE-V2G may well
-have used the stripped variant precisely because that is what interoperates. Establishing which of
-the two the reference encoders agree with is a measurement against the vector corpus, not a
-judgement call — see `CLAUDE.md`: never change wire semantics speculatively.
-
-**RISE-V2G is discontinued.** Its README now points at Josev Community as the successor, so the -2
-source is a frozen tree that will never be corrected. The pinned commit keeps that reproducible.
-Moving the -2 set to ISO directly, as the -20 sets already are, would give one origin instead of
-two and remove that dependency; it is the obvious next step and it is an experiment, because the
-generator's input would change.
-
-If ISO objects, the address is in the licence and we will take them out and switch to the cbexigen
-arrangement. Until then this is a considered position rather than an oversight, which is the reason
-it is written down.
-
-## Per set
+## Where each schema comes from
 
 | Set | Source |
 |---|---|
-| ISO 15118-2 (2013) | [SwitchEV/RISE-V2G](https://github.com/SwitchEV/RISE-V2G) (discontinued), pinned commit — see `Vanaheimr.V2G.Exi.Iso15118_2/Schemas/README.md` |
-| SupportedAppProtocol | RISE-V2G, same tree |
-| ISO 15118-20 (2022), all seven sets | ISO directly, <https://standards.iso.org/iso/15118/> |
-| W3C XMLDSig | [W3C](https://www.w3.org/TR/xmldsig-core/) — not ISO's, and under the W3C Document/Software licence, which does permit redistribution |
+| ISO 15118-2 | `https://standards.iso.org/iso/15118/-2/ed-2/en/` |
+| ISO 15118-20, all seven message sets | `https://standards.iso.org/iso/15118/-20/ed-1/en/` |
+| `AC_DER_IEC`, `AC_DER_SAE` | Amendment 1, `…/-20/ed-1/en/Amd/1/AMD1_xsdSchema.zip` |
+| W3C XMLDSig | ISO's copy, distributed alongside both parts |
 
-## Two things that look like mistakes and are not
+`SCHEMA_CACHE=<dir>` makes the script lay out schemas you already have instead of fetching them
+again — useful offline, in CI, and for a second checkout on the same machine. It wants three
+directories: `iso-2/`, `iso-20/` and `amd1/`.
 
-**`V2G_CI_CommonTypes.xsd` and `xmldsig-core-schema.xsd` are duplicated into every -20 message
-set.** All seven copies of `CommonTypes` are byte-identical, as are the three of `V2G_CI_AC.xsd`.
-This mirrors cbexigen/cbV2G and is load-bearing: an EXI grammar is built per schema *set*, so the
-same type in two sets is not the same grammar and the sets must stay self-contained. Factoring them
-into one shared copy would change generated output.
+## Three things that look like mistakes and are not
 
-**The -2 and -20 copies of `xmldsig-core-schema.xsd` are different files** — 98 differing lines.
-The -2 copy, from RISE-V2G, is stripped: no XML declaration, no DOCTYPE internal subset,
-`version="0.1"`. The -20 copy is the full W3C original. They are not interchangeable, and that is
-also why `Vanaheimr.V2G.Exi.XmlDsig` exists as a set of its own: a Plug & Charge `SignedInfo` that
-Josev or EXIficient produced is encoded against the standalone grammar, and verifying it with a
-message set's combined grammar fails in the way that looks like it works.
+**`V2G_CI_AppProtocol.xsd` comes from the -20 directory, not the -2 one.** ISO's -2 folder carries
+an older revision: no `elementFormDefault="qualified"`, and an extra `protocolNameType` capped at
+30 characters. `elementFormDefault` decides whether local elements are namespace-qualified, which
+changes the EXI grammar — so the two revisions do not encode alike, and this codec is pinned
+against the -20 one. Measured, not assumed: swapping in the -2 copy is the one substitution that
+does not survive the vector corpus.
+
+**`V2G_CI_CommonTypes.xsd` and `xmldsig-core-schema.xsd` are copied into every -20 message set.**
+All seven copies of `CommonTypes` are byte-identical, as are the three of `V2G_CI_AC.xsd`. This
+mirrors cbexigen/cbV2G and is load-bearing: an EXI grammar is built per schema *set*, so the same
+type in two sets is not the same grammar, and the sets must stay self-contained. Merging the copies
+would change generated output.
+
+**`Vanaheimr.V2G.Exi.XmlDsig` is the same file as the -20 sets carry, and still a separate set.**
+Not a duplicate by accident. A Plug & Charge `SignedInfo` produced by Josev or EXIficient is
+encoded against the XMLDSig schema *standalone*, which is a different grammar from the combined one
+each message set builds — same input file, different set membership. Verifying with the wrong one
+of the two fails in the way that looks like it works.
+
+## If the vectors go red after downloading
+
+That means the schemas you fetched are not the revision this codec was pinned against — ISO
+publishes amendments, and `…/Amd/` gains entries. The vector corpus under
+`Vanaheimr.V2G.Exi.Tests/Vectors/` is bytes produced by cbV2G and EXIficient, so it is the thing
+that tells you, and `CLAUDE.md` has the rule that follows: never change wire semantics
+speculatively, only on a concrete byte diff against a reference encoder.

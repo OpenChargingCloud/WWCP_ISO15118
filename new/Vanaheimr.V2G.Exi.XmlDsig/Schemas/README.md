@@ -2,18 +2,22 @@
 
 The W3C XML Signature schema, standalone.
 
-- **Source:** [W3C](https://www.w3.org/TR/xmldsig-core/), `xmldsig-core-schema.xsd`
-- **Licence:** the W3C Document and Software licences, which permit redistribution. This is the
-  one schema here that is not ISO's, so [`../../SCHEMAS.md`](../../SCHEMAS.md) does not apply to it.
+- **Source:** ISO's copy, distributed alongside both parts —
+  <https://standards.iso.org/iso/15118/-20/ed-1/en/>
+- The schema itself is W3C's, under the W3C Document and Software licences, which do permit
+  redistribution. It is fetched with the rest only because it arrives in the same directories.
 
-**Not a duplicate of the -2 copy.** `Vanaheimr.V2G.Exi.Iso15118_2/Schemas/xmldsig-core-schema.xsd`
-came from RISE-V2G and is stripped — no XML declaration, no DOCTYPE internal subset,
-`version="0.1"` — and differs from this one in 98 lines. This is the full W3C original.
+**These files are not in the repository.** `bash new/download-schemas.sh` fetches them from ISO and
+puts them here; [`../../SCHEMAS.md`](../../SCHEMAS.md) says why that is your download to make and
+not ours to ship.
 
-That difference is the reason this set exists at all. A Plug & Charge `SignedInfo` produced by
-Josev or EXIficient is encoded against *this* grammar, standalone, which is not the combined
-fragment grammar each message set carries. Verify with the wrong one and every signature fails
-while looking locally consistent.
+**The same file as every message set carries, and still a set of its own.** That is not an
+oversight, and it is not because the files differ — measured, ISO's -2 copy, ISO's -20 copy and the
+old RISE-V2G one are all structurally identical, 158 nodes, differing only in formatting. What
+differs is *set membership*: a Plug & Charge `SignedInfo` produced by Josev or EXIficient is
+encoded against this schema **standalone**, which builds a different grammar from the combined one
+each message set produces. Verify with the wrong one of the two and every signature fails while
+looking locally consistent.
 
 
 | file | targetNamespace |

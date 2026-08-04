@@ -4,8 +4,9 @@ The whole loop, in one file. It accepts one EV, completes the protocol handshake
 `SessionSetupReq`. This was compiled against the three project references below before it was
 written down — which is also how the second `ResponseCode` was found.
 
-Start from [`README.md`](README.md) if you have not fetched the schemas yet; nothing here builds
-until `bash tools/download-schemas.sh` has run.
+Start from [`README.md`](../../README.md) if you have not fetched the schemas yet; nothing here
+builds until `bash tools/download-schemas.sh` has run. Every command below is written from the
+repository root, not from this directory.
 
 ## The project
 

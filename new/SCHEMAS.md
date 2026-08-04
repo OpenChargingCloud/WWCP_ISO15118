@@ -33,9 +33,31 @@ be built, cannot be tested against a byte-level oracle, and cannot be reviewed b
 separately bought or downloaded the standard. That cost is paid on every clone, by every
 contributor, forever; the alternative is a copy of a file ISO itself publishes.
 
-They are here **unmodified and in their original format**, which is the condition ISO's own terms
-state. No schema in this repository has been edited — where two sets carry a file of the same name
-whose bytes differ, that is because the sources differ, not because we changed one.
+**Nothing here has been edited by us.** Where two sets carry a file of the same name whose bytes
+differ, that is because the upstream copies differ, not because one was changed here.
+
+That is not quite the same as saying every file is an original, and the difference is worth being
+exact about, because ISO's terms permit use *"in their original format without any modifications"*:
+
+- The seven **-20** sets came from ISO directly and are originals.
+- Four of the six **-2** files — `V2G_CI_MsgDef`, `MsgHeader`, `MsgBody`, `MsgDataTypes` — carry
+  ISO's own header comment naming the catalogue entry, intact. RISE-V2G passed them on unchanged.
+- The **-2 copy of `xmldsig-core-schema.xsd` is not an original.** It is a stripped variant: no XML
+  declaration, no DOCTYPE internal subset, `version="0.1"`, 98 lines apart from the W3C file the
+  -20 sets carry. It is W3C's schema rather than ISO's, so ISO's terms do not reach it — but it is
+  also not what W3C publishes.
+
+That last one is left alone deliberately rather than tidied towards the original, because
+`SignedInfo` is in the -2 fragment list and two checked-in vectors pin its bytes. RISE-V2G may well
+have used the stripped variant precisely because that is what interoperates. Establishing which of
+the two the reference encoders agree with is a measurement against the vector corpus, not a
+judgement call — see `CLAUDE.md`: never change wire semantics speculatively.
+
+**RISE-V2G is discontinued.** Its README now points at Josev Community as the successor, so the -2
+source is a frozen tree that will never be corrected. The pinned commit keeps that reproducible.
+Moving the -2 set to ISO directly, as the -20 sets already are, would give one origin instead of
+two and remove that dependency; it is the obvious next step and it is an experiment, because the
+generator's input would change.
 
 If ISO objects, the address is in the licence and we will take them out and switch to the cbexigen
 arrangement. Until then this is a considered position rather than an oversight, which is the reason
@@ -45,7 +67,7 @@ it is written down.
 
 | Set | Source |
 |---|---|
-| ISO 15118-2 (2013) | [SwitchEV/RISE-V2G](https://github.com/SwitchEV/RISE-V2G), pinned commit — see `Vanaheimr.V2G.Exi.Iso15118_2/Schemas/README.md` |
+| ISO 15118-2 (2013) | [SwitchEV/RISE-V2G](https://github.com/SwitchEV/RISE-V2G) (discontinued), pinned commit — see `Vanaheimr.V2G.Exi.Iso15118_2/Schemas/README.md` |
 | SupportedAppProtocol | RISE-V2G, same tree |
 | ISO 15118-20 (2022), all seven sets | ISO directly, <https://standards.iso.org/iso/15118/> |
 | W3C XMLDSig | [W3C](https://www.w3.org/TR/xmldsig-core/) — not ISO's, and under the W3C Document/Software licence, which does permit redistribution |

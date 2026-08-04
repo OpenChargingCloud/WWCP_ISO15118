@@ -54,7 +54,7 @@ mirrors cbexigen/cbV2G and is load-bearing: an EXI grammar is built per schema *
 type in two sets is not the same grammar, and the sets must stay self-contained. Merging the copies
 would change generated output.
 
-**`Vanaheimr.V2G.Exi.XmlDsig` is the same file as the -20 sets carry, and still a separate set.**
+**`WWCP_ISO15118_XMLDSig` is the same file as the -20 sets carry, and still a separate set.**
 Not a duplicate by accident. A Plug & Charge `SignedInfo` produced by Josev or EXIficient is
 encoded against the XMLDSig schema *standalone*, which is a different grammar from the combined one
 each message set builds — same input file, different set membership. Verifying with the wrong one
@@ -64,6 +64,6 @@ of the two fails in the way that looks like it works.
 
 That means the schemas you fetched are not the revision this codec was pinned against — ISO
 publishes amendments, and `…/Amd/` gains entries. The vector corpus under
-`Vanaheimr.V2G.Exi.Tests/Vectors/` is bytes produced by cbV2G and EXIficient, so it is the thing
+`WWCP_ISO15118_EXI_Tests/Vectors/` is bytes produced by cbV2G and EXIficient, so it is the thing
 that tells you, and `CLAUDE.md` has the rule that follows: never change wire semantics
 speculatively, only on a concrete byte diff against a reference encoder.

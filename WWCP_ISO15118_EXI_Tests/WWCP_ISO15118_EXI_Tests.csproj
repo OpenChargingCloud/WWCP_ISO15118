@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk"  Version="17.11.1" />
+    <PackageReference Include="CsCheck"                 Version="4.7.0"   />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
+    <PackageReference Include="NUnit"                   Version="4.2.2"   />
+    <PackageReference Include="NUnit3TestAdapter"       Version="4.6.0"   />
+    <PackageReference Include="NUnit.Analyzers"         Version="4.3.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WWCP_ISO15118_EXI\WWCP_ISO15118_EXI.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_2\WWCP_ISO15118_2.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.CommonMessages\WWCP_ISO15118_20.CommonMessages.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.DC\WWCP_ISO15118_20.DC.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.AC\WWCP_ISO15118_20.AC.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.AC_DER_IEC\WWCP_ISO15118_20.AC_DER_IEC.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.AC_DER_SAE\WWCP_ISO15118_20.AC_DER_SAE.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.WPT\WWCP_ISO15118_20.WPT.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.ACDP\WWCP_ISO15118_20.ACDP.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_XMLDSig\WWCP_ISO15118_XMLDSig.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_EXI_Dispatch\WWCP_ISO15118_EXI_Dispatch.csproj" />
+    <!-- Referenced as a plain library (not an analyzer) so grammar tests can drive the
+         generator directly on synthetic mini-XSDs. -->
+    <ProjectReference Include="..\WWCP_ISO15118_EXI_SourceGenerator\WWCP_ISO15118_EXI_SourceGenerator.csproj" />
+    <!-- The out-of-Roslyn driver, so its file handling can be tested end to end. It deletes
+         generated output it no longer produces, which wants a test with real files.
+         It compiles the front end and emitters in rather than referencing them; those types stay
+         internal there, so only Program is visible here and nothing collides. -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Vectors\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+</Project>

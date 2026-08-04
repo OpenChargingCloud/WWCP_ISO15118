@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118.EXI.Dispatch</RootNamespace>
+    <AssemblyName>WWCP_ISO15118_EXI_Dispatch</AssemblyName>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WWCP_ISO15118_V2GTP\WWCP_ISO15118_V2GTP.csproj" />
+    <!-- Needs every message-set assembly to map a V2GTP payload type to that set's DecodeAny. -->
+    <ProjectReference Include="..\WWCP_ISO15118_EXI\WWCP_ISO15118_EXI.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_2\WWCP_ISO15118_2.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.CommonMessages\WWCP_ISO15118_20.CommonMessages.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.DC\WWCP_ISO15118_20.DC.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.AC\WWCP_ISO15118_20.AC.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.WPT\WWCP_ISO15118_20.WPT.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_20.ACDP\WWCP_ISO15118_20.ACDP.csproj" />
+  </ItemGroup>
+</Project>

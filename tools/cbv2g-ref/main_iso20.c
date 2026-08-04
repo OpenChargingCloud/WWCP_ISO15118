@@ -4,7 +4,7 @@
  * three Phase-4 message sets (CommonMessages, DC, AC), built on EVerest's libcbv2g.
  *
  * Development tool only; `dotnet test` never invokes it. Regenerated hex is checked into
- * Vanaheimr.V2G.Exi.Tests/Vectors/Iso15118_20.*.vectors.json.
+ * WWCP_ISO15118_EXI_Tests/Vectors/Iso15118_20.*.vectors.json.
  *
  * Usage:  cbv2g_iso20 <Set>_<VectorName>   ->  space-separated lowercase hex on stdout.
  *         <Set> is one of: Common, DC, AC.

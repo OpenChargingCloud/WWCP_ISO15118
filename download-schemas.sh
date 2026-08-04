@@ -75,25 +75,25 @@ place() {                       # place <target-project> <source-dir> <file>...
 # ISO 15118-2. Note that AppProtocol does NOT come from here: the -2 directory carries an older
 # revision of it — no elementFormDefault="qualified", and an extra protocolNameType capped at 30
 # characters — which encodes differently. The -20 copy is the one this codec is pinned against.
-place Vanaheimr.V2G.Exi.Iso15118_2 "$work/iso-2" \
+place WWCP_ISO15118_2 "$work/iso-2" \
     V2G_CI_MsgDef.xsd V2G_CI_MsgHeader.xsd V2G_CI_MsgBody.xsd V2G_CI_MsgDataTypes.xsd \
     xmldsig-core-schema.xsd
 
-place Vanaheimr.V2G.Exi.Prototype "$work/iso-20" V2G_CI_AppProtocol.xsd
-place Vanaheimr.V2G.Exi.XmlDsig   "$work/iso-20" xmldsig-core-schema.xsd
+place WWCP_ISO15118_EXI "$work/iso-20" V2G_CI_AppProtocol.xsd
+place WWCP_ISO15118_XMLDSig   "$work/iso-20" xmldsig-core-schema.xsd
 
 for set in CommonMessages:V2G_CI_CommonMessages AC:V2G_CI_AC DC:V2G_CI_DC \
            WPT:V2G_CI_WPT ACDP:V2G_CI_ACDP; do
-    place "Vanaheimr.V2G.Exi.Iso15118_20.${set%%:*}" "$work/iso-20" \
+    place "WWCP_ISO15118_20.${set%%:*}" "$work/iso-20" \
         "${set##*:}.xsd" V2G_CI_CommonTypes.xsd xmldsig-core-schema.xsd
 done
 
 # The DER sets layer their own schema on top of the AC one, and theirs comes from Amendment 1.
 for der in IEC SAE; do
-    place "Vanaheimr.V2G.Exi.Iso15118_20.AC_DER_$der" "$work/iso-20" \
+    place "WWCP_ISO15118_20.AC_DER_$der" "$work/iso-20" \
         V2G_CI_AC.xsd V2G_CI_CommonTypes.xsd xmldsig-core-schema.xsd
     cp "$work/amd1/V2G_CI_AC_DER_$der.xsd" \
-       "Vanaheimr.V2G.Exi.Iso15118_20.AC_DER_$der/Schemas/"
+       "WWCP_ISO15118_20.AC_DER_$der/Schemas/"
 done
 
 echo

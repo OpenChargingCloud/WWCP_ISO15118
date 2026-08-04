@@ -1,0 +1,67 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118_20.AC_DER_SAE</RootNamespace>
+    <AssemblyName>WWCP_ISO15118_20.AC_DER_SAE</AssemblyName>
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <!-- The generator reads these to name the generated codec, so it does not collide with the
+         AC/CommonMessages/-2/AppProtocol codecs (all from the same source generator). -->
+    <ExiGeneratedNamespace>cloud.charging.open.protocols.ISO15118_20.AC_DER_SAE.Generated</ExiGeneratedNamespace>
+    <ExiCodecClassName>AcDerSaeCodec</ExiCodecClassName>
+    <!-- Same signable set as the plain AC message set: AC DER adds substitution-group members to
+         AC's existing messages, it does not add messages of its own. -->
+    <ExiFragmentElements>AC_ChargeParameterDiscoveryRes SignedInfo</ExiFragmentElements>
+
+    <!-- Write the generated codec to obj/ for inspection. -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="ExiGeneratedNamespace" />
+    <CompilerVisibleProperty Include="ExiCodecClassName" />
+    <CompilerVisibleProperty Include="ExiFragmentElements" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ISO 15118-20 Amendment 1, SAE flavour. This is NOT a new message set: V2G_CI_AC_DER_SAE.xsd
+         imports the base AC schema and contributes six substitution-group members (DER_* energy
+         transfer modes and Scheduled/Dynamic control modes) that extend AC's own types - exactly the
+         pattern AC already uses for its BPT_* variants. The messages on the wire remain
+         AC_ChargeParameterDiscoveryReq/Res and AC_ChargeLoopReq/Res.
+
+         Consequence: because our generator inlines substitution-group members as grammar
+         productions, this assembly's grammar for those AC messages is not the same one as the plain
+         AC assembly's - hence a separate assembly. Measured nuance: a message that does NOT use a
+         DER member still encodes byte-identically under both grammars (the added members do not push
+         the event code over an n-bit boundary), so plain AC traffic stays compatible; it is only
+         DER-carrying messages that a plain AC peer cannot read. A session must therefore agree on the
+         variant up front - that negotiation is not wired yet (see docs/ac-der.md).
+
+         AC_DER schema from the free Amendment 1 bundle:
+         https://standards.iso.org/iso/15118/-20/ed-1/en/Amd/1/AMD1_xsdSchema.zip
+         The AC/CommonTypes/xmldsig copies are the same ed-1 files as the other -20 projects
+         (CommonTypes is deliberately duplicated per message-set assembly, mirroring cbexigen). -->
+    <AdditionalFiles Include="Schemas\V2G_CI_AC_DER_SAE.xsd" />
+    <AdditionalFiles Include="Schemas\V2G_CI_AC.xsd" />
+    <AdditionalFiles Include="Schemas\V2G_CI_CommonTypes.xsd" />
+    <AdditionalFiles Include="Schemas\xmldsig-core-schema.xsd" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The generated codec uses BitWriter / BitReader / ExiPrimitives from the prototype. -->
+    <ProjectReference Include="..\WWCP_ISO15118_EXI\WWCP_ISO15118_EXI.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_EXI_SourceGenerator\WWCP_ISO15118_EXI_SourceGenerator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- .NET's System.Security.Cryptography has no Ed448 (RFC 8032) - needed for the -20 signature
+         suite's EdDSA option (V2GSignature.SignEd448/VerifyEd448). -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
+  </ItemGroup>
+</Project>

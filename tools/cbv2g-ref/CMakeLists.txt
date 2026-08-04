@@ -2,7 +2,7 @@
 # (SAP) handshake, built on EVerest's libcbv2g.
 #
 # Purpose: produce wire-conformant "expectedHex" bytes for the SAP test vectors in
-# Vanaheimr.V2G.Exi.Tests/Vectors/AppProtocol.vectors.json. This is a *tool*, not
+# WWCP_ISO15118_EXI_Tests/Vectors/AppProtocol.vectors.json. This is a *tool*, not
 # part of the product build: `dotnet test` never invokes it. It is only used to
 # (re)generate the checked-in vectors — see ../regenerate-appprotocol-vectors.ps1.
 #

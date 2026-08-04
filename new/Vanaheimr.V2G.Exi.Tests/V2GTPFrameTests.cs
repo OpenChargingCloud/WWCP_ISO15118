@@ -20,6 +20,12 @@ using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
 namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
 {
+    // Inside the namespace declaration on purpose. The merged V2GTP project puts a namespace
+    // cloud.charging.open.protocols.ISO15118.V2GTP in scope here, and name lookup walks the
+    // enclosing namespace declarations outward before it ever reaches a file-level using-alias —
+    // so an alias at the top of the file loses to it, and one declared in here wins.
+    using V2GTP = cloud.charging.open.protocols.ISO15118.EXI.Dispatch.V2GTP;
+
     [TestFixture]
     public class V2GTPFrameTests
     {
@@ -54,6 +60,36 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
         {
             var buf = new byte[7];
             Assert.That(V2GTP.TryReadHeader(buf, out _, out _), Is.False);
+        }
+
+        /// <summary>
+        /// The payload ids, against the numbers rather than against ourselves.
+        /// </summary>
+        /// <remarks>
+        /// Every other test here round-trips a frame through the dispatcher, which proves the ids
+        /// are used *consistently* and nothing more: shift the whole -20 block by one and they all
+        /// still pass. That is not hypothetical. The V2GTP implementation this project was merged
+        /// with had exactly that defect — no id for the -20 mainstream at all, and AC, DC, ACDP and
+        /// WPT each sitting on the value belonging to the one below, so WPT wrote ACDP's id. It
+        /// survived for years because nothing outside that file used the constants.
+        ///
+        /// So these are written out as literals. A literal is the only assertion an off-by-one
+        /// cannot satisfy.
+        /// </remarks>
+        [Test]
+        public void ThePayloadIdsAreTheOnesTheStandardGives()
+        {
+            Assert.Multiple(() =>
+            {
+                Assert.That(V2GTP.PayloadType_AppProtocol, Is.EqualTo((ushort) 0x8001));
+                Assert.That(V2GTP.PayloadType_DinIso2Main, Is.EqualTo((ushort) 0x8001),
+                            "the handshake and -2 share an id — SAP has none of its own");
+                Assert.That(V2GTP.PayloadType_Iso20Main,   Is.EqualTo((ushort) 0x8002));
+                Assert.That(V2GTP.PayloadType_Iso20AC,     Is.EqualTo((ushort) 0x8003));
+                Assert.That(V2GTP.PayloadType_Iso20DC,     Is.EqualTo((ushort) 0x8004));
+                Assert.That(V2GTP.PayloadType_Iso20ACDP,   Is.EqualTo((ushort) 0x8005));
+                Assert.That(V2GTP.PayloadType_Iso20WPT,    Is.EqualTo((ushort) 0x8006));
+            });
         }
     }
 }

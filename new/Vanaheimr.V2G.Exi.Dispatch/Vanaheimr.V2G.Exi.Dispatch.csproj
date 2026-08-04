@@ -10,6 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\WWCP_ISO15118_V2GTP\WWCP_ISO15118_V2GTP.csproj" />
     <!-- Needs every message-set assembly to map a V2GTP payload type to that set's DecodeAny. -->
     <ProjectReference Include="..\Vanaheimr.V2G.Exi.Prototype\Vanaheimr.V2G.Exi.Prototype.csproj" />
     <ProjectReference Include="..\Vanaheimr.V2G.Exi.Iso15118_2\Vanaheimr.V2G.Exi.Iso15118_2.csproj" />

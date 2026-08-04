@@ -27,11 +27,11 @@ namespace cloud.charging.open.protocols.ISO15118.V2GTP
     ///   0x9001  SDP Response
     ///
     /// ISO 15118-20 (Edition 1, 2022) extends this:
-    ///   0x8001  EXI: Mainstream V2G Message (V2G_CI_CommonMessages, AC, DC, ...)
-    ///   0x8002  EXI: AC stream
-    ///   0x8003  EXI: DC stream
-    ///   0x8004  EXI: ACDP (Automatic Connection Device, Pantograph) stream
-    ///   0x8005  EXI: WPT (Wireless Power Transfer) stream
+    ///   0x8002  EXI: Mainstream V2G Message (V2G_CI_CommonMessages)
+    ///   0x8003  EXI: AC stream
+    ///   0x8004  EXI: DC stream
+    ///   0x8005  EXI: ACDP (Automatic Connection Device, Pantograph) stream
+    ///   0x8006  EXI: WPT (Wireless Power Transfer) stream
     ///   0x9000  SDP Request                   (compatible with -2)
     ///   0x9001  SDP Response                  (compatible with -2)
     ///   0x9002  SDP Request Wireless          (extended discovery)
@@ -45,20 +45,36 @@ namespace cloud.charging.open.protocols.ISO15118.V2GTP
 
         // Reserved range starts at 0x0000
 
-        /// <summary>EXI-encoded V2G message stream (mainstream / -2 / -20 common).</summary>
+        /// <summary>
+        /// EXI-encoded V2G message stream: the SupportedAppProtocol handshake, and every DIN 70121
+        /// and ISO 15118-2 message.
+        /// </summary>
+        /// <remarks>
+        /// One id for two things, and that is the standard rather than an oversight: the handshake
+        /// runs *before* a protocol has been agreed, so it cannot have an id of its own. SAP and -2
+        /// frames are told apart by session phase — SAP is always first — never by payload type.
+        /// <see cref="ExiSupportedAppProtocol"/> is the same value under the name the handshake
+        /// path uses.
+        /// </remarks>
         ExiMainstream             = 0x8001,
 
+        /// <summary>The SupportedAppProtocol handshake. The same wire value as <see cref="ExiMainstream"/>.</summary>
+        ExiSupportedAppProtocol   = 0x8001,
+
+        /// <summary>EXI: ISO 15118-20 mainstream stream (V2G_CI_CommonMessages).</summary>
+        ExiIso20Mainstream        = 0x8002,
+
         /// <summary>EXI: AC stream (15118-20).</summary>
-        ExiAC                     = 0x8002,
+        ExiAC                     = 0x8003,
 
         /// <summary>EXI: DC stream (15118-20).</summary>
-        ExiDC                     = 0x8003,
+        ExiDC                     = 0x8004,
 
         /// <summary>EXI: ACD Pantograph (ACDP) stream (15118-20).</summary>
-        ExiACDP                   = 0x8004,
+        ExiACDP                   = 0x8005,
 
         /// <summary>EXI: Wireless Power Transfer (WPT) stream (15118-20).</summary>
-        ExiWPT                    = 0x8005,
+        ExiWPT                    = 0x8006,
 
         /// <summary>SDP_Request – EVCC asks "where is the SECC?".</summary>
         SdpRequest                = 0x9000,
@@ -80,6 +96,7 @@ namespace cloud.charging.open.protocols.ISO15118.V2GTP
 
             => V2GTPPayloadType switch {
                       V2GTP_PayloadType.ExiMainstream        => true,
+                      V2GTP_PayloadType.ExiIso20Mainstream   => true,
                       V2GTP_PayloadType.ExiAC                => true,
                       V2GTP_PayloadType.ExiDC                => true,
                       V2GTP_PayloadType.ExiACDP              => true,

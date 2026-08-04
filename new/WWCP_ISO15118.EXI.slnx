@@ -13,4 +13,5 @@
   <Project Path="Vanaheimr.V2G.Exi.SourceGenerator/Vanaheimr.V2G.Exi.SourceGenerator.csproj" />
   <Project Path="Vanaheimr.V2G.Exi.Tests/Vanaheimr.V2G.Exi.Tests.csproj" />
   <Project Path="Vanaheimr.V2G.Exi.XmlDsig/Vanaheimr.V2G.Exi.XmlDsig.csproj" />
+  <Project Path="../WWCP_ISO15118_V2GTP/WWCP_ISO15118_V2GTP.csproj" />
 </Solution>

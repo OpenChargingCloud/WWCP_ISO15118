@@ -46,6 +46,6 @@
   <ItemGroup>
     <!-- .NET's System.Security.Cryptography has no Ed448 (RFC 8032) — needed for the -20 signature
          suite's EdDSA option (V2GSignature.SignEd448/VerifyEd448). -->
-    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
   </ItemGroup>
 </Project>

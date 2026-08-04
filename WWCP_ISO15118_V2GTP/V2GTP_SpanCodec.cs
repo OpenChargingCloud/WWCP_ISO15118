@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2021-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
+ * Copyright (c) 2014-2025 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.gnu.org/licenses/agpl.html
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,17 +15,32 @@
  * limitations under the License.
  */
 
-using System.Buffers.Binary;
+using cloud.charging.open.protocols.ISO15118.V2GTP;
 
 namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
 {
     /// <summary>
-    /// V2G Transfer Protocol frame (8-byte header wrapping an EXI payload).
+    /// The V2GTP header as flat spans and <c>Try…</c> returns, for the EXI codec path.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A second face on <see cref="V2GTP_Header"/>, not a second implementation. The record struct
+    /// next door is the model — it parses, it validates, it round-trips, and SDP uses it that way.
+    /// This is the same header for callers reading frames off a socket into a rented buffer, where
+    /// allocating a header object per frame and catching an exception per malformed one is the
+    /// wrong shape.
+    /// </para>
+    /// <para>
+    /// The two used to be separate implementations in separate projects, and they disagreed: this
+    /// one had the ISO 15118-20 payload ids right, the other had them shifted by one — no -20
+    /// mainstream id at all, and WPT sitting on ACDP's value. Every number now comes from
+    /// <see cref="V2GTP_PayloadType"/> and nowhere else, so they cannot drift apart again.
+    /// </para>
+    /// </remarks>
     public static class V2GTP
     {
-        public const byte ProtocolVersion        = 0x01;
-        public const byte InverseProtocolVersion = 0xFE;
+        public const byte ProtocolVersion        = V2GTP_ProtocolVersion.Current;
+        public const byte InverseProtocolVersion = V2GTP_ProtocolVersion.Inverse;
 
         // The SupportedAppProtocol handshake uses the SAP/EXI-encoded payload id 0x8001 — the SAME id the
         // DIN/-2 messages use (ISO 15118-20 §A / libcbv2g V2GTP20_SAP_PAYLOAD_ID / Josev's ISOV20PayloadTypes.SAP).
@@ -33,15 +48,15 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
         // is not a distinct wire value. It is kept as a named alias for the SAP framing path (which decodes SAP
         // explicitly rather than through the payload-type dispatcher). A live interop run against Josev caught
         // the earlier 0x8000 here as a wire-conformance bug — see docs/interop-runs/2026-07-21-iso20-dc-pnc-tcp/.
-        public const ushort PayloadType_AppProtocol      = 0x8001;
-        public const ushort PayloadType_DinIso2Main      = 0x8001;
-        public const ushort PayloadType_Iso20Main        = 0x8002;
-        public const ushort PayloadType_Iso20AC          = 0x8003;
-        public const ushort PayloadType_Iso20DC          = 0x8004;
-        public const ushort PayloadType_Iso20ACDP        = 0x8005;
-        public const ushort PayloadType_Iso20WPT         = 0x8006;
+        public const ushort PayloadType_AppProtocol      = (ushort) V2GTP_PayloadType.ExiSupportedAppProtocol;
+        public const ushort PayloadType_DinIso2Main      = (ushort) V2GTP_PayloadType.ExiMainstream;
+        public const ushort PayloadType_Iso20Main        = (ushort) V2GTP_PayloadType.ExiIso20Mainstream;
+        public const ushort PayloadType_Iso20AC          = (ushort) V2GTP_PayloadType.ExiAC;
+        public const ushort PayloadType_Iso20DC          = (ushort) V2GTP_PayloadType.ExiDC;
+        public const ushort PayloadType_Iso20ACDP        = (ushort) V2GTP_PayloadType.ExiACDP;
+        public const ushort PayloadType_Iso20WPT         = (ushort) V2GTP_PayloadType.ExiWPT;
 
-        public const int HeaderSize = 8;
+        public const int HeaderSize = V2GTP_Header.Size;
 
         /// <summary>
         /// The largest payload a reader will allocate for. A <b>receive</b> limit, not a wire change.
@@ -71,10 +86,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
             if (dest.Length < HeaderSize)
                 throw new ArgumentException("Need at least 8 bytes for V2GTP header.", nameof(dest));
 
-            dest[0] = ProtocolVersion;
-            dest[1] = InverseProtocolVersion;
-            BinaryPrimitives.WriteUInt16BigEndian(dest[2..4], payloadType);
-            BinaryPrimitives.WriteUInt32BigEndian(dest[4..8], payloadLength);
+            V2GTP_Header.Standard((V2GTP_PayloadType) payloadType, payloadLength).WriteTo(dest);
             return HeaderSize;
         }
 
@@ -82,11 +94,14 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
             ReadOnlySpan<byte> src, out ushort payloadType, out uint payloadLength)
         {
             payloadType = 0; payloadLength = 0;
-            if (src.Length < HeaderSize) return false;
-            if (src[0] != ProtocolVersion || src[1] != InverseProtocolVersion) return false;
 
-            payloadType   = BinaryPrimitives.ReadUInt16BigEndian(src[2..4]);
-            payloadLength = BinaryPrimitives.ReadUInt32BigEndian(src[4..8]);
+            // TryParseRaw skips the version-complement check so pentest tooling can inspect a
+            // deliberately malformed header; this path wants it enforced, as the old free function did.
+            if (!V2GTP_Header.TryParseRaw(src, out var header) || !header.IsVersionValid)
+                return false;
+
+            payloadType   = (ushort) header.PayloadType;
+            payloadLength = header.PayloadLength;
             return true;
         }
     }

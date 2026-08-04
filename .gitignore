@@ -112,3 +112,6 @@ Backup*/
 UpgradeLog*.XML
 
 *.userprefs
+
+# Visual Studio workspace state — machine-local, and a solution now lives under new/.
+.vs/

@@ -1,0 +1,29 @@
+<ns5:AC_ChargeParameterDiscoveryReq xmlns:ns5="urn:iso:std:iso:15118:-20:AC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns3="http://www.w3.org/2001/XMLSchema" xmlns:ns4="http://www.w3.org/2000/09/xmldsig#" xmlns:ns6="urn:iso:std:iso:15118:-20:AC-DER-IEC" xmlns:ns7="urn:iso:std:iso:15118:-20:CommonTypes">
+    <ns7:Header>
+        <ns7:SessionID>0000000000000000</ns7:SessionID>
+        <ns7:TimeStamp>1700000000</ns7:TimeStamp>
+    </ns7:Header>
+    <ns6:DER_AC_CPDReqEnergyTransferMode>
+        <ns5:EVMaximumChargePower>
+            <ns7:Exponent>0</ns7:Exponent>
+            <ns7:Value>11000</ns7:Value>
+        </ns5:EVMaximumChargePower>
+        <ns5:EVMinimumChargePower>
+            <ns7:Exponent>0</ns7:Exponent>
+            <ns7:Value>100</ns7:Value>
+        </ns5:EVMinimumChargePower>
+        <ns6:EVProcessing>Finished</ns6:EVProcessing>
+        <ns6:EVMaximumDischargePower>
+            <ns7:Exponent>0</ns7:Exponent>
+            <ns7:Value>5000</ns7:Value>
+        </ns6:EVMaximumDischargePower>
+        <ns6:EVMinimumDischargePower>
+            <ns7:Exponent>0</ns7:Exponent>
+            <ns7:Value>50</ns7:Value>
+        </ns6:EVMinimumDischargePower>
+        <ns6:EVSessionTotalDischargeEnergyAvailable>
+            <ns7:Exponent>0</ns7:Exponent>
+            <ns7:Value>20000</ns7:Value>
+        </ns6:EVSessionTotalDischargeEnergyAvailable>
+    </ns6:DER_AC_CPDReqEnergyTransferMode>
+</ns5:AC_ChargeParameterDiscoveryReq>

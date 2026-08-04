@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "generator": "cbV2G@03350be048b3 (iso_20/CommonMessages)",
+  "referenceEncoder": {
+    "name": "cbV2G",
+    "repo": "https://github.com/EVerest/libcbv2g",
+    "commit": "03350be048b35b179905129005a97144a4bdcf93",
+    "note": "Wire-conformant ISO 15118-20 CommonMessages reference. Each vector is a fixed message emitted by tools/cbv2g-ref/main_iso20.c (build: tools/cbv2g-ref/build.sh, run: cbv2g_iso20 Common_<name>). Header SessionID is 8x0x00, TimeStamp=1700000000, no Signature. The C# test builds the matching message via Iso15118_20CommonFixtures and diffs its bytes."
+  },
+  "vectors": [
+    {
+      "name": "SessionSetupReq",
+      "expectedHex": "80 8c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 07 a2 ab 21 a1 a4 a2 18 99 19 9a 1a 9b 1b 80"
+    },
+    {
+      "name": "SessionSetupRes",
+      "expectedHex": "80 90 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 03 d1 55 94 d1 52 51 0c 4c 8c cd 0d 4d 8d c0"
+    },
+    {
+      "name": "AuthorizationSetupRes",
+      "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 01 10 00"
+    },
+    {
+      "name": "ServiceDiscoveryReq",
+      "expectedHex": "80 7c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 80"
+    },
+    {
+      "name": "ServiceDiscoveryRes",
+      "expectedHex": "80 80 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 01 11 40"
+    },
+    {
+      "name": "ServiceDetailReq",
+      "expectedHex": "80 74 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 80"
+    },
+    {
+      "name": "ServiceDetailRes",
+      "expectedHex": "80 78 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 40 02 01 d3 19 5d 99 5b 18 06 28"
+    },
+    {
+      "name": "ServiceSelectionReq",
+      "expectedHex": "80 84 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 40 08 80"
+    },
+    {
+      "name": "ServiceSelectionRes",
+      "expectedHex": "80 88 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00"
+    },
+    {
+      "name": "PowerDeliveryReq",
+      "expectedHex": "80 54 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 40"
+    },
+    {
+      "name": "PowerDeliveryRes",
+      "expectedHex": "80 58 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 40"
+    },
+    {
+      "name": "SessionStopReq",
+      "expectedHex": "80 94 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 28"
+    },
+    {
+      "name": "SessionStopRes",
+      "expectedHex": "80 98 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00"
+    },
+    {
+      "name": "MeteringConfirmationReq",
+      "expectedHex": "80 40 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 02 a4 a2 18 81 00 00 00 00 00 00 00 00 00 08 9a 62 22 09 da 00 40"
+    },
+    {
+      "name": "MeteringConfirmationRes",
+      "expectedHex": "80 44 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00"
+    },
+    {
+      "name": "AuthorizationReq",
+      "expectedHex": "80 00 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00"
+    },
+    {
+      "name": "AuthorizationSetupReq",
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62"
+    },
+    {
+      "name": "ScheduleExchangeReq",
+      "expectedHex": "80 6c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 88 0e 44 18 0a 02 0c 07 81 06 00 a4"
+    },
+    {
+      "name": "ScheduleExchangeRes",
+      "expectedHex": "80 70 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 03 14 07 16 7d 50 30 01 20 30 48 0e 00 11 00"
+    },
+    {
+      "name": "AuthorizationRes",
+      "expectedHex": "80 04 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00"
+    },
+    {
+      "name": "CertificateInstallationReq",
+      "expectedHex": "80 1c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 05 27 a2 a6 a1 a2 a9 2a 18 80 75 57 79 84 02 54 9b db dd 08 10 d0 43 83 c8 08 40 32"
+    },
+    {
+      "name": "CertificateInstallationRes",
+      "expectedHex": "80 20 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 02 01 02 20 32 9a 4a 21 88 02 03 04 00 10 52 00 08 18 1c 00 82 02 40 08"
+    },
+    {
+      "name": "VehicleCheckInReq",
+      "expectedHex": "80 c4 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 01 90 26 24"
+    },
+    {
+      "name": "VehicleCheckInRes",
+      "expectedHex": "80 c8 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 06 40 09 07 80"
+    },
+    {
+      "name": "VehicleCheckOutReq",
+      "expectedHex": "80 cc 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 03 93 8b 3e a8 18"
+    },
+    {
+      "name": "VehicleCheckOutRes",
+      "expectedHex": "80 d0 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns2:SignedInfo xmlns:ns2="http://www.w3.org/2000/09/xmldsig#">
+  <ns2:CanonicalizationMethod Algorithm="http://www.w3.org/TR/canonical-exi/"/>
+  <ns2:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"/>
+  <ns2:Reference URI="#id1">
+    <ns2:Transforms>
+      <ns2:Transform Algorithm="http://www.w3.org/TR/canonical-exi/"/>
+    </ns2:Transforms>
+    <ns2:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/>
+    <ns2:DigestValue>ubOqbKGp+UN/pxqyi6k04w2/TFMAqFy/dJ6LIKa3Rw0=</ns2:DigestValue>
+  </ns2:Reference>
+</ns2:SignedInfo>

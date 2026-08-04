@@ -1,0 +1,16 @@
+<ns5:AC_ChargeParameterDiscoveryReq xmlns:ns5="urn:iso:std:iso:15118:-20:AC" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns3="http://www.w3.org/2001/XMLSchema" xmlns:ns4="http://www.w3.org/2000/09/xmldsig#" xmlns:ns6="urn:iso:std:iso:15118:-20:CommonTypes">
+    <ns6:Header>
+        <ns6:SessionID>0000000000000000</ns6:SessionID>
+        <ns6:TimeStamp>1700000000</ns6:TimeStamp>
+    </ns6:Header>
+    <ns5:AC_CPDReqEnergyTransferMode>
+        <ns5:EVMaximumChargePower>
+            <ns6:Exponent>0</ns6:Exponent>
+            <ns6:Value>11000</ns6:Value>
+        </ns5:EVMaximumChargePower>
+        <ns5:EVMinimumChargePower>
+            <ns6:Exponent>0</ns6:Exponent>
+            <ns6:Value>100</ns6:Value>
+        </ns5:EVMinimumChargePower>
+    </ns5:AC_CPDReqEnergyTransferMode>
+</ns5:AC_ChargeParameterDiscoveryReq>

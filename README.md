@@ -54,9 +54,10 @@ red afterwards.
 | `WWCP_ISO15118_EXI_Dispatch` | You are reading frames off a socket and want the payload type resolved for you |
 | `WWCP_ISO15118_EXI_SourceGenerator` | Never directly. Every project above pulls it in as an analyzer |
 
-**[SECC_Example.md](SECC_Example.md)** is the whole thing put together: a charging station that
-accepts an EV, completes the handshake and answers its first message, in one file — with the four
-things that catch people written out.
+**[demos/EXI/SECC_Example.md](demos/EXI/SECC_Example.md)** is the whole thing put together: a
+charging station that accepts an EV, completes the handshake and answers its first message, in one
+file — with the four things that catch people written out. It sits next to `ChargingSimulation`,
+the runnable version of the same sequence.
 
 ### ISO 15118-20 instead of -2
 

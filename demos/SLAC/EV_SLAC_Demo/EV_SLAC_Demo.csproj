@@ -11,7 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\WWCP_ISO15118_SLAC\WWCP_ISO15118_SLAC.csproj" />
+    <ProjectReference Include="..\..\..\WWCP_ISO15118_SLAC\WWCP_ISO15118_SLAC.csproj" />
   </ItemGroup>
 
 </Project>

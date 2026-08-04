@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>Vanaheimr.V2G.Simulation.Cli</RootNamespace>
+    <AssemblyName>Vanaheimr.V2G.Simulation.Cli</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vanaheimr.V2G.Simulation.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vanaheimr.V2G.Simulation\Vanaheimr.V2G.Simulation.csproj" />
+    <!-- The BouncyCastle TLS backend option generates a strict-20 V2G PKI at runtime and shares it
+         via a pki-dir between the two dev processes. -->
+    <ProjectReference Include="..\..\libs\WWCP_ISO15118\WWCP_ISO15118_PKI\WWCP_ISO15118_PKIBuilder\WWCP_ISO15118_PKIBuilder.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118.EXI.ChargingSimulation</RootNamespace>
+    <AssemblyName>ChargingSimulation</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Vanaheimr.V2G.Exi.Iso15118_2\Vanaheimr.V2G.Exi.Iso15118_2.csproj" />
+  </ItemGroup>
+</Project>

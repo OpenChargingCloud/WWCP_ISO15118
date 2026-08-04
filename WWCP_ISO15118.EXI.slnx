@@ -1,0 +1,17 @@
+<Solution>
+  <Project Path="Vanaheimr.V2G.Exi.Dispatch/Vanaheimr.V2G.Exi.Dispatch.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.ACDP/Vanaheimr.V2G.Exi.Iso15118_20.ACDP.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.AC/Vanaheimr.V2G.Exi.Iso15118_20.AC.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.AC_DER_IEC/Vanaheimr.V2G.Exi.Iso15118_20.AC_DER_IEC.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.AC_DER_SAE/Vanaheimr.V2G.Exi.Iso15118_20.AC_DER_SAE.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.CommonMessages/Vanaheimr.V2G.Exi.Iso15118_20.CommonMessages.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.DC/Vanaheimr.V2G.Exi.Iso15118_20.DC.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.WPT/Vanaheimr.V2G.Exi.Iso15118_20.WPT.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Iso15118_2/Vanaheimr.V2G.Exi.Iso15118_2.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Prototype/Vanaheimr.V2G.Exi.Prototype.csproj" />
+  <Project Path="demos/EXI/ChargingSimulation/ChargingSimulation.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.SourceGenerator/Vanaheimr.V2G.Exi.SourceGenerator.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.Tests/Vanaheimr.V2G.Exi.Tests.csproj" />
+  <Project Path="Vanaheimr.V2G.Exi.XmlDsig/Vanaheimr.V2G.Exi.XmlDsig.csproj" />
+  <Project Path="WWCP_ISO15118_V2GTP/WWCP_ISO15118_V2GTP.csproj" />
+</Solution>

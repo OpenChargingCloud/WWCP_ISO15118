@@ -39,7 +39,6 @@
          generated output it no longer produces, which wants a test with real files.
          It compiles the front end and emitters in rather than referencing them; those types stay
          internal there, so only Program is visible here and nothing collides. -->
-    <ProjectReference Include="..\Vanaheimr.V2G.Exi.Codegen\Vanaheimr.V2G.Exi.Codegen.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="Vanaheimr.V2G.Simulation.Tests" />
+    <InternalsVisibleTo Include="ISO15118ConformanceTests.Simulation" />
   </ItemGroup>
 
   <ItemGroup>

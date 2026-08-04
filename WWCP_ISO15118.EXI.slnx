@@ -9,7 +9,7 @@
   <Project Path="WWCP_ISO15118_20.WPT/WWCP_ISO15118_20.WPT.csproj" />
   <Project Path="WWCP_ISO15118_2/WWCP_ISO15118_2.csproj" />
   <Project Path="WWCP_ISO15118_EXI/WWCP_ISO15118_EXI.csproj" />
-  <Project Path="demos/EXI/ChargingSimulation/ChargingSimulation.csproj" />
+  <Project Path="demos/ChargingSimulation/ChargingSimulation.csproj" />
   <Project Path="WWCP_ISO15118_EXI_SourceGenerator/WWCP_ISO15118_EXI_SourceGenerator.csproj" />
   <Project Path="WWCP_ISO15118_EXI_Tests/WWCP_ISO15118_EXI_Tests.csproj" />
   <Project Path="WWCP_ISO15118_XMLDSig/WWCP_ISO15118_XMLDSig.csproj" />

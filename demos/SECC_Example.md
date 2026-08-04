@@ -4,9 +4,9 @@ The whole loop, in one file. It accepts one EV, completes the protocol handshake
 `SessionSetupReq`. This was compiled against the three project references below before it was
 written down — which is also how the second `ResponseCode` was found.
 
-Start from [`README.md`](../../README.md) if you have not fetched the schemas yet; nothing here
-builds until `bash tools/download-schemas.sh` has run. Every command below is written from the
-repository root, not from this directory.
+Start from [`README.md`](../README.md) if you have not fetched the schemas yet; nothing here builds
+until `bash tools/download-schemas.sh` has run. Every command below is written from the repository
+root, not from this directory.
 
 ## The project
 
@@ -124,7 +124,7 @@ A worked version — the full -2 flow with a guard that refuses out-of-order req
 and DC — is `ChargingSimulation`. It runs without a socket:
 
 ```bash
-dotnet run --project demos/EXI/ChargingSimulation -- dc
+dotnet run --project demos/ChargingSimulation -- dc
 ```
 
 Every line it prints is a real EXI round trip. `--break-sequence` and `--slow` make the EV

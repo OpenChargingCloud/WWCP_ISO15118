@@ -5,7 +5,7 @@ before either has been agreed, which is why it has a namespace of its own and pr
 
 - **Source:** <https://standards.iso.org/iso/15118/-20/ed-1/en/> — the **-20** directory
 
-**These files are not in the repository.** `bash new/download-schemas.sh` fetches them from ISO and
+**These files are not in the repository.** `bash tools/download-schemas.sh` fetches them from ISO and
 puts them here; [`../../SCHEMAS.md`](../../SCHEMAS.md) says why that is your download to make and
 not ours to ship.
 

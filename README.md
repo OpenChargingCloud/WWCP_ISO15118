@@ -31,7 +31,7 @@ The schemas are not in this repository. They are ISO's, and ISO's licence grants
 redistribution, so you fetch them yourself:
 
 ```bash
-bash download-schemas.sh
+bash tools/download-schemas.sh
 ```
 
 One command, needs `curl` and `unzip`, and running it is you accepting the ISO Customer Licence

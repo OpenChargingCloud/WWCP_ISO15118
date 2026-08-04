@@ -7,7 +7,7 @@ The W3C XML Signature schema, standalone.
 - The schema itself is W3C's, under the W3C Document and Software licences, which do permit
   redistribution. It is fetched with the rest only because it arrives in the same directories.
 
-**These files are not in the repository.** `bash new/download-schemas.sh` fetches them from ISO and
+**These files are not in the repository.** `bash tools/download-schemas.sh` fetches them from ISO and
 puts them here; [`../../SCHEMAS.md`](../../SCHEMAS.md) says why that is your download to make and
 not ours to ship.
 

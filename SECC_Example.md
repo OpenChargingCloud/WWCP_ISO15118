@@ -5,7 +5,7 @@ The whole loop, in one file. It accepts one EV, completes the protocol handshake
 written down — which is also how the second `ResponseCode` was found.
 
 Start from [`README.md`](README.md) if you have not fetched the schemas yet; nothing here builds
-until `bash download-schemas.sh` has run.
+until `bash tools/download-schemas.sh` has run.
 
 ## The project
 

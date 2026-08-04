@@ -6,7 +6,7 @@ The normative ISO 15118-20 (2022) EXI schemas for the **AC** message set, used a
 - **Source:** ISO directly — <https://standards.iso.org/iso/15118/>
 - **Edition:** ISO 15118-20:2022
 
-**These files are not in the repository.** `bash download-schemas.sh` fetches them from ISO
+**These files are not in the repository.** `bash tools/download-schemas.sh` fetches them from ISO
 and puts them here; [`../../SCHEMAS.md`](../../SCHEMAS.md) says why that is your download to make
 and not ours to ship.
 

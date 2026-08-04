@@ -15,8 +15,8 @@
  * limitations under the License.
  */
 
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using NUnit.Framework;
 using cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit;
 using cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar;
 using cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Xsd;
@@ -27,36 +27,36 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
     /// Drives a back end over synthetic or real XSDs, and returns the files it produces.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// <see cref="GeneratorHarness"/> reaches the C# back end the way production does, through
     /// Roslyn, but it sees only source text. This one goes at the emitters directly, so a test can
-    /// ask what the *files* are — and it is the only route to the Kotlin back end at all, whose
-    /// sole production caller is the Codegen driver.
+    /// ask what the *files* are — and it is the only route to a port back end at all, whose sole
+    /// production caller is the Codegen driver.
+    /// </para>
+    /// <para>
+    /// This file is source-linked into the app's codegen test project, which is where the Kotlin,
+    /// Swift and TypeScript back ends live. That is why the back end is a parameter here rather
+    /// than a default: a default of Kotlin would tie this file to an emitter that is no longer in
+    /// this repository. Only the C# back end, which every port is compared against, has a
+    /// convenience method.
+    /// </para>
     /// </remarks>
     internal static class EmitterHarness
     {
         /// <param name="files">(file name, xsd content) pairs forming ONE schema set.</param>
         public static IReadOnlyList<GeneratedFile> Emit(
-            string targetPackage, string codecObject, params (string Name, string Xsd)[] files) =>
-            Emit(targetPackage, codecObject, [], files);
-
-        public static IReadOnlyList<GeneratedFile> Emit(
-            string targetPackage, string codecObject, string[] fragments,
+            ICodecEmitter emitter, string target, string codec,
             params (string Name, string Xsd)[] files) =>
-            Emit(KotlinCodecEmitter.Instance, targetPackage, codecObject, fragments, files);
+            Emit(emitter, target, codec, [], files);
 
-        /// <summary>The same, through the C# back end.</summary>
+        /// <summary>The C# back end — the reference every port back end is diffed against.</summary>
         public static IReadOnlyList<GeneratedFile> EmitCSharp(
             string targetNamespace, string codecClass, params (string Name, string Xsd)[] files) =>
             Emit(CSharpCodecEmitter.Instance, targetNamespace, codecClass, [], files);
 
-        /// <summary>The same, through the Swift back end.</summary>
-        public static IReadOnlyList<GeneratedFile> EmitSwift(
-            string targetModule, string codecEnum, params (string Name, string Xsd)[] files) =>
-            Emit(SwiftCodecEmitter.Instance, targetModule, codecEnum, [], files);
-
-        private static IReadOnlyList<GeneratedFile> Emit(
+        public static IReadOnlyList<GeneratedFile> Emit(
             ICodecEmitter emitter, string target, string codec, string[] fragments,
-            (string Name, string Xsd)[] files)
+            params (string Name, string Xsd)[] files)
         {
             var schema = XsdReader.ParseSet(files.Select(f => f.Xsd));
             var plan   = GrammarBuilder.Build(schema, fragments);
@@ -64,18 +64,34 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
         }
 
         /// <summary>Every <c>.xsd</c> of a schema set that ships with one of the sibling projects.</summary>
+        /// <remarks>
+        /// Anchored on this file's own compile-time path, not on a walk up from the test binary.
+        /// Source-linked into the app's test project, that walk would climb past the app's root
+        /// without ever passing the schema sets, which are inside a submodule two levels down.
+        /// </remarks>
         public static (string Name, string Xsd)[] RealSchemaSet(string projectName)
         {
-            var root = new DirectoryInfo(TestContext.CurrentContext.TestDirectory);
-            while (root is not null && !Directory.Exists(Path.Combine(root.FullName, projectName)))
-                root = root.Parent;
-            if (root is null)
-                throw new DirectoryNotFoundException($"{projectName} not found above the test directory");
+            // …/Vanaheimr.V2G.Exi.Tests/Infrastructure/EmitterHarness.cs → the directory holding
+            // every codec project.
+            var root    = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(ThisFile())!, "..", ".."));
+            var schemas = Path.Combine(root, projectName, "Schemas");
 
-            return Directory.GetFiles(Path.Combine(root.FullName, projectName, "Schemas"), "*.xsd")
+            if (!Directory.Exists(schemas))
+                throw new DirectoryNotFoundException(
+                    $"{projectName} has no Schemas/ under {root} (anchored on {ThisFile()})");
+
+            return Directory.GetFiles(schemas, "*.xsd")
                             .Select(f => (Path.GetFileName(f), File.ReadAllText(f)))
                             .ToArray();
         }
+
+        /// <summary>
+        /// This source file's own path. <see cref="CallerFilePathAttribute"/> is filled in at the
+        /// *call site*, so it has to be read from a call that lives in this file — asking for it on
+        /// <see cref="RealSchemaSet"/> directly yields whichever test file called it, and those sit
+        /// at two different depths even before this harness is linked into another repository.
+        /// </summary>
+        private static string ThisFile([CallerFilePath] string path = "") => path;
 
         // ---- shapes the tests assert against ------------------------------------------------
 

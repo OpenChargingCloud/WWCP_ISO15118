@@ -1,5 +1,4 @@
 <Solution>
-  <Project Path="Vanaheimr.V2G.Exi.Codegen/Vanaheimr.V2G.Exi.Codegen.csproj" />
   <Project Path="Vanaheimr.V2G.Exi.Dispatch/Vanaheimr.V2G.Exi.Dispatch.csproj" />
   <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.ACDP/Vanaheimr.V2G.Exi.Iso15118_20.ACDP.csproj" />
   <Project Path="Vanaheimr.V2G.Exi.Iso15118_20.AC/Vanaheimr.V2G.Exi.Iso15118_20.AC.csproj" />

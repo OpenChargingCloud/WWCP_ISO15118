@@ -224,6 +224,10 @@ None of it is checked in. The XSDs are, and the generator turns them into C# dur
 output lands in `obj/…/generated/` for reading. So there is nothing to regenerate by hand and no
 generated file to review in a diff — a schema change shows up as a schema change.
 
+The schemas are ISO's, redistributed here rather than downloaded per clone. Where each set came
+from, and why that choice was made rather than cbexigen's, is in [`SCHEMAS.md`](SCHEMAS.md); each
+`Schemas/README.md` carries its own source and file table.
+
 The types you write against are named after the XSD, not after the prose of the standard:
 `SessionSetupReqType`, `AuthorizationResType`, `V2G_Message`. Everything for a set is in
 `cloud.charging.open.protocols.ISO15118_2.Generated` or

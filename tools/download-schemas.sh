@@ -9,13 +9,14 @@
 # copyright), 7 (termination), 8 (limitations) and 9 (governing law) — exactly as you would by
 # downloading them from the portal by hand. Nobody can accept it on your behalf.
 #
-#   bash new/download-schemas.sh
+#   bash tools/download-schemas.sh
 #
 # Needs curl and unzip. Idempotent: run it again and it overwrites what it fetched before.
 
 set -euo pipefail
 
-cd "$(dirname "${BASH_SOURCE[0]}")"
+# tools/ is one level down from the projects this fills.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 ISO2='https://standards.iso.org/iso/15118/-2/ed-2/en'
 ISO20='https://standards.iso.org/iso/15118/-20/ed-1/en'
@@ -97,5 +98,5 @@ for der in IEC SAE; do
 done
 
 echo
-echo "Done. Now: dotnet test -c Release new/WWCP_ISO15118.EXI.slnx"
+echo "Done. Now: dotnet test -c Release WWCP_ISO15118.EXI.slnx"
 echo "The vector corpus is what tells you the schemas are the ones this codec was pinned against."

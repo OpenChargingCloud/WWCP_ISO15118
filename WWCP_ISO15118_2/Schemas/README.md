@@ -6,7 +6,7 @@ The normative ISO 15118-2 EXI schemas, used as `<AdditionalFiles>` input to the 
 - **Edition:** ed-2. The namespaces say 2013 (`urn:iso:15118:2:2013:MsgDef`); both years are correct
   and refer to different things.
 
-**These files are not in the repository.** `bash new/download-schemas.sh` fetches them from ISO and
+**These files are not in the repository.** `bash tools/download-schemas.sh` fetches them from ISO and
 puts them here; [`../../SCHEMAS.md`](../../SCHEMAS.md) says why that is your download to make and
 not ours to ship.
 

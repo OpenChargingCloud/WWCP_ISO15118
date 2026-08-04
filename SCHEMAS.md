@@ -4,11 +4,11 @@ Every codec here is generated from the ISO 15118 XML schemas. They are not check
 clone will not build until you fetch them:
 
 ```bash
-bash new/download-schemas.sh
+bash tools/download-schemas.sh
 ```
 
 That is one command, it needs `curl` and `unzip`, and it puts each schema where the build expects
-it. Then `dotnet test -c Release new/WWCP_ISO15118.EXI.slnx`.
+it. Then `dotnet test -c Release WWCP_ISO15118.EXI.slnx`.
 
 ## Why you have to do this yourself
 

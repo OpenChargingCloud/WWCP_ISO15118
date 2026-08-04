@@ -118,7 +118,6 @@ must pass without a C toolchain, without Java, and without a network. The refere
 | SECC discovery | `WWCP_ISO15118_SDP` |
 | SLAC / HomePlug Green PHY | `WWCP_ISO15118_SLAC`, and `WWCP_ISO15118_SLAC_Pentests` |
 | V2G PKI, certificate chains, CSRs | `WWCP_ISO15118_PKI` |
-| DIN 70121 | `WWCP_DINSpec` |
 | Runnable demos | [`demos/`](demos/README.md) |
 
 New here? Start in **[`demos/`](demos/README.md)** — one runnable program per subprotocol, each the

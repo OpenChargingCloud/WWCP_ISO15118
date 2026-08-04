@@ -1,27 +1,25 @@
 # ISO 15118-2 schemas — provenance
 
-The normative ISO 15118-2 (2013) EXI schemas, used as `<AdditionalFiles>` input to the
-source generator. Taken verbatim from the open-source RISE-V2G reference implementation,
-which has carried them in a public Apache-2.0 repository for years.
+The normative ISO 15118-2 EXI schemas, used as `<AdditionalFiles>` input to the source generator.
 
-- **Source:** [SwitchEV/RISE-V2G](https://github.com/SwitchEV/RISE-V2G),
-  `RISE-V2G-Shared/src/main/resources/schemas/`
-- **Pinned commit:** `055806d22c591f843186579b9945255793d0800f`
+- **Source:** <https://standards.iso.org/iso/15118/-2/ed-2/en/>
+- **Edition:** ed-2. The namespaces say 2013 (`urn:iso:15118:2:2013:MsgDef`); both years are correct
+  and refer to different things.
 
-ISO schemas are copyrighted, and the codec generators disagree about what follows from that —
-cbexigen ships none, RISE-V2G ships them. We follow RISE-V2G. The reasoning, and what would
-make us revisit it, is in [`../../SCHEMAS.md`](../../SCHEMAS.md).
+**These files are not in the repository.** `bash new/download-schemas.sh` fetches them from ISO and
+puts them here; [`../../SCHEMAS.md`](../../SCHEMAS.md) says why that is your download to make and
+not ours to ship.
 
-**Two things about this particular set.** RISE-V2G is discontinued — its README points at Josev
-Community as the successor — so this is a frozen tree, which is what the pinned commit is for.
-And the four `V2G_CI_Msg*.xsd` files still carry ISO's own header comment naming the catalogue
-entry, so they are originals passed on unchanged; `xmldsig-core-schema.xsd` below is **not**.
+**`V2G_CI_AppProtocol.xsd` is not among them**, even though ISO's -2 directory carries one. That
+copy is an older revision — no `elementFormDefault="qualified"`, plus an extra `protocolNameType`
+capped at 30 characters — and it encodes differently. The one this codec is pinned against comes
+from the -20 directory and lives in `Vanaheimr.V2G.Exi.Prototype/Schemas/`.
 
-That copy is stripped: no XML declaration, no DOCTYPE internal subset, `version="0.1"` — 98 lines
-apart from the W3C original that the -20 sets carry. It is deliberately not corrected towards the
-original, because `SignedInfo` is in this project's `<ExiFragmentElements>` and two checked-in
-vectors pin its encoded bytes. Which of the two variants cbV2G and EXIficient actually agree with
-is a question for the vector corpus, not for a tidy-up.
+Until 2026-08 these came from [SwitchEV/RISE-V2G](https://github.com/SwitchEV/RISE-V2G) instead,
+which is discontinued and whose redistribution chargebyte reads as legally shaky. Its copies turned
+out to be the same schemas reformatted — indentation stripped, the `<xs:schema>` attributes
+re-wrapped, ISO's editor comment replaced — and swapping in ISO's originals left all 834 tests and
+every generated Kotlin file byte-identical.
 
 | file | targetNamespace |
 |---|---|

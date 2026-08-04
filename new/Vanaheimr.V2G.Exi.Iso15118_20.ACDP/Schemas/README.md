@@ -6,9 +6,9 @@ The normative ISO 15118-20 (2022) EXI schemas for the **ACDP** message set, used
 - **Source:** ISO directly — <https://standards.iso.org/iso/15118/>
 - **Edition:** ISO 15118-20:2022
 
-Redistributed here rather than downloaded per clone. That is a deliberate position, taken from
-RISE-V2G's practice rather than cbexigen's; the reasoning, and what would make us revisit it, is
-in [`../../SCHEMAS.md`](../../SCHEMAS.md).
+**These files are not in the repository.** `bash new/download-schemas.sh` fetches them from ISO
+and puts them here; [`../../SCHEMAS.md`](../../SCHEMAS.md) says why that is your download to make
+and not ours to ship.
 
 
 | file | targetNamespace |

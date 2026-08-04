@@ -11,6 +11,20 @@ lives in one of the projects listed under [What is deliberately not here](#what-
 
 ---
 
+## Before anything builds: fetch the schemas
+
+They are not in this repository. They are ISO's, and ISO's licence grants use rather than
+redistribution, so you fetch them yourself:
+
+```bash
+bash new/download-schemas.sh
+```
+
+One command, needs `curl` and `unzip`, and running it is you accepting the ISO Customer Licence
+Agreement — which is exactly why it is a script you run rather than files we ship.
+[`SCHEMAS.md`](SCHEMAS.md) has the reasoning, the sources, and what to do if the vector corpus goes
+red afterwards.
+
 ## Which projects do I reference?
 
 | Project | Reference it when you need |
@@ -220,13 +234,14 @@ per schema *set*, and the same type in two sets is not the same grammar. Please 
 
 ## The generated code
 
-None of it is checked in. The XSDs are, and the generator turns them into C# during the build; the
-output lands in `obj/…/generated/` for reading. So there is nothing to regenerate by hand and no
-generated file to review in a diff — a schema change shows up as a schema change.
+None of it is checked in, and neither are the XSDs it comes from. The generator turns the schemas
+into C# during the build and the output lands in `obj/…/generated/` for reading. So there is
+nothing to regenerate by hand and no generated file to review in a diff — a schema change shows up
+as a schema change, in a file you fetched.
 
-The schemas are ISO's, redistributed here rather than downloaded per clone. Where each set came
-from, and why that choice was made rather than cbexigen's, is in [`SCHEMAS.md`](SCHEMAS.md); each
-`Schemas/README.md` carries its own source and file table.
+Where each set comes from is in [`SCHEMAS.md`](SCHEMAS.md); each `Schemas/README.md` names its own
+source and lists the files that belong there, so you can tell whether `download-schemas.sh` gave
+you what that project expects.
 
 The types you write against are named after the XSD, not after the prose of the standard:
 `SessionSetupReqType`, `AuthorizationResType`, `V2G_Message`. Everything for a set is in

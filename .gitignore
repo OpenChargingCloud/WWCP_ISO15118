@@ -115,3 +115,8 @@ UpgradeLog*.XML
 
 # Visual Studio workspace state — machine-local, and a solution now lives under new/.
 .vs/
+
+# ISO 15118 schemas. ISO's licence grants use, not redistribution — see new/SCHEMAS.md.
+# Fetch them with: bash new/download-schemas.sh
+*.xsd
+*.exig

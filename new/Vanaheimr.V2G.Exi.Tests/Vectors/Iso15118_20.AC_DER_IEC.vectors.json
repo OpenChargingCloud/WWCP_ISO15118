@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "generator": "mixed — see referenceEncoder (AC_DER_IEC)",
+  "referenceEncoder": {
+    "name": "mixed",
+    "note": "READ THIS BEFORE TRUSTING A BYTE. This corpus has two provenances, given per vector in its `source` field.\n\n(1) source = \"cbV2G@03350be048b3 (iso_20/AC)\": bytes from EVerest's libcbv2g at the pinned commit, taken verbatim from Iso15118_20.AC.vectors.json. These are messages that use no DER member, and the DER grammar was MEASURED to encode them identically to the plain AC grammar — so cbV2G is a valid oracle for them here. 6 of 10 plain-AC vectors are in this class.\n\n(2) source = \"Vanaheimr.V2G.Exi (C#)\": this project's own output, NOT verified against anything. cbexigen does not generate the ISO 15118-20 Amendment 1 DER schemas, so no reference encoder exists. These vectors pin the encoding against drift and give the Kotlin port a byte target; they are not evidence of wire conformance. Two kinds land here: messages whose plain-AC members shift event code under the DER grammar, and messages that actually carry a DER member.\n\nHeader SessionID is 8x0x00, TimeStamp=1700000000, no Signature — as in the AC corpus. The fixtures are Iso15118_20AcDerIecFixtures."
+  },
+  "vectors": [
+    {
+      "name": "AC_ChargeParameterDiscoveryReq",
+      "source": "cbV2G@03350be048b3 (iso_20/AC)",
+      "expectedHex": "80 10 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 08 00 f8 55 22 00 19 08"
+    },
+    {
+      "name": "AC_ChargeParameterDiscoveryRes",
+      "source": "cbV2G@03350be048b3 (iso_20/AC)",
+      "expectedHex": "80 14 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 04 00 78 55 80 91 00 0c 84 40 01 91 40"
+    },
+    {
+      "name": "AC_ChargeLoopReq",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Encodes differently from the plain AC grammar: the DER members sort before Dynamic_/Scheduled_ in the substitution group, so those members' event codes move. cbV2G cannot produce this — no oracle.",
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 8d 24 00 50 0f 94"
+    },
+    {
+      "name": "AC_ChargeLoopRes",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Encodes differently from the plain AC grammar: the DER members sort before Dynamic_/Scheduled_ in the substitution group, so those members' event codes move. cbV2G cannot produce this — no oracle.",
+      "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 a9 00"
+    },
+    {
+      "name": "AC_ChargeLoopReq_BPTScheduled",
+      "source": "cbV2G@03350be048b3 (iso_20/AC)",
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 83 24 00 50 0f 8a 40 07 a0 e0 88 00 64 20"
+    },
+    {
+      "name": "AC_ChargeLoopRes_BPTScheduled",
+      "source": "cbV2G@03350be048b3 (iso_20/AC)",
+      "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 50 20 03 d0 70 80"
+    },
+    {
+      "name": "AC_ChargeLoopReq_Dynamic",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Encodes differently from the plain AC grammar: the DER members sort before Dynamic_/Scheduled_ in the substitution group, so those members' event codes move. cbV2G cannot produce this — no oracle.",
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 8a 90 21 40 3e 08 10 f0 2e 04 00 00 02 00 3e 15 48 80 06 42 20 02 80 7c 88 00 00 20"
+    },
+    {
+      "name": "AC_ChargeLoopRes_Dynamic",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Encodes differently from the plain AC grammar: the DER members sort before Dynamic_/Scheduled_ in the substitution group, so those members' event codes move. cbV2G cannot produce this — no oracle.",
+      "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 98 40 07 a0 e1 00"
+    },
+    {
+      "name": "AC_ChargeLoopReq_BPTDynamic",
+      "source": "cbV2G@03350be048b3 (iso_20/AC)",
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 80 90 21 40 3e 08 10 f0 2e 04 00 00 02 00 3e 15 48 80 06 42 20 02 80 7c 88 00 00 22 00 3d 07 08 80 06 42 00"
+    },
+    {
+      "name": "AC_ChargeLoopRes_BPTDynamic",
+      "source": "cbV2G@03350be048b3 (iso_20/AC)",
+      "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 48 40 07 a0 e1 00"
+    },
+    {
+      "name": "AC_ChargeParameterDiscoveryReq_DER",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Uses a DER substitution member. cbexigen does not generate the amendment schemas, so there is no reference encoder for this message at all.",
+      "expectedHex": "80 10 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 63 08 00 f8 55 22 00 19 08 04 00 44 13 91 00 06 42 20 02 82 70 04 40"
+    },
+    {
+      "name": "AC_ChargeParameterDiscoveryRes_DER",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Uses a DER substitution member. cbexigen does not generate the amendment schemas, so there is no reference encoder for this message at all.",
+      "expectedHex": "80 14 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 84 00 78 55 80 91 00 0c 84 40 01 91 48 00 f8 55 22 00 22 09 c8 80 0d 83 62 00 c0"
+    },
+    {
+      "name": "AC_ChargeLoopReq_DERScheduled",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Uses a DER substitution member. cbexigen does not generate the amendment schemas, so there is no reference encoder for this message at all.",
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 89 24 00 50 0f 94 80 08 82 72 20 00 c8 80 00"
+    },
+    {
+      "name": "AC_ChargeLoopRes_DERScheduled",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Uses a DER substitution member. cbexigen does not generate the amendment schemas, so there is no reference encoder for this message at all.",
+      "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 80 20 03 d0 70 82 00 3c 2a c0 48 80 0d 83 61 c0"
+    },
+    {
+      "name": "AC_ChargeLoopReq_DERDynamic",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Uses a DER substitution member. cbexigen does not generate the amendment schemas, so there is no reference encoder for this message at all.",
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 86 90 21 40 3e 08 10 f0 2e 04 00 00 02 00 3e 15 48 80 06 42 20 02 80 7c 88 00 00 22 00 22 09 c8 80 03 22 00 06"
+    },
+    {
+      "name": "AC_ChargeLoopRes_DERDynamic",
+      "source": "Vanaheimr.V2G.Exi (C#)",
+      "note": "Uses a DER substitution member. cbexigen does not generate the amendment schemas, so there is no reference encoder for this message at all.",
+      "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 78 40 07 a0 e1 04 00 78 55 80 91 00 1b 06 c3 80"
+    }
+  ]
+}

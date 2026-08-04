@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "generator": "cbV2G@03350be048b3 (iso_20/ACDP)",
+  "referenceEncoder": {
+    "name": "cbV2G",
+    "repo": "https://github.com/EVerest/libcbv2g",
+    "commit": "03350be048b35b179905129005a97144a4bdcf93",
+    "note": "Wire-conformant ISO 15118-20 ACDP reference. Each vector is a fixed message emitted by tools/cbv2g-ref/main_iso20.c (run: cbv2g_iso20 ACDP_<name>). Header SessionID is 8x0x00, TimeStamp=1700000000, no Signature. The C# test builds the matching message via Iso15118_20AcdpFixtures and diffs its bytes."
+  },
+  "vectors": [
+    {
+      "name": "ACDP_VehiclePositioningReq",
+      "expectedHex": "80 18 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 44"
+    },
+    {
+      "name": "ACDP_VehiclePositioningRes",
+      "expectedHex": "80 1c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 01 00 a1 04 06 40 32 00"
+    },
+    {
+      "name": "ACDP_ConnectReq",
+      "expectedHex": "80 00 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 20"
+    },
+    {
+      "name": "ACDP_ConnectRes",
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 01 08"
+    },
+    {
+      "name": "ACDP_DisconnectReq",
+      "expectedHex": "80 04 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00"
+    },
+    {
+      "name": "ACDP_DisconnectRes",
+      "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 00"
+    },
+    {
+      "name": "ACDP_SystemStatusReq",
+      "expectedHex": "80 10 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 20 c0"
+    },
+    {
+      "name": "ACDP_SystemStatusRes",
+      "expectedHex": "80 14 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 21 08 00 00 88"
+    }
+  ]
+}

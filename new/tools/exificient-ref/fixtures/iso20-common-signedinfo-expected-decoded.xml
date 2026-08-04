@@ -1,0 +1,8 @@
+<ns4:SignedInfo xmlns:ns4="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns3="http://www.w3.org/2001/XMLSchema" xmlns:ns5="urn:iso:std:iso:15118:-20:CommonMessages" xmlns:ns6="urn:iso:std:iso:15118:-20:CommonTypes">
+    <ns4:CanonicalizationMethod Algorithm="http://www.w3.org/TR/canonical-exi/"/>
+    <ns4:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha512"/>
+    <ns4:Reference URI="#ID1">
+        <ns4:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"/>
+        <ns4:DigestValue>AQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QA==</ns4:DigestValue>
+    </ns4:Reference>
+</ns4:SignedInfo>

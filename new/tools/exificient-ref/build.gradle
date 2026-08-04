@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.siemens.ct.exi:exificient:1.0.7'
+    implementation 'org.slf4j:slf4j-simple:2.0.6'
+}
+
+application {
+    mainClass = 'ExificientRef'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}

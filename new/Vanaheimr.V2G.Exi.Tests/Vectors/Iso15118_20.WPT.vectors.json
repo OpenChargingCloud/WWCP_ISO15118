@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "generator": "cbV2G@03350be048b3 (iso_20/WPT)",
+  "referenceEncoder": {
+    "name": "cbV2G",
+    "repo": "https://github.com/EVerest/libcbv2g",
+    "commit": "03350be048b35b179905129005a97144a4bdcf93",
+    "note": "Wire-conformant ISO 15118-20 WPT reference. Each vector is a fixed message emitted by tools/cbv2g-ref/main_iso20.c (run: cbv2g_iso20 WPT_<name>). Header SessionID is 8x0x00, TimeStamp=1700000000, no Signature. Baseline coverage only: VendorSpecificDataContainer/ManufacturerSpecificDataContainer empty, WPT_LF_DataPackageList and LF_SystemSetupData absent -- those two fields exercise a grammar shape this repo's generator designed independently (no working cbV2G reference exists for it, see docs/xsd-inventory-15118-20.md) and are covered by self-consistency roundtrip tests instead. The C# test builds the matching message via Iso15118_20WptFixtures and diffs its bytes."
+  },
+  "vectors": [
+    {
+      "name": "WPT_FinePositioningSetupReq",
+      "expectedHex": "80 84 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 08 24 04 00 20"
+    },
+    {
+      "name": "WPT_FinePositioningSetupRes",
+      "expectedHex": "80 88 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 82 40 40 02"
+    },
+    {
+      "name": "WPT_FinePositioningReq",
+      "expectedHex": "80 7c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 01 20"
+    },
+    {
+      "name": "WPT_FinePositioningRes",
+      "expectedHex": "80 80 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 02"
+    },
+    {
+      "name": "WPT_PairingReq",
+      "expectedHex": "80 8c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 04 90"
+    },
+    {
+      "name": "WPT_PairingRes",
+      "expectedHex": "80 90 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 03"
+    },
+    {
+      "name": "WPT_ChargeParameterDiscoveryReq",
+      "expectedHex": "80 74 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 20 03 e1 54 2b 00 83 20 40 02 a8 08"
+    },
+    {
+      "name": "WPT_ChargeParameterDiscoveryRes",
+      "expectedHex": "80 78 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 80 06 40 40 07 c2 a8 56 01 06 40 80 00 10 40 06 40 08 80"
+    },
+    {
+      "name": "WPT_AlignmentCheckReq",
+      "expectedHex": "80 64 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 04 90"
+    },
+    {
+      "name": "WPT_AlignmentCheckRes",
+      "expectedHex": "80 68 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 03"
+    },
+    {
+      "name": "WPT_ChargeLoopReq",
+      "expectedHex": "80 6c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 81 00 1e 83 80 80 0f 41 c0 0c"
+    },
+    {
+      "name": "WPT_ChargeLoopRes",
+      "expectedHex": "80 70 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 64 00 7a 0e 09 00 1e 83 80 80 00 00 06"
+    }
+  ]
+}

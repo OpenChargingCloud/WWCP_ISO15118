@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "generator": "Josev (SwitchEV/iso15118) @ d645255 via EXIficient 1.55 (iso_20/DC, PnC, record mode)",
+  "referenceEncoder": {
+    "name": "Josev / EXIficient",
+    "repo": "https://github.com/SwitchEV/iso15118",
+    "commit": "d645255",
+    "note": "Independently-generated ISO 15118-20 DC frames captured from a live Josev EVCC<->SECC Plug & Charge session (see docs/interop-runs/2026-07-21-iso20-dc-pnc-notls/). Josev encodes with EXIficient, which shares no lineage with the cbV2G oracle behind the other -20 vector files, so these are an independent conformance signal. Each carries Josev's own per-session SessionID (6FDD742705DA1225) and wall-clock TimeStamp -- unlike the cbV2G files' fixed zero SessionID -- so they are validated by decode -> re-encode byte-identity (JosevCuratedVectorTests), not by rebuilding the message from a fixed fixture."
+  },
+  "vectors": [
+    {
+      "name": "DC_CableCheckReq",
+      "expectedHex": "80 2c 04 37 ee ba 13 82 ed 09 12 88 7d 3f dd 20 62"
+    },
+    {
+      "name": "DC_ChargeParameterDiscoveryReq",
+      "expectedHex": "80 3c 04 37 ee ba 13 82 ed 09 12 88 6d 3f dd 20 62 88 30 ac 02 04 00 32 02 00 2b 00 81 00 01 40 80 0e 80 70 40 00 50 80"
+    },
+    {
+      "name": "DC_ChargeLoopReq",
+      "expectedHex": "80 34 04 37 ee ba 13 82 ed 09 12 88 8d 3f dd 20 62 00 51 84 02 0c 05 08 c8 10 14 04 08 0a 14"
+    }
+  ]
+}

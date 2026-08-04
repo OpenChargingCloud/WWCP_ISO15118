@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "generator": "self-encoded, cross-checked against EXIficient (see tools/exificient-ref/primitives.py)",
+  "generatorNote": "Expected bytes are produced by this repo's codec AND independently reproduced by EXIficient's BitEncoderChannel (EXI 1.0 §7.1), so they are no longer self-referential. Re-run tools/exificient-ref/primitives.py after changing the primitive layer. Non-ASCII string vectors are sourced FROM EXIficient (cbV2G rejects code points > U+007F, so no cbV2G vector can exist for them).",
+  "referenceEncoder": {
+    "name": "EXIficient",
+    "repo": "https://github.com/EXIficient/exificient",
+    "artifact": "com.siemens.ct.exi:exificient:1.0.7",
+    "note": "Cross-checked via BitEncoderChannel; string vectors use the value-table miss framing (length + 2), which sits above the channel API and is applied explicitly."
+  },
+  "generatedAtUtc": "2026-07-03T00:00:00+00:00",
+  "vectors": [
+    {
+      "name": "uint_0",
+      "datatype": "unsignedInteger",
+      "value": "0",
+      "expectedHex": "00"
+    },
+    {
+      "name": "uint_127",
+      "datatype": "unsignedInteger",
+      "value": "127",
+      "expectedHex": "7f"
+    },
+    {
+      "name": "uint_128",
+      "datatype": "unsignedInteger",
+      "value": "128",
+      "expectedHex": "80 01"
+    },
+    {
+      "name": "uint_16384",
+      "datatype": "unsignedInteger",
+      "value": "16384",
+      "expectedHex": "80 80 01"
+    },
+    {
+      "name": "int_0",
+      "datatype": "signedInteger",
+      "value": "0",
+      "expectedHex": "00 00"
+    },
+    {
+      "name": "int_1",
+      "datatype": "signedInteger",
+      "value": "1",
+      "expectedHex": "00 80"
+    },
+    {
+      "name": "int_minus1",
+      "datatype": "signedInteger",
+      "value": "-1",
+      "expectedHex": "80 00"
+    },
+    {
+      "name": "int_127",
+      "datatype": "signedInteger",
+      "value": "127",
+      "expectedHex": "3f 80"
+    },
+    {
+      "name": "int_minus128",
+      "datatype": "signedInteger",
+      "value": "-128",
+      "expectedHex": "bf 80"
+    },
+    {
+      "name": "int_128",
+      "datatype": "signedInteger",
+      "value": "128",
+      "expectedHex": "40 00 80"
+    },
+    {
+      "name": "binary_empty",
+      "datatype": "binary",
+      "valueHex": "",
+      "expectedHex": "00"
+    },
+    {
+      "name": "binary_ab",
+      "datatype": "binary",
+      "valueHex": "ab",
+      "expectedHex": "01 ab"
+    },
+    {
+      "name": "binary_010203",
+      "datatype": "binary",
+      "valueHex": "01 02 03",
+      "expectedHex": "03 01 02 03"
+    },
+    {
+      "name": "bool_true",
+      "datatype": "boolean",
+      "value": "true",
+      "expectedHex": "80"
+    },
+    {
+      "name": "bool_false",
+      "datatype": "boolean",
+      "value": "false",
+      "expectedHex": "00"
+    },
+    {
+      "name": "string_empty",
+      "datatype": "string",
+      "value": "",
+      "expectedHex": "02"
+    },
+    {
+      "name": "string_a",
+      "datatype": "string",
+      "value": "a",
+      "expectedHex": "03 61"
+    },
+    {
+      "name": "string_hello",
+      "datatype": "string",
+      "value": "hello",
+      "expectedHex": "07 68 65 6c 6c 6f"
+    },
+    {
+      "name": "string_nonascii_uuml",
+      "datatype": "string",
+      "value": "ü",
+      "expectedHex": "03 fc 01",
+      "note": "U+00FC, one code point above ASCII"
+    },
+    {
+      "name": "string_nonascii_euro",
+      "datatype": "string",
+      "value": "€",
+      "expectedHex": "03 ac 41",
+      "note": "U+20AC, three UTF-8 bytes but one code point"
+    },
+    {
+      "name": "string_nonascii_mixed",
+      "datatype": "string",
+      "value": "Grüße aus Jena",
+      "expectedHex": "10 47 72 fc 01 df 01 65 20 61 75 73 20 4a 65 6e 61",
+      "note": "mixed ASCII/non-ASCII, 14 code points"
+    },
+    {
+      "name": "string_nonascii_astral",
+      "datatype": "string",
+      "value": "😀",
+      "expectedHex": "03 80 ec 07",
+      "note": "U+1F600 - OUTSIDE the BMP: one code point but two UTF-16 units, so this is what catches a code-unit-wise encoder"
+    },
+    {
+      "name": "string_nonascii_astral_mixed",
+      "datatype": "string",
+      "value": "a😀b",
+      "expectedHex": "05 61 80 ec 07 62",
+      "note": "astral char between ASCII: length must be 3 code points, not 4 UTF-16 units"
+    }
+  ]
+}

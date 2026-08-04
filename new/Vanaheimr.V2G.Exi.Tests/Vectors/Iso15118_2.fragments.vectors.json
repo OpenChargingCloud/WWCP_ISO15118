@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "generator": "extracted from Iso15118_2FragmentTests.cs",
+  "referenceEncoder": "EVerest libcbv2g, encode_iso2_exiFragment (tools/cbv2g-ref, pinned commit)",
+  "note": [
+    "EXI fragment encodings of the signable ISO 15118-2 elements: EXI header, the element's",
+    "fragment-grammar event code, its content, End Fragment. This is what XMLDSig digests.",
+    "The C# suite still carries its own inline copies of these bytes in Iso15118_2FragmentTests.cs;",
+    "it should be migrated to read this file so there is one source rather than two."
+  ],
+  "vectors": [
+    {
+      "name": "AuthorizationReq",
+      "element": "AuthorizationReq",
+      "expectedHex": "80 04 42 00 20 40 60 80 a0 c0 e1 01 21 41 61 81 a1 c1 e2 07 a0"
+    },
+    {
+      "name": "MeteringReceiptReq",
+      "element": "MeteringReceiptReq",
+      "expectedHex": "80 79 41 00 00 00 00 00 00 00 00 00 00 00 89 a6 28 f4"
+    },
+    {
+      "name": "SalesTariff",
+      "element": "SalesTariff",
+      "expectedHex": "80 ae 40 08 00 0c fa 00"
+    },
+    {
+      "name": "SignedInfo",
+      "element": "SignedInfo",
+      "expectedHex": "80 d0 44 ad 0e 8e 8e 07 45 e5 ee ee ee e5 ce e6 65 cd ee 4c e5 ea 8a 45 ec 6c 2d cd ed cd 2c 6c 2d 85 ac af 0d 25 e8 6a d0 e8 e8 e0 74 5e 5e ee ee ee 5c ee 66 5c de e4 ce 5e 64 60 60 62 5e 60 68 5e f0 da d8 c8 e6 d2 ce 5a da de e4 ca 46 ca c6 c8 e6 c2 5a e6 d0 c2 64 6a 6c 88 18 8d 25 10 c5 14 b4 3a 3a 38 1d 17 97 bb bb bb 97 3b 99 97 37 b9 33 97 99 18 18 18 97 98 1a 17 bc 36 b6 32 b7 31 91 b9 b4 30 99 1a 9b 21 00 08 10 18 20 28 30 38 40 48 50 58 60 68 70 78 80 88 90 98 a0 a8 b0 b8 c0 c8 d0 d8 e0 e8 f0 f9 00 fa 00"
+    }
+  ]
+}

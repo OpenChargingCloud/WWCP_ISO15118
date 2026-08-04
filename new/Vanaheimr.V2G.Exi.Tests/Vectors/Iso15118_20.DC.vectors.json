@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "generator": "cbV2G@03350be048b3 (iso_20/DC)",
+  "referenceEncoder": {
+    "name": "cbV2G",
+    "repo": "https://github.com/EVerest/libcbv2g",
+    "commit": "03350be048b35b179905129005a97144a4bdcf93",
+    "note": "Wire-conformant ISO 15118-20 DC reference. Each vector is a fixed message emitted by tools/cbv2g-ref/main_iso20.c (run: cbv2g_iso20 DC_<name>). Header SessionID is 8x0x00, TimeStamp=1700000000, no Signature. The C# test builds the matching message via Iso15118_20DcFixtures and diffs its bytes."
+  },
+  "vectors": [
+    {
+      "name": "DC_CableCheckReq",
+      "expectedHex": "80 2c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62"
+    },
+    {
+      "name": "DC_CableCheckRes",
+      "expectedHex": "80 30 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00"
+    },
+    {
+      "name": "DC_ChargeParameterDiscoveryReq",
+      "expectedHex": "80 3c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 88 00 a0 9c 01 04 00 32 02 00 32 00 41 00 00 20 80 0f 40 30 40 06 40 08 80"
+    },
+    {
+      "name": "DC_ChargeParameterDiscoveryRes",
+      "expectedHex": "80 40 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 44 08 4c 3a 82 00 19 01 00 19 00 20 80 00 10 40 07 a0 18 20 03 20 04 40"
+    },
+    {
+      "name": "DC_PreChargeReq",
+      "expectedHex": "80 44 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 01 00 10 c0 60 80 09 00 30"
+    },
+    {
+      "name": "DC_PreChargeRes",
+      "expectedHex": "80 48 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 10 01 16 06 00"
+    },
+    {
+      "name": "DC_ChargeLoopReq",
+      "expectedHex": "80 34 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 81 00 12 00 64 64 00 3c 02 00 24 00 ca"
+    },
+    {
+      "name": "DC_ChargeLoopRes",
+      "expectedHex": "80 38 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 64 00 3b 02 00 23 80 c0 00 90"
+    },
+    {
+      "name": "DC_ChargeLoopReq_Dynamic",
+      "expectedHex": "80 34 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 81 00 12 00 63 48 10 a0 1f 04 08 78 17 02 00 00 01 00 14 13 80 20 80 06 40 40 06 40 08 20 03 d0 0c 10 01 90 02 00"
+    },
+    {
+      "name": "DC_ChargeLoopRes_Dynamic",
+      "expectedHex": "80 38 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 64 00 3b 02 00 23 80 c0 00 70 80 0a c9 80 10 40 03 20 20 03 0c 04 10 01 e8 06 00"
+    },
+    {
+      "name": "DC_ChargeLoopReq_BPTScheduled",
+      "expectedHex": "80 34 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 81 00 12 00 61 64 00 3c 02 00 24 00 c5 20 03 e1 54 08 00 64 02 00 1b 80"
+    },
+    {
+      "name": "DC_ChargeLoopRes_BPTScheduled",
+      "expectedHex": "80 38 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 64 00 3b 02 00 23 80 c0 00 28 40 04 22 90 08 00 64 02 00 1a 44"
+    },
+    {
+      "name": "DC_ChargeLoopReq_BPTDynamic",
+      "expectedHex": "80 34 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 81 00 12 00 60 48 10 a0 1f 04 08 78 17 02 00 00 01 00 14 13 80 20 80 06 40 40 06 40 08 20 03 d0 0c 10 01 90 02 08 00 f8 55 04 00 32 02 00 1b 88"
+    },
+    {
+      "name": "DC_ChargeLoopRes_BPTDynamic",
+      "expectedHex": "80 38 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 64 00 3b 02 00 23 80 c0 00 10 80 0a c9 80 10 40 03 20 20 03 0c 04 10 01 e8 06 08 00 84 52 04 00 32 02 00 1a 41 00 19 00 20"
+    },
+    {
+      "name": "DC_WeldingDetectionReq",
+      "expectedHex": "80 4c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00"
+    },
+    {
+      "name": "DC_WeldingDetectionRes",
+      "expectedHex": "80 50 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 10 00 0a 00"
+    }
+  ]
+}

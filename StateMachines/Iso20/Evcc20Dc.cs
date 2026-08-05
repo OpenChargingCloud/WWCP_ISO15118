@@ -34,13 +34,28 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
 
         protected override PowerMode EnergyMode => PowerMode.Dc;
 
+        /// <summary>The envelope this vehicle declares at DC_ChargeParameterDiscovery. Virtual so the MCS
+        /// profile can raise it to megawatt scale without duplicating the whole discovery handler — the
+        /// EV-side mirror of <c>Secc20Dc.MaxPower</c> and friends (see <see cref="Evcc20Mcs"/>).</summary>
+        protected virtual Dc20.RationalNumberType MaxPower   => Rat(5_000, exponent: 1);   //  50 kW
+        protected virtual Dc20.RationalNumberType MaxCurrent => Rat(200);                  // 200 A
+        protected virtual Dc20.RationalNumberType MaxVoltage => Rat(500);                  // 500 V
+        protected virtual Dc20.RationalNumberType MinVoltage => Rat(50);
+
+        /// <summary>What the battery asks for inside a <b>Dynamic</b> charge loop — separate from the
+        /// envelope above on purpose: DC declares 200 A at discovery and then asks for 125 A of it, which
+        /// is a live request and not a second declaration of the same limit. The loop's maximum voltage is
+        /// <see cref="MaxVoltage"/> itself; a vehicle never asks above what it declared it can take.</summary>
+        protected virtual Dc20.RationalNumberType LoopMaxPower   => Rat(50, exponent: 3);  //  50 kW
+        protected virtual Dc20.RationalNumberType LoopMaxCurrent => Rat(125);              // 125 A
+
         protected override async Task RunChargeParameterDiscoveryAsync(CancellationToken ct)
         {
             var req = new Dc20.DC_ChargeParameterDiscoveryReq(SessionCtx.ToDcHeader(),
                 new Dc20.DC_CPDReqEnergyTransferModeType(
-                    EVMaximumChargePower: Rat(5_000, 1), EVMinimumChargePower: Rat(0),
-                    EVMaximumChargeCurrent: Rat(200), EVMinimumChargeCurrent: Rat(0),
-                    EVMaximumVoltage: Rat(500), EVMinimumVoltage: Rat(50), TargetSOC: 80));
+                    EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
+                    EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
+                    EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: 80));
 
             var (set, message) = await ExchangeRaw(MessageSet.Iso20DC,
                 dest => Dc20.DcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct);
@@ -78,10 +93,10 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
                       EVTargetEnergyRequest:  Rat(30, 3),    // 30 kWh
                       EVMaximumEnergyRequest: Rat(60, 3),    // 60 kWh
                       EVMinimumEnergyRequest: Rat(10, 3),    // 10 kWh
-                      EVMaximumChargePower:   Rat(50, 3),    // 50 kW
+                      EVMaximumChargePower:   LoopMaxPower,
                       EVMinimumChargePower:   Rat(1,  3),    //  1 kW
-                      EVMaximumChargeCurrent: Rat(125),
-                      EVMaximumVoltage:       Rat(500),
+                      EVMaximumChargeCurrent: LoopMaxCurrent,
+                      EVMaximumVoltage:       MaxVoltage,
                       EVMinimumVoltage:       Rat(200))
                 : new Dc20.Scheduled_DC_CLReqControlModeType(
                       null, null, null, EVTargetCurrent: Rat(120), EVTargetVoltage: Rat(400),

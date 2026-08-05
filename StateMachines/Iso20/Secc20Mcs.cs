@@ -39,9 +39,11 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
     /// Service ids and the connector enum are taken from EVerest's <c>libiso15118</c>
     /// (<c>ServiceCategory::MCS = 8</c>, <c>MCS_BPT = 9</c>; <c>McsConnector</c> 1 = MCS, 4 = rMCS, 5 = xMCS),
     /// whose surrounding values (AC=1, DC=2, DC_BPT=6) match ours exactly — see <c>docs/roadmap.md</c>.
-    /// <b>Not validated against a counterpart:</b> the numbers agree with the one maintained implementation
-    /// that has MCS, but nothing here has been byte-diffed or run live, and the physical limits below are
-    /// plausible headline figures, not values read out of the amendment text.
+    /// <b>The ids are validated, the envelope is not.</b> On 2026-08-05 three complete sessions ran against
+    /// everest-core 2026.02.1's MCS SIL config: their <c>Evse15118D20</c> read service id 8 back as MCS and
+    /// carried the session through on the DC message set, which settles the catalogue. The physical limits
+    /// below remain plausible headline figures rather than values read out of the amendment text, and
+    /// nothing has yet held a counterpart to them — their SIL clamps to its own 22 kW whatever we offer.
     /// </para>
     /// </summary>
     public sealed class Secc20Mcs(TimeSpan sequenceTimeout, TimeProvider clock) : Secc20Dc(sequenceTimeout, clock)

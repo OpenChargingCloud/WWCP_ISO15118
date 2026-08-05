@@ -82,8 +82,31 @@ namespace Vanaheimr.V2G.Simulation.Transport
         /// Applied via <see cref="CipherSuitesPolicy"/>, which .NET supports on macOS/Linux but <b>not</b> on
         /// Windows/Schannel (suites are configured system-wide there). Where it cannot be applied the transport
         /// leaves the suites unpinned rather than throwing — see
-        /// <see cref="TlsPlatform.SupportsCipherSuitePinning"/>.
+        /// <see cref="TlsPlatform.SupportsCipherSuitePinning"/>. That is a property of <i>this</i> backend:
+        /// <see cref="TlsBackend.BouncyCastle"/> pins the -20 pair by construction on every platform, Windows
+        /// included, so a session that must <i>demonstrate</i> the suite profile asks for that backend.
         /// </para></summary>
         public IReadOnlyList<TlsCipherSuite>? CipherSuites { get; init; }
+
+        /// <summary>Which TLS implementation carries this session. Default <see cref="TlsBackend.Auto"/>:
+        /// <c>SslStream</c>, except where its TLS 1.3 is missing (macOS) — see <see cref="TlsPlatform.ResolveBackend"/>.
+        /// <para>
+        /// Set it to <see cref="TlsBackend.BouncyCastle"/> for the ISO 15118-20 profile the platform stack
+        /// cannot serve. <b>The case that forces it on Windows:</b> Schannel builds and validates the client
+        /// chain <i>locally</i> before the handshake and refuses to present one whose root the machine does not
+        /// trust ("Die Zertifikatkette wurde von einer nicht vertrauenswürdigen Zertifizierungsstelle ausgestellt")
+        /// — so a -20 mutual-TLS session against a test PKI cannot leave the host unless that throwaway root is
+        /// installed machine-wide. The managed backend has no trust store in the path and simply sends the chain,
+        /// which is what -2/-20 expect: path building is the peer's job. Windows also gains the suite pin and
+        /// secp521r1 there, both unavailable on Schannel.
+        /// </para>
+        /// <para>
+        /// It signs in managed code, so the leaf's private key must be exportable — import PKCS#12 with
+        /// <c>X509KeyStorageFlags.Exportable</c>; a key held by the Windows store, the macOS Keychain or an HSM
+        /// cannot be bridged and fails loudly. Where the caller cannot be edited (an interop run driving the CLI),
+        /// <c>V2G_TLS_BACKEND=BouncyCastle</c> selects it for sessions that left this at
+        /// <see cref="TlsBackend.Auto"/>; an explicit value here always wins over the environment.
+        /// </para></summary>
+        public TlsBackend Backend { get; init; } = TlsBackend.Auto;
     }
 }

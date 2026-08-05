@@ -479,8 +479,24 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
             // request on the DC set — refused two exchanges later, for a reason that no longer names the
             // cause. Falling back *within* the message set keeps the case this is really for (a megawatt
             // truck at an ordinary DC charger) and drops the one it never was.
-            var match = offered.FirstOrDefault(s => preferred.Contains(s.ServiceID))
-                     ?? offered.FirstOrDefault(s => drivable.Contains(s.ServiceID));
+            //
+            // Both lookups walk *our* list and ask whether the station offers that id — not the other way
+            // round. It used to read `offered.FirstOrDefault(s => preferred.Contains(s.ServiceID))`, which
+            // walks the station's catalogue and takes the first entry we happen to accept: our order was
+            // never read, `PreferredEnergyServiceIds` was a set rather than the ranking its summary claims,
+            // and the station decided. A live run against EVerest found it — a catalogue of [8, 9] handed an
+            // EVCC listing { 9, 8 } the service 8 (2026-08-05-everest-mcs-bpt). This project holds EVerest's
+            // IsoMux to exactly this rule for the SAP Priority *we* send, which is reason enough not to be
+            // the same way round the other way.
+            var match = FirstOffered(preferred) ?? FirstOffered(drivable);
+
+            ServiceType? FirstOffered(IReadOnlyList<ushort> ranked)
+            {
+                foreach (var id in ranked)
+                    if (offered.FirstOrDefault(s => s.ServiceID == id) is { } found)
+                        return found;
+                return null;
+            }
 
             if (match is null)
                 throw new SessionAborted(

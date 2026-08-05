@@ -52,11 +52,44 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         protected virtual Dc20.RationalNumberType MaxVoltage => Rat(500);                  // 500 V
         protected virtual Dc20.RationalNumberType MinVoltage => Rat(50);
 
+        /// <summary>
+        /// Answers DC charge-parameter discovery in kind — a BPT request gets discharge limits back, a
+        /// charge-only one does not — after checking that the direction the EV just declared is the one the
+        /// service it selected actually carries.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The check is the newer half, and it came from being on the other end of it.</b> Answering in
+        /// kind alone is not enough: it makes the EV's charge-parameter message self-consistent and says
+        /// nothing about whether it agrees with ServiceSelection two exchanges earlier. So a session could
+        /// negotiate DC_BPT or MCS_BPT and then charge one way under it, and this station would serve it to
+        /// completion. everest-core 2026.02.1 refuses exactly that session with
+        /// <c>FAILED_WrongChargeParameter</c> — it refused ours
+        /// (<c>docs/interop-runs/2026-08-05-everest-mcs-bpt/</c>) — and it is right: ISO 15118-20 carries the
+        /// direction in the polymorphic type, so the selected service binds every message that follows.
+        /// </para>
+        /// <para>
+        /// The refusal still carries a charge-parameter mode because the schema makes it mandatory, and it is
+        /// built <i>in kind with the request</i> — which is what their station does too (its refusal frame is
+        /// the plain type, shorter than a BPT one, in answer to our plain request). On a refusal the two
+        /// readings of "in kind" point different ways; matching the request is the one an implementation that
+        /// has actually sent this response chose, and the EV aborts on the code without reading the mode.
+        /// </para>
+        /// <para>
+        /// Scoped to charge-parameter discovery, which is where the coupling was witnessed being enforced.
+        /// The charge loop's control mode is checked only for the Scheduled/Dynamic axis
+        /// (see <see cref="HandleChargeLoop"/>), and a session whose loop control mode contradicted its
+        /// charge parameters would get past this — deliberately not guessed at without a counterparty
+        /// that says so.
+        /// </para>
+        /// </remarks>
         protected override (MessageSet Set, object Response) HandleChargeParameterDiscovery(object request)
         {
             var req = (Dc20.DC_ChargeParameterDiscoveryReq)request;
+            bool bidirectionalRequest = req.DC_CPDReqEnergyTransferMode is Dc20.BPT_DC_CPDReqEnergyTransferModeType;
+
             // Bidirectional (BPT) EV → respond with discharge limits too; else the charge-only mode.
-            Dc20.DC_CPDResEnergyTransferModeType mode = req.DC_CPDReqEnergyTransferMode is Dc20.BPT_DC_CPDReqEnergyTransferModeType
+            Dc20.DC_CPDResEnergyTransferModeType mode = bidirectionalRequest
                 ? new Dc20.BPT_DC_CPDResEnergyTransferModeType(
                     EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
                     EVSEMaximumChargeCurrent: MaxCurrent, EVSEMinimumChargeCurrent: Rat(0),
@@ -67,7 +100,12 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
                     EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
                     EVSEMaximumChargeCurrent: MaxCurrent, EVSEMinimumChargeCurrent: Rat(0),
                     EVSEMaximumVoltage: MaxVoltage, EVSEMinimumVoltage: MinVoltage, EVSEPowerRampLimitation: null);
-            return (MessageSet.Iso20DC, new Dc20.DC_ChargeParameterDiscoveryRes(SessionCtx.ToDcHeader(), Dc20.ResponseCode.OK, mode));
+
+            var responseCode = bidirectionalRequest == BidirectionalServiceSelected
+                                   ? Dc20.ResponseCode.OK
+                                   : Dc20.ResponseCode.FAILED_WrongChargeParameter;
+
+            return (MessageSet.Iso20DC, new Dc20.DC_ChargeParameterDiscoveryRes(SessionCtx.ToDcHeader(), responseCode, mode));
         }
 
         protected override (MessageSet Set, object Response) HandleCableCheck(object request)

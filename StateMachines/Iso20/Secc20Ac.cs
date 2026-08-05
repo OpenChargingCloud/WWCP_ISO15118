@@ -39,11 +39,18 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         protected override bool HasPostChargeSequence => false;
         protected override IReadOnlyList<ushort> EnergyServiceIds => new ushort[] { 1, 5 };   // AC + AC_BPT
 
+        /// <summary>Answers AC charge-parameter discovery in kind, and refuses a direction that contradicts
+        /// the selected service — see <see cref="Secc20Dc.HandleChargeParameterDiscovery"/> for the rule, the
+        /// live refusal it came from, and why the mode is still built in kind on a refusal. The same rule
+        /// applies here for the same reason: AC_BPT (service 5) is a bidirectional service, and this station
+        /// advertises it.</summary>
         protected override (MessageSet Set, object Response) HandleChargeParameterDiscovery(object request)
         {
             var req = (Ac20.AC_ChargeParameterDiscoveryReq)request;
+            bool bidirectionalRequest = req.AC_CPDReqEnergyTransferMode is Ac20.BPT_AC_CPDReqEnergyTransferModeType;
+
             // Bidirectional (BPT) EV → advertise discharge power too; else the charge-only mode.
-            Ac20.AC_CPDResEnergyTransferModeType mode = req.AC_CPDReqEnergyTransferMode is Ac20.BPT_AC_CPDReqEnergyTransferModeType
+            Ac20.AC_CPDResEnergyTransferModeType mode = bidirectionalRequest
                 ? new Ac20.BPT_AC_CPDResEnergyTransferModeType(
                     EVSEMaximumChargePower: Rat(2_200, exponent: 1), EVSEMaximumChargePower_L2: null, EVSEMaximumChargePower_L3: null,
                     EVSEMinimumChargePower: Rat(0), EVSEMinimumChargePower_L2: null, EVSEMinimumChargePower_L3: null,
@@ -56,7 +63,12 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
                     EVSEMinimumChargePower: Rat(0), EVSEMinimumChargePower_L2: null, EVSEMinimumChargePower_L3: null,
                     EVSENominalFrequency: Rat(50), MaximumPowerAsymmetry: null, EVSEPowerRampLimitation: null,
                     EVSEPresentActivePower: null, EVSEPresentActivePower_L2: null, EVSEPresentActivePower_L3: null);
-            return (MessageSet.Iso20AC, new Ac20.AC_ChargeParameterDiscoveryRes(SessionCtx.ToAcHeader(), Ac20.ResponseCode.OK, mode));
+
+            var responseCode = bidirectionalRequest == BidirectionalServiceSelected
+                                   ? Ac20.ResponseCode.OK
+                                   : Ac20.ResponseCode.FAILED_WrongChargeParameter;
+
+            return (MessageSet.Iso20AC, new Ac20.AC_ChargeParameterDiscoveryRes(SessionCtx.ToAcHeader(), responseCode, mode));
         }
 
         protected override (MessageSet Set, object Response) HandleChargeLoop(object request)

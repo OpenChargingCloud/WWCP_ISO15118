@@ -31,10 +31,20 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
 
         protected override async Task RunChargeParameterDiscoveryAsync(CancellationToken ct)
         {
-            var req = new Ac20.AC_ChargeParameterDiscoveryReq(SessionCtx.ToAcHeader(),
-                new Ac20.AC_CPDReqEnergyTransferModeType(
-                    EVMaximumChargePower: Rat(2_200, 1), EVMaximumChargePower_L2: null, EVMaximumChargePower_L3: null,
-                    EVMinimumChargePower: Rat(0), EVMinimumChargePower_L2: null, EVMinimumChargePower_L3: null));
+            // Asking in kind on the direction axis — see Evcc20Dc for the same split and why. AC's BPT
+            // subtype is the charge-only one plus a discharge power per phase; this EV is single-phase and
+            // symmetric, so L2/L3 stay null on both halves and the discharge envelope mirrors the charge one.
+            Ac20.AC_CPDReqEnergyTransferModeType transferMode = BidirectionalService
+                ? new Ac20.BPT_AC_CPDReqEnergyTransferModeType(
+                      EVMaximumChargePower: Rat(2_200, 1), EVMaximumChargePower_L2: null, EVMaximumChargePower_L3: null,
+                      EVMinimumChargePower: Rat(0), EVMinimumChargePower_L2: null, EVMinimumChargePower_L3: null,
+                      EVMaximumDischargePower: Rat(2_200, 1), EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
+                      EVMinimumDischargePower: Rat(0), EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null)
+                : new Ac20.AC_CPDReqEnergyTransferModeType(
+                      EVMaximumChargePower: Rat(2_200, 1), EVMaximumChargePower_L2: null, EVMaximumChargePower_L3: null,
+                      EVMinimumChargePower: Rat(0), EVMinimumChargePower_L2: null, EVMinimumChargePower_L3: null);
+
+            var req = new Ac20.AC_ChargeParameterDiscoveryReq(SessionCtx.ToAcHeader(), transferMode);
 
             var (set, message) = await ExchangeRaw(MessageSet.Iso20AC,
                 dest => Ac20.AcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct);
@@ -51,9 +61,13 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
 
         protected override async Task RunChargeLoopIterationAsync(CancellationToken ct)
         {
-            // Asking in kind, the mirror of [V2G20-1600] — see Evcc20Dc for the same split and why.
-            Ac20.CLReqControlModeType controlMode = PreferDynamicControlMode
-                ? new Ac20.Dynamic_AC_CLReqControlModeType(
+            // Asking in kind, the mirror of [V2G20-1600], on both axes — see Evcc20Dc for the same split
+            // and why.
+            Ac20.CLReqControlModeType controlMode = (PreferDynamicControlMode, BidirectionalService) switch
+            {
+                // The Dynamic discharge pair is *mandatory* in the BPT subtype: a station steering a
+                // bidirectional session needs to know how far either way.
+                (true, true) => new Ac20.BPT_Dynamic_AC_CLReqControlModeType(
                       DepartureTime:            DepartureTime,
                       EVTargetEnergyRequest:    Rat(30, 3),   // 30 kWh
                       EVMaximumEnergyRequest:   Rat(60, 3),   // 60 kWh
@@ -65,10 +79,42 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
                       EVPresentActivePower:     PresentActivePower,
                       EVPresentActivePower_L2:  null, EVPresentActivePower_L3: null,
                       EVPresentReactivePower:   Rat(0),
-                      EVPresentReactivePower_L2: null, EVPresentReactivePower_L3: null)
-                : new Ac20.Scheduled_AC_CLReqControlModeType(
+                      EVPresentReactivePower_L2: null, EVPresentReactivePower_L3: null,
+                      EVMaximumDischargePower:  Rat(11, 3),   // 11 kW back, the charge envelope mirrored
+                      EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
+                      EVMinimumDischargePower:  Rat(1,  3),
+                      EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null,
+                      EVMaximumV2XEnergyRequest: null, EVMinimumV2XEnergyRequest: null),
+
+                (true, false) => new Ac20.Dynamic_AC_CLReqControlModeType(
+                      DepartureTime:            DepartureTime,
+                      EVTargetEnergyRequest:    Rat(30, 3),   // 30 kWh
+                      EVMaximumEnergyRequest:   Rat(60, 3),   // 60 kWh
+                      EVMinimumEnergyRequest:   Rat(10, 3),   // 10 kWh
+                      EVMaximumChargePower:     Rat(11, 3),   // 11 kW
+                      EVMaximumChargePower_L2:  null, EVMaximumChargePower_L3: null,
+                      EVMinimumChargePower:     Rat(1,  3),
+                      EVMinimumChargePower_L2:  null, EVMinimumChargePower_L3: null,
+                      EVPresentActivePower:     PresentActivePower,
+                      EVPresentActivePower_L2:  null, EVPresentActivePower_L3: null,
+                      EVPresentReactivePower:   Rat(0),
+                      EVPresentReactivePower_L2: null, EVPresentReactivePower_L3: null),
+
+                // Scheduled's limits are all optional, so these two arms differ only in the discharge
+                // envelope — which is the whole of what makes the request bidirectional, hence stated
+                // rather than left null.
+                (false, true) => new Ac20.BPT_Scheduled_AC_CLReqControlModeType(
                       null, null, null, null, null, null, null, null, null,
-                      EVPresentActivePower: PresentActivePower, null, null, null, null, null);
+                      EVPresentActivePower: PresentActivePower, null, null, null, null, null,
+                      EVMaximumDischargePower: Rat(2_200, 1),   // 22 kW
+                      EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
+                      EVMinimumDischargePower: Rat(0),
+                      EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null),
+
+                _ => new Ac20.Scheduled_AC_CLReqControlModeType(
+                      null, null, null, null, null, null, null, null, null,
+                      EVPresentActivePower: PresentActivePower, null, null, null, null, null),
+            };
 
             var req = new Ac20.AC_ChargeLoopReq(SessionCtx.ToAcHeader(), DisplayParameters: null,
                 MeterInfoRequested: false, CLReqControlMode: controlMode);

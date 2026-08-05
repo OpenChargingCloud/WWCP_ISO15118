@@ -24,6 +24,11 @@ using Vanaheimr.V2G.Simulation.Framing;
 using Vanaheimr.V2G.Simulation.Session;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
+// Each -20 message set carries its own generated ResponseCode and V2GResponseType; IsFailure has to see
+// all three — the same reason Evcc20Base.RefuseOnFailure aliases them.
+using Ac20 = cloud.charging.open.protocols.ISO15118_20.AC.Generated;
+using Dc20 = cloud.charging.open.protocols.ISO15118_20.DC.Generated;
+
 namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
 {
     /// <summary>Outcome of validating a live Plug &amp; Charge <c>AuthorizationReq</c>: whether the EV echoed our
@@ -342,9 +347,25 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
                     "(would be ResponseCode.FAILED_SequenceError)"),
             };
 
-            Phase = next;
+            // A response from the FAILED family ends the session, whichever handler produced it: the station
+            // has just said it is done, and there is no phase to advance to. The mirror of the EVCC's
+            // Evcc20Base.RefuseOnFailure, and it arrived at the same time as the first handler that can
+            // actually answer FAILED — until then no station of ours ever sent one, so the rule had nothing
+            // to govern. Same >= FAILED family comparison, over all three generated ResponseCode enums.
+            Phase = IsFailure(response) ? Phase20.Done : next;
             return (respSet, response);
         }
+
+        /// <summary>Whether a response carries a code from the <c>FAILED</c> family (OK 0–4, WARNING 5–20,
+        /// FAILED 21 and up — the schema orders the enumeration by family, which
+        /// <c>Evcc20FailureHandlingTests.TheResponseCodeFamiliesAreContiguousAndOrdered</c> pins).</summary>
+        private static bool IsFailure(object response) => response switch
+        {
+            V2GResponseType      r => r.ResponseCode >= ResponseCode.FAILED,
+            Ac20.V2GResponseType r => r.ResponseCode >= Ac20.ResponseCode.FAILED,
+            Dc20.V2GResponseType r => r.ResponseCode >= Dc20.ResponseCode.FAILED,
+            _                      => false,
+        };
 
         /// <summary>Reads/handles/replies over <paramref name="stream"/> until the session reaches <see cref="Phase20.Done"/>.</summary>
         public async Task RunAsync(Stream stream, CancellationToken ct = default)
@@ -592,8 +613,30 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
                     : new[] { scheduled, dynamic }));
         }
 
-        private ServiceSelectionRes SvcSelection(ServiceSelectionReq req) =>
-            new(SessionCtx.ToCommonHeader(), ResponseCode.OK);
+        /// <summary>The energy-transfer service the EV selected in ServiceSelection; 0 before that phase (and
+        /// re-set from scratch by a service renegotiation, which re-enters ServiceDiscovery). Kept because the
+        /// selected service governs what the rest of the session may say — see
+        /// <see cref="BidirectionalServiceSelected"/>.</summary>
+        protected ushort SelectedEnergyServiceId { get; private set; }
+
+        /// <summary>
+        /// Whether the selected service is bidirectional, and so whether the charge-parameter and
+        /// control-mode types the EV sends from here on must be the <c>BPT_*</c> ones.
+        /// </summary>
+        /// <remarks>
+        /// The SECC's half of the same rule the EVCC applies to decide what to <i>send</i>; here it decides
+        /// what the station will <i>accept</i>. Consulted by both charge-parameter handlers —
+        /// see <see cref="Secc20Dc.HandleChargeParameterDiscovery"/> for what a mismatch costs and why the
+        /// check is there rather than nowhere.
+        /// </remarks>
+        protected bool BidirectionalServiceSelected
+            => EnergyTransferService.IsBidirectional(SelectedEnergyServiceId);
+
+        private ServiceSelectionRes SvcSelection(ServiceSelectionReq req)
+        {
+            SelectedEnergyServiceId = req.SelectedEnergyTransferService.ServiceID;
+            return new(SessionCtx.ToCommonHeader(), ResponseCode.OK);
+        }
 
         private ScheduleExchangeRes ScheduleExchange(ScheduleExchangeReq req)
         {

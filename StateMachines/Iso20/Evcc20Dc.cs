@@ -51,11 +51,25 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
 
         protected override async Task RunChargeParameterDiscoveryAsync(CancellationToken ct)
         {
-            var req = new Dc20.DC_ChargeParameterDiscoveryReq(SessionCtx.ToDcHeader(),
-                new Dc20.DC_CPDReqEnergyTransferModeType(
-                    EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
-                    EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
-                    EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: 80));
+            // Asking in kind on the direction axis (see Evcc20Base.BidirectionalService): under a BPT service
+            // the EV declares what it can take *and* what it can give back, in the BPT_ subtype. The discharge
+            // envelope mirrors the charge one — this vehicle is symmetric, which is the common case and keeps
+            // the two halves from drifting apart as separate literals. Both arms read the virtual envelope
+            // above, so an MCS truck that discharges declares megawatts in *both* directions rather than
+            // raising only the half it charges through.
+            Dc20.DC_CPDReqEnergyTransferModeType transferMode = BidirectionalService
+                ? new Dc20.BPT_DC_CPDReqEnergyTransferModeType(
+                      EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
+                      EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
+                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: 80,
+                      EVMaximumDischargePower: MaxPower, EVMinimumDischargePower: Rat(0),
+                      EVMaximumDischargeCurrent: MaxCurrent, EVMinimumDischargeCurrent: Rat(0))
+                : new Dc20.DC_CPDReqEnergyTransferModeType(
+                      EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
+                      EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
+                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: 80);
+
+            var req = new Dc20.DC_ChargeParameterDiscoveryReq(SessionCtx.ToDcHeader(), transferMode);
 
             var (set, message) = await ExchangeRaw(MessageSet.Iso20DC,
                 dest => Dc20.DcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct);
@@ -84,11 +98,30 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
 
         protected override async Task RunChargeLoopIterationAsync(CancellationToken ct)
         {
-            // Asking in kind, the mirror of [V2G20-1600]: the request's control mode must be the one the
-            // session negotiated. Dynamic states what the battery needs and what the car can take, and lets
-            // the station choose the setpoint; Scheduled names the setpoint itself.
-            Dc20.CLReqControlModeType controlMode = PreferDynamicControlMode
-                ? new Dc20.Dynamic_DC_CLReqControlModeType(
+            // Asking in kind, the mirror of [V2G20-1600], on both axes at once: the request's control mode
+            // must be the one the session negotiated (Dynamic states what the battery needs and what the car
+            // can take, and lets the station choose the setpoint; Scheduled names the setpoint itself), and
+            // its direction must be the one the selected service carries.
+            Dc20.CLReqControlModeType controlMode = (PreferDynamicControlMode, BidirectionalService) switch
+            {
+                // The Dynamic discharge triple is *mandatory* in the BPT subtype, and rightly: a station
+                // asked to steer a bidirectional session cannot do it without knowing how far either way.
+                (true, true) => new Dc20.BPT_Dynamic_DC_CLReqControlModeType(
+                      DepartureTime:             DepartureTime,
+                      EVTargetEnergyRequest:     Rat(30, 3),    // 30 kWh
+                      EVMaximumEnergyRequest:    Rat(60, 3),    // 60 kWh
+                      EVMinimumEnergyRequest:    Rat(10, 3),    // 10 kWh
+                      EVMaximumChargePower:      LoopMaxPower,
+                      EVMinimumChargePower:      Rat(1,  3),    //  1 kW
+                      EVMaximumChargeCurrent:    LoopMaxCurrent,
+                      EVMaximumVoltage:          MaxVoltage,
+                      EVMinimumVoltage:          Rat(200),
+                      EVMaximumDischargePower:   LoopMaxPower,  // the charge request mirrored
+                      EVMinimumDischargePower:   Rat(1,  3),    //  1 kW
+                      EVMaximumDischargeCurrent: LoopMaxCurrent,
+                      EVMaximumV2XEnergyRequest: null, EVMinimumV2XEnergyRequest: null),
+
+                (true, false) => new Dc20.Dynamic_DC_CLReqControlModeType(
                       DepartureTime:          DepartureTime,
                       EVTargetEnergyRequest:  Rat(30, 3),    // 30 kWh
                       EVMaximumEnergyRequest: Rat(60, 3),    // 60 kWh
@@ -97,10 +130,23 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
                       EVMinimumChargePower:   Rat(1,  3),    //  1 kW
                       EVMaximumChargeCurrent: LoopMaxCurrent,
                       EVMaximumVoltage:       MaxVoltage,
-                      EVMinimumVoltage:       Rat(200))
-                : new Dc20.Scheduled_DC_CLReqControlModeType(
+                      EVMinimumVoltage:       Rat(200)),
+
+                // Scheduled's limits are all optional, charge and discharge alike, so the two arms below
+                // differ only in the discharge envelope — which is the whole of what makes this request
+                // bidirectional. Stating it rather than leaving it null: a BPT request that names no
+                // discharge limit tells the station nothing the plain type would not have.
+                (false, true) => new Dc20.BPT_Scheduled_DC_CLReqControlModeType(
                       null, null, null, EVTargetCurrent: Rat(120), EVTargetVoltage: Rat(400),
-                      null, null, null, null, null);
+                      null, null, null, null, null,
+                      EVMaximumDischargePower:   MaxPower,
+                      EVMinimumDischargePower:   Rat(0),
+                      EVMaximumDischargeCurrent: MaxCurrent),
+
+                _ => new Dc20.Scheduled_DC_CLReqControlModeType(
+                      null, null, null, EVTargetCurrent: Rat(120), EVTargetVoltage: Rat(400),
+                      null, null, null, null, null),
+            };
 
             var req = new Dc20.DC_ChargeLoopReq(SessionCtx.ToDcHeader(), DisplayParameters: null, MeterInfoRequested: false,
                 EVPresentVoltage: Rat(400), CLReqControlMode: controlMode);

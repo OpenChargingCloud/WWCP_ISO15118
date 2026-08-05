@@ -63,6 +63,37 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         /// distinguishes an MCS session from a DC one, the two being identical on the wire otherwise.</summary>
         public ushort SelectedEnergyServiceId { get; private set; }
 
+        /// <summary>
+        /// Whether this session negotiated a <b>bidirectional</b> service, and so whether the DC/AC hooks
+        /// below must build the <c>BPT_*</c> charge-parameter and control-mode types instead of the
+        /// charge-only ones.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Asking in kind</b>, the same rule <see cref="RunChargeLoopIterationAsync"/> already applies to
+        /// Scheduled vs. Dynamic, read for the other axis: -20 carries the direction in the polymorphic type,
+        /// so the service the session selected decides which type every subsequent message may use. It is a
+        /// property of the session, not a setting — hence a derived value off
+        /// <see cref="SelectedEnergyServiceId"/> and not a knob, and hence no way to select MCS_BPT and then
+        /// charge one way under it.
+        /// </para>
+        /// <para>
+        /// It reads <see cref="SelectedEnergyServiceId"/>, so it is only meaningful from
+        /// <see cref="RunChargeParameterDiscoveryAsync"/> onwards — service selection is two exchanges
+        /// earlier in <see cref="RunAsync"/>, and every hook that consults it runs after.
+        /// </para>
+        /// <para>
+        /// <b>Found live.</b> Until this existed no <c>Evcc20*</c> built a <c>BPT_*</c> request at all: the
+        /// bidirectional work had been done from the station side, where the direction is driven by what the
+        /// EV sends, and what our EV sent was always charge-only. So our EVCC could select MCS_BPT from
+        /// everest-core 2026.02.1's catalogue and was then refused <c>FAILED_WrongChargeParameter</c> at
+        /// <c>DC_ChargeParameterDiscoveryRes</c> — correctly
+        /// (<c>docs/interop-runs/2026-08-05-everest-mcs-bpt/</c> in the conformance-tests repository).
+        /// </para>
+        /// </remarks>
+        protected bool BidirectionalService
+            => EnergyTransferService.IsBidirectional(SelectedEnergyServiceId);
+
         /// <summary>Contract credentials enabling Plug &amp; Charge; <c>null</c> (default) authorizes via EIM.</summary>
         public PncEvccOptions? Pnc { get; set; }
 
@@ -445,10 +476,11 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         // MCS=8, MCS_BPT=9. MCS is the DC message set under different ids, so it is *drivable* by a DC
         // EVCC even when it is not what that EVCC would ask for first — which is the difference the two
         // lists below carry.
-        private static readonly ushort[] DcServiceIds     = { 2, 6 };
-        private static readonly ushort[] AcServiceIds     = { 1, 5 };
-        private static readonly ushort[] DcDrivableIds    = { 2, 6, 8, 9 };
-        private static readonly ushort[] AcDrivableIds    = { 1, 5 };
+        private static readonly ushort[] DcServiceIds     = { EnergyTransferService.DC, EnergyTransferService.DC_BPT };
+        private static readonly ushort[] AcServiceIds     = { EnergyTransferService.AC, EnergyTransferService.AC_BPT };
+        private static readonly ushort[] DcDrivableIds    = { EnergyTransferService.DC,  EnergyTransferService.DC_BPT,
+                                                              EnergyTransferService.MCS, EnergyTransferService.MCS_BPT };
+        private static readonly ushort[] AcDrivableIds    = { EnergyTransferService.AC, EnergyTransferService.AC_BPT };
 
         /// <summary>Energy-transfer service ids this EVCC will accept from the SECC's catalogue, best first.
         /// Virtual so an MCS vehicle can ask for the megawatt services instead — see

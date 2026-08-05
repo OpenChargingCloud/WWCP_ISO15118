@@ -106,8 +106,8 @@ namespace Vanaheimr.V2G.Simulation.Transport
 
             if (_tls is null) return stream;
 
-            // macOS: see the matching note in TcpV2GClient — TLS-1.3-only sessions run on BouncyCastle.
-            if (TlsPlatform.NeedsBouncyCastleFallback(_tls))
+            // Caller's choice, or the platform's — see the matching note in TcpV2GClient.
+            if (TlsPlatform.ResolveBackend(_tls) == TlsBackend.BouncyCastle)
                 return await BcTlsTransport.AuthenticateServerAsync(stream, TlsPlatform.ToBcServerOptions(_tls), ct).ConfigureAwait(false);
 
             var ssl = new SslStream(stream, leaveInnerStreamOpen: false,

@@ -39,9 +39,11 @@ namespace Vanaheimr.V2G.Simulation.Transport
 
             if (tls is null) return stream;
 
-            // macOS: SslStream cannot do TLS 1.3 at all, so a TLS-1.3-only session goes to the managed
-            // BouncyCastle stack rather than being silently downgraded to 1.2 (see TlsPlatform).
-            if (TlsPlatform.NeedsBouncyCastleFallback(tls))
+            // Either the caller asked for the managed stack (TlsOptions.Backend / V2G_TLS_BACKEND — the way a
+            // -20 mutual-TLS client presents a test-PKI chain on Windows, which Schannel refuses to do), or
+            // this platform's SslStream cannot do TLS 1.3 at all and a 1.3-only session would otherwise be
+            // silently downgraded to a non-conformant 1.2 (macOS). See TlsPlatform.
+            if (TlsPlatform.ResolveBackend(tls) == TlsBackend.BouncyCastle)
                 return await BcTlsTransport.AuthenticateClientAsync(stream, TlsPlatform.ToBcClientOptions(tls), ct).ConfigureAwait(false);
 
             var ssl = new SslStream(stream, leaveInnerStreamOpen: false, tls.ServerCertificateValidation);

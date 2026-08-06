@@ -177,6 +177,42 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         /// </remarks>
         public Boolean PreferDynamicControlMode { get; set; }
 
+        /// <summary>
+        /// Ask for the <b>bidirectional</b> entry of whatever catalogue this vehicle wants — AC_BPT (5)
+        /// ahead of AC (1), DC_BPT (6) ahead of DC (2), MCS_BPT (9) ahead of MCS (8).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A car that can give energy back has a preference between the two entries a bidirectional station
+        /// advertises, and nothing here could state it: <see cref="PreferredEnergyServiceIds"/> lists the
+        /// unidirectional service first, so against a station offering both, the BPT entry was never
+        /// selected. It sits beside <see cref="PreferDynamicControlMode"/> rather than in a subclass because
+        /// it is the same kind of thing — a choice the vehicle makes among what the station offers — and
+        /// because it has to hold for all three catalogues at once.
+        /// </para>
+        /// <para>
+        /// <b>It replaces a probe that could only reach one of them.</b> The conformance harness carried an
+        /// <c>McsBptFirstEvcc</c> deriving from <see cref="Evcc20Mcs"/> with the list written out reversed.
+        /// That got to MCS_BPT and no further: the AC and DC rankings live on this class, and
+        /// <see cref="Evcc20Ac"/> is sealed, so the same trick did not generalise. One flag does, without a
+        /// subclass per catalogue and without unsealing anything.
+        /// </para>
+        /// <para>
+        /// <b>Selecting a BPT service is itself what makes the session bidirectional</b>, not a second
+        /// switch: <see cref="BidirectionalService"/> derives the direction from the selected id, and
+        /// <c>Evcc20Ac</c> / <c>Evcc20Dc</c> then build the <c>BPT_*</c> request types. A station enforces
+        /// that coupling, and EVerest's taught it to us the hard way — a plain
+        /// <c>DC_CPDReqEnergyTransferModeType</c> sent under service 9 was refused with
+        /// <c>FAILED_WrongChargeParameter</c> (<c>docs/interop-runs/2026-08-05-everest-mcs-bpt/</c>).
+        /// </para>
+        /// <para>
+        /// A station advertising no bidirectional service is unaffected. The reorder is stable and the
+        /// selection still walks our ranking asking what the station offers, so a catalogue without a BPT
+        /// entry lands on the same service it did before.
+        /// </para>
+        /// </remarks>
+        public Boolean PreferBidirectionalService { get; set; }
+
         /// <summary>When the car leaves, as a -20 <c>DepartureTime</c> (seconds from the session's time
         /// anchor). Dynamic mode only: it is the deadline the station schedules against.</summary>
         public UInt32 DepartureTime { get; set; } = 3600;
@@ -484,7 +520,8 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
 
         /// <summary>Energy-transfer service ids this EVCC will accept from the SECC's catalogue, best first.
         /// Virtual so an MCS vehicle can ask for the megawatt services instead — see
-        /// <see cref="Evcc20Mcs"/>.</summary>
+        /// <see cref="Evcc20Mcs"/>. <see cref="PreferBidirectionalService"/> reorders whatever this returns,
+        /// so a subclass states <i>which</i> catalogue it wants and never has to write it out twice.</summary>
         protected virtual IReadOnlyList<ushort> PreferredEnergyServiceIds
             => EnergyMode == PowerMode.Dc ? DcServiceIds : AcServiceIds;
 
@@ -503,8 +540,18 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
             if (offered.Count == 0)
                 throw new SessionAborted("ServiceDiscovery: the SECC advertised no energy-transfer service.");
 
-            var preferred = PreferredEnergyServiceIds;
-            var drivable  = DrivableEnergyServiceIds;
+            var preferred = Ranked(PreferredEnergyServiceIds);
+            var drivable  = Ranked(DrivableEnergyServiceIds);
+
+            // PreferBidirectionalService, applied here rather than in each list, so it holds for the
+            // overridden ones too — Evcc20Mcs's { 8, 9 } becomes { 9, 8 } by the same rule that turns DC's
+            // { 2, 6 } into { 6, 2 }. OrderBy is a *stable* sort, which is the whole trick: entries keep
+            // their relative order within each half, so this promotes the bidirectional services without
+            // inventing an order among them, and is a no-op on a list that has none.
+            IReadOnlyList<ushort> Ranked(IReadOnlyList<ushort> ids)
+                => PreferBidirectionalService
+                       ? [.. ids.OrderByDescending(EnergyTransferService.IsBidirectional)]
+                       : ids;
 
             // First choice, then anything else on our own message set. The old fallback was `offered[0]`,
             // which for a DC car at an AC-only station selects the AC service and then sends the next

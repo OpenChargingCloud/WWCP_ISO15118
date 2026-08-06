@@ -44,7 +44,8 @@ namespace Vanaheimr.V2G.Simulation.Cli
         string? ContractCertPath, string? ContractCertPass, bool PauseResume,
         bool EndPaused, string? ResumeSessionIdHex, bool Renegotiate,
         string? TariffCertPath, string? TariffCertPass,
-        bool OfferBoth = false)
+        bool OfferBoth = false,
+        bool Mcs = false)
     {
         public static CliArgs Parse(string[] args)
         {
@@ -57,6 +58,7 @@ namespace Vanaheimr.V2G.Simulation.Cli
             var protocol = ProtocolVariant.Iso15118_2;
             var offerBoth = false;
             var mode = PowerMode.Ac;
+            var mcs  = false;
             var backend = TlsBackend.None;
             bool tls = false;
             bool noPnc = false;
@@ -90,11 +92,15 @@ namespace Vanaheimr.V2G.Simulation.Cli
                         };
                         break;
                     case "--mode":
-                        mode = args[++i] switch
+                        // "mcs" is not a third power mode: MCS rides the DC message set under
+                        // energy-transfer services 8 / 9 with a megawatt envelope, so it sets Dc and
+                        // raises a flag beside it. Only -20 has those services; Validate() says so.
+                        (mode, mcs) = args[++i] switch
                         {
-                            "ac" => PowerMode.Ac,
-                            "dc" => PowerMode.Dc,
-                            var v => throw new ArgumentException($"--mode expects ac or dc, got '{v}'."),
+                            "ac"  => (PowerMode.Ac, false),
+                            "dc"  => (PowerMode.Dc, false),
+                            "mcs" => (PowerMode.Dc, true),
+                            var v => throw new ArgumentException($"--mode expects ac, dc or mcs, got '{v}'."),
                         };
                         break;
                     case "--tls":
@@ -184,11 +190,17 @@ namespace Vanaheimr.V2G.Simulation.Cli
 
             Validate(role, connectHost, listenPort, backend, useSdp, iface, useSlac, slacListenPort, slacPeerHost, pkiDir);
 
+            // Energy-transfer services 8 / 9 exist in no other catalogue, so --mode mcs against -2 is a
+            // request that cannot be met. Refused here rather than quietly running plain DC, because a
+            // session that silently degrades is the one failure an MCS run must not produce.
+            if (mcs && protocol != ProtocolVariant.Iso15118_20)
+                throw new ArgumentException("--mode mcs is an ISO 15118-20 session; add --protocol 20.");
+
             return new CliArgs(role, connectHost, connectPort, listenPort, protocol, mode, backend,
                                useSdp, iface, preferDynamic, noPnc, useSlac, slacListenPort, slacPeerHost, slacPeerPort, pkiDir,
                                clientCertPath, clientCertPass, serverCertPath, serverCertPass, requireClientCert,
                                contractCertPath, contractCertPass, pauseResume, endPaused, resumeSessionIdHex, renegotiate,
-                               tariffCertPath, tariffCertPass, offerBoth);
+                               tariffCertPath, tariffCertPass, offerBoth, mcs);
         }
 
         private static void Validate(Role role, string? connectHost, int listenPort, TlsBackend backend,
@@ -236,10 +248,12 @@ namespace Vanaheimr.V2G.Simulation.Cli
             => int.TryParse(value, out var port) ? port : throw new ArgumentException($"{flag} expects a port number, got '{value}'.");
 
         public const string Usage =
-            "usage: evcc --connect <host:port> --protocol 2|20|both --mode ac|dc [tls/stage options]\n" +
-            "       secc --listen  <port>      --protocol 2|20|both --mode ac|dc [tls/stage options]\n" +
+            "usage: evcc --connect <host:port> --protocol 2|20|both --mode ac|dc|mcs [tls/stage options]\n" +
+            "       secc --listen  <port>      --protocol 2|20|both --mode ac|dc|mcs [tls/stage options]\n" +
             "         (both: offer/accept -20 at priority 1 and -2 at priority 2 in one handshake,\n" +
             "          then run whichever the peer settles on)\n" +
+            "         (mcs: the DC message set under energy-transfer services 8/9 with a megawatt\n" +
+            "          envelope — implies --mode dc and requires --protocol 20)\n" +
             "  TLS:   --tls | --tls-backend dotnet|bc   (bc = -20-faithful mutual TLS, needs --pki-dir <dir>)\n" +
             "         evcc --client-cert <pfx> [--client-cert-pass <pw>]  (mutual TLS on the .NET backend)\n" +
             "         secc --server-cert <pfx> [--server-cert-pass <pw>] [--require-client-cert]  (.NET backend)\n" +

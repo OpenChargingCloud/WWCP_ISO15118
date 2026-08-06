@@ -172,9 +172,12 @@ namespace Vanaheimr.V2G.Simulation.Cli
             }
             else
             {
-                Secc20Base secc = args.Mode == PowerMode.Dc
-                    ? new Secc20Dc(TimeSpan.FromSeconds(60), TimeProvider.System)
-                    : new Secc20Ac(TimeSpan.FromSeconds(60), TimeProvider.System);
+                Secc20Base secc = (args.Mode, args.Mcs) switch
+                {
+                    (PowerMode.Dc, true ) => new Secc20Mcs(TimeSpan.FromSeconds(60), TimeProvider.System),
+                    (PowerMode.Dc, false) => new Secc20Dc (TimeSpan.FromSeconds(60), TimeProvider.System),
+                    _                     => new Secc20Ac (TimeSpan.FromSeconds(60), TimeProvider.System),
+                };
                 secc.PreferDynamicControlMode = args.PreferDynamic;
                 secc.OfferPlugAndCharge       = !args.NoPnc;
                 secc.ResumeSessionId = resumeId;
@@ -187,12 +190,28 @@ namespace Vanaheimr.V2G.Simulation.Cli
                 finally
                 {
                     PrintSeccVerdicts(secc);
+                    // Which entry of our catalogue the EV picked. Only the station can report this in a
+                    // reverse run, and MCS is otherwise indistinguishable from DC on the wire.
+                    if (secc.SelectedEnergyServiceId != 0)
+                        Console.WriteLine($"Energy transfer service: {secc.SelectedEnergyServiceId} " +
+                                          $"({EnergyServiceName(secc.SelectedEnergyServiceId)}).");
                     if (secc.Renegotiations > 0)
                         Console.WriteLine($"-20 ServiceRenegotiation cycles: {secc.Renegotiations}.");
                 }
                 return secc.Paused ? secc.SessionId : null;
             }
         }
+
+        /// <summary>ISO 15118-20 Table 204, so the line above names the service instead of leaving a bare
+        /// number to be looked up.</summary>
+        private static string EnergyServiceName(ushort serviceId)
+            => serviceId switch
+               {
+                   1 => "AC",         2 => "DC",          3 => "WPT",     4 => "DC_ACDP",
+                   5 => "AC_BPT",     6 => "DC_BPT",      7 => "DC_ACDP_BPT",
+                   8 => "MCS",        9 => "MCS_BPT",    10 => "AC_DER",
+                   _ => "not in Table 204 as we read it",
+               };
 
         private static void PrintSeccVerdicts(Secc20Base secc)
         {
@@ -352,9 +371,12 @@ namespace Vanaheimr.V2G.Simulation.Cli
             }
             else
             {
-                Evcc20Base evcc = args.Mode == PowerMode.Dc
-                    ? new Evcc20Dc(stream, TimeProvider.System, new TaskAsyncDelay(), TimeSpan.FromSeconds(2))
-                    : new Evcc20Ac(stream, TimeProvider.System, new TaskAsyncDelay(), TimeSpan.FromSeconds(2));
+                Evcc20Base evcc = (args.Mode, args.Mcs) switch
+                {
+                    (PowerMode.Dc, true ) => new Evcc20Mcs(stream, TimeProvider.System, new TaskAsyncDelay(), TimeSpan.FromSeconds(2)),
+                    (PowerMode.Dc, false) => new Evcc20Dc (stream, TimeProvider.System, new TaskAsyncDelay(), TimeSpan.FromSeconds(2)),
+                    _                     => new Evcc20Ac (stream, TimeProvider.System, new TaskAsyncDelay(), TimeSpan.FromSeconds(2)),
+                };
                 evcc.StopMode = pause ? cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Pause
                                       : cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Terminate;
                 evcc.ResumeSessionId = resumeId;

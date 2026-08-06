@@ -47,8 +47,8 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
     /// <summary>
     /// The charge point (SECC) side of an ISO 15118-2 session — a <b>sequence-guarded</b> responder. It
     /// advances through the charging state machine and only accepts the request expected next; anything
-    /// out of order raises <see cref="SessionAborted"/> (a real SECC would answer
-    /// <c>ResponseCode.FAILED_SequenceError</c> and close). It also enforces the SECC
+    /// out of order is answered with <c>ResponseCode.FAILED_SequenceError</c> in that request's own
+    /// response, and the session then ends (<see cref="SequenceErrorAt"/>). It also enforces the SECC
     /// <i>sequence timeout</i>: if the EV goes quiet mid-session for too long, the session is torn down.
     /// Payment: both <c>ExternalPayment</c> (EIM) and <c>Contract</c> (Plug &amp; Charge) are offered — a
     /// Contract EV runs PaymentDetails (contract chain in, GenChallenge out), a <b>signed</b>
@@ -86,6 +86,12 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
 
         /// <summary>True once the session has reached its terminal (post-SessionStop) phase.</summary>
         public bool IsDone => _phase == Phase.Done;
+
+        /// <summary>The name of the request this session refused as out-of-sequence, or null if it ended the
+        /// normal way. <see cref="IsDone"/> is true for both endings, so anything that reports on a session
+        /// — a test, an interop fixture — needs this to tell a completed charge from a refused message.
+        /// It is what used to live in the <see cref="SessionAborted"/> message the guard threw.</summary>
+        public string? SequenceErrorAt { get; private set; }
 
         /// <summary>True when the session ended with <c>ChargingSession.Pause</c> rather than Terminate —
         /// the caller should keep <see cref="SessionId"/> and offer it as <see cref="ResumeSessionId"/> to
@@ -234,10 +240,87 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
             (_, SessionStopReqType r) =>
                 (SessionStop(r), Phase.Done),
 
-            _ => throw new SessionAborted(
-                $"SECC sequence guard: {req.GetType().Name.Replace("Type", "")} not allowed in phase {_phase} " +
-                "(would be ResponseCode.FAILED_SequenceError)"),
+            // Everything else is out of sequence: answered with FAILED_SequenceError, then the session ends.
+            _ => (SequenceError(req), Phase.Done),
         };
+
+
+        /// <summary>
+        /// The answer to a request that is legal ISO 15118-2 but not legal <i>now</i>: the response that
+        /// pairs with it, carrying <c>FAILED_SequenceError</c> ([V2G2-539]). <see cref="Dispatch"/> pairs it
+        /// with <see cref="Phase.Done"/>, so <see cref="RunAsync"/> writes this response and then leaves the
+        /// loop — which is the whole of the rule: answer, then terminate.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This used to throw, and the exception message named the very code it was not sending. Nothing
+        /// noticed for as long as the only cars on the wire were ours (which never send anything out of
+        /// order) and peers that poll only while we answer <c>Ongoing</c>. A tux-evse run then replayed a
+        /// real VW that had polled <c>AuthorizationReq</c> twice at a charger answering
+        /// <c>Ongoing_WaitingForCustomerInteraction</c>; ours answers <c>Finished</c> at once, so the second
+        /// poll arrived a phase late and the connection just closed. A car looking at silence cannot tell a
+        /// sequence error from a dead station.
+        /// </para>
+        /// <para>
+        /// The mandatory fields of these responses are the schema's, not ours — a ServiceDiscoveryRes carries
+        /// a PaymentOptionList and a ChargeService whatever its response code says — so a refusal repeats
+        /// what this session already offered rather than inventing a second story, and states nothing it
+        /// cannot mean: no schedules, no challenge, no measurements.
+        /// </para>
+        /// </remarks>
+        private BodyBaseType SequenceError(BodyBaseType req)
+        {
+
+            SequenceErrorAt = req.GetType().Name.Replace("Type", "");
+
+            const ResponseCode code = ResponseCode.FAILED_SequenceError;
+
+            return req switch
+            {
+                SessionSetupReqType             => new SessionSetupResType(code, "DE*ABC*E1", 1_600_000_000L),
+                ServiceDiscoveryReqType         => Discovery(code),
+                ServiceDetailReqType r          => new ServiceDetailResType(code, r.ServiceID, ServiceParameterList: null),
+                PaymentServiceSelectionReqType  => new PaymentServiceSelectionResType(code),
+                // A refusal hands out no challenge: the 16 zero bytes are the schema's mandatory field and
+                // not an invitation to sign anything.
+                PaymentDetailsReqType           => new PaymentDetailsResType(code, new byte[16],
+                                                                             clock.GetUtcNow().ToUnixTimeSeconds()),
+                AuthorizationReqType            => new AuthorizationResType(code, EVSEProcessing.Finished),
+                // No SASchedules with it: the offer is what a *successful* discovery makes, and [V2G2-905]
+                // ties the list to EVSEProcessing=Finished on an OK response, not to a refusal.
+                ChargeParameterDiscoveryReqType => new ChargeParameterDiscoveryResType(code, EVSEProcessing.Finished,
+                                                                                        SASchedules: null,
+                                                                                        EvseChargeParameter()),
+                CableCheckReqType               => new CableCheckResType(code, DcEvseStatus(), EVSEProcessing.Finished),
+                PreChargeReqType                => new PreChargeResType(code, DcEvseStatus(), Volt(0)),
+                PowerDeliveryReqType            => PowerDeliveryRes(code),
+                CurrentDemandReqType            => new CurrentDemandResType(code, DcEvseStatus(),
+                                                       EVSEPresentVoltage: Volt(0), EVSEPresentCurrent: Amp(0),
+                                                       EVSECurrentLimitAchieved: false, EVSEVoltageLimitAchieved: false,
+                                                       EVSEPowerLimitAchieved: false,
+                                                       EVSEMaximumVoltageLimit: null, EVSEMaximumCurrentLimit: null,
+                                                       EVSEMaximumPowerLimit: null,
+                                                       EVSEID: "DE*ABC*E1", SAScheduleTupleID: _chosenTupleId,
+                                                       MeterInfo: null, ReceiptRequired: null),
+                ChargingStatusReqType           => new ChargingStatusResType(code, "DE*ABC*E1",
+                                                       SAScheduleTupleID: _chosenTupleId, EVSEMaxCurrent: null,
+                                                       MeterInfo: null, ReceiptRequired: null, AcEvseStatus()),
+                MeteringReceiptReqType          => new MeteringReceiptResType(code, EvseStatus()),
+                WeldingDetectionReqType         => new WeldingDetectionResType(code, DcEvseStatus(), Volt(0)),
+
+                // The two certificate messages are the exception, and the reason is their content rather
+                // than their sequence: a CertificateInstallationRes/CertificateUpdateRes is a contract chain,
+                // an encrypted private key, a DH public key and an eMAID, none of which can be fabricated to
+                // carry a refusal. This station advertises no certificate service either (ServiceList is
+                // null in Discovery), so an EV asking for one is outside what it was offered — which is a
+                // stronger objection than "not now" and is raised as one. Anything else reaching here is not
+                // a request at all.
+                _ => throw new SessionAborted(
+                         $"SECC sequence guard: {SequenceErrorAt} not allowed in phase {_phase}, and no " +
+                         $"response of its own type can be built to carry FAILED_SequenceError."),
+            };
+
+        }
 
         // ── response builders ─────────────────────────────────────────────────
         private BodyBaseType NewSession()
@@ -264,8 +347,8 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
             return new SessionStopResType(ResponseCode.OK);
         }
 
-        private BodyBaseType Discovery() =>
-            new ServiceDiscoveryResType(ResponseCode.OK,
+        private BodyBaseType Discovery(ResponseCode code = ResponseCode.OK) =>
+            new ServiceDiscoveryResType(code,
                 // Contract first: a Josev EVCC picks Plug & Charge whenever Contract is offered AND the
                 // session runs over TLS ([V2G2-828]); an EIM EV simply selects ExternalPayment.
                 new PaymentOptionListType(new[] { PaymentOption.Contract, PaymentOption.ExternalPayment }),
@@ -278,16 +361,21 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
                 ServiceList: null);
 
         private BodyBaseType ChargeParams() =>
+            new ChargeParameterDiscoveryResType(ResponseCode.OK, EVSEProcessing.Finished,
+                                                Schedules(), EvseChargeParameter());
+
+        /// <summary>What this station can deliver, in the mode it was constructed for — the one part of a
+        /// ChargeParameterDiscoveryRes that is a property of the hardware rather than of the answer, which is
+        /// why a refusal (<see cref="SequenceError"/>) carries it too.</summary>
+        private EVSEChargeParameterType EvseChargeParameter() =>
             mode == PowerMode.Dc
-                ? new ChargeParameterDiscoveryResType(ResponseCode.OK, EVSEProcessing.Finished, Schedules(),
-                    new DC_EVSEChargeParameterType(DcEvseStatus(),
-                        EVSEMaximumCurrentLimit: Amp(200), EVSEMaximumPowerLimit: Watt(150_000),
-                        EVSEMaximumVoltageLimit: Volt(500), EVSEMinimumCurrentLimit: Amp(0),
-                        EVSEMinimumVoltageLimit: Volt(200), EVSECurrentRegulationTolerance: null,
-                        EVSEPeakCurrentRipple: Amp(1), EVSEEnergyToBeDelivered: null))
-                : new ChargeParameterDiscoveryResType(ResponseCode.OK, EVSEProcessing.Finished, Schedules(),
-                    new AC_EVSEChargeParameterType(AcEvseStatus(),
-                        EVSENominalVoltage: Volt(230), EVSEMaxCurrent: Amp(32)));
+                ? new DC_EVSEChargeParameterType(DcEvseStatus(),
+                      EVSEMaximumCurrentLimit: Amp(200), EVSEMaximumPowerLimit: Watt(150_000),
+                      EVSEMaximumVoltageLimit: Volt(500), EVSEMinimumCurrentLimit: Amp(0),
+                      EVSEMinimumVoltageLimit: Volt(200), EVSECurrentRegulationTolerance: null,
+                      EVSEPeakCurrentRipple: Amp(1), EVSEEnergyToBeDelivered: null)
+                : new AC_EVSEChargeParameterType(AcEvseStatus(),
+                      EVSENominalVoltage: Volt(230), EVSEMaxCurrent: Amp(32));
 
         /// <summary>The SASchedule offer: with EVSEProcessing=Finished the response must carry a
         /// SAScheduleList ([V2G2-905]) — a live Josev EVCC crashes on its absence (found 2026-07-22; our
@@ -408,9 +496,7 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
         private BodyBaseType PowerOnOrOff() => PowerDeliveryRes(ResponseCode.OK);
 
         private BodyBaseType PowerDeliveryRes(ResponseCode code) =>
-            mode == PowerMode.Dc
-                ? new PowerDeliveryResType(code, DcEvseStatus())
-                : new PowerDeliveryResType(code, AcEvseStatus());
+            new PowerDeliveryResType(code, EvseStatus());
 
         private BodyBaseType CurrentDemand()
         {
@@ -647,6 +733,11 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
             new(NotificationMaxDelay: 0, notification, EVSEIsolationStatus: null, DC_EVSEStatusCode.EVSE_Ready);
         private static AC_EVSEStatusType AcEvseStatus(EVSENotification notification = EVSENotification.None) =>
             new(NotificationMaxDelay: 0, notification, RCD: false);
+
+        /// <summary>This station's status in whichever of the two shapes its mode calls for — the choice
+        /// every response carrying the schema's abstract <c>EVSEStatusType</c> has to make.</summary>
+        private EVSEStatusType EvseStatus(EVSENotification notification = EVSENotification.None) =>
+            mode == PowerMode.Dc ? DcEvseStatus(notification) : AcEvseStatus(notification);
 
         private static PhysicalValueType Volt(short v) => new(0, UnitSymbol.V, v);
         private static PhysicalValueType Amp(short a)  => new(0, UnitSymbol.A, a);

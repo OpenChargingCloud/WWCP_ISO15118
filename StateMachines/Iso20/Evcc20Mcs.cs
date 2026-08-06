@@ -35,8 +35,16 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
     /// reports <see cref="StateMachines.PowerMode.Dc"/>. Only the catalogue entry and the power envelope
     /// differ, which is exactly why MCS needed no codec work.
     /// </para>
+    /// <para>
+    /// <b>Open rather than sealed, and the reason is a scar.</b> A megawatt vehicle that differs from this
+    /// one in some small way — a different service ranking, a reduced connector — is a subclass of *it*,
+    /// not of <see cref="Evcc20Dc"/>. While this class was <c>sealed</c> the conformance harness's MCS_BPT
+    /// probe had to derive from <see cref="Evcc20Dc"/> instead and repeat the envelope below by hand. It
+    /// drifted, and the first complete MCS_BPT run against EVerest caught it declaring 50 kW under service
+    /// 9 — the very contradiction this class exists to prevent. Sealing bought nothing and cost that.
+    /// </para>
     /// </summary>
-    public sealed class Evcc20Mcs(Stream stream, TimeProvider clock, IAsyncDelay pollDelay, TimeSpan perMessageTimeout)
+    public class Evcc20Mcs(Stream stream, TimeProvider clock, IAsyncDelay pollDelay, TimeSpan perMessageTimeout)
         : Evcc20Dc(stream, clock, pollDelay, perMessageTimeout)
     {
         /// <summary>MCS = 8, MCS_BPT = 9. Falls back to whatever the SECC offers if it advertises neither,

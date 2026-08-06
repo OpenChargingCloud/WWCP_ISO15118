@@ -277,7 +277,7 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
 
             return req switch
             {
-                SessionSetupReqType             => new SessionSetupResType(code, "DE*ABC*E1", 1_600_000_000L),
+                SessionSetupReqType             => new SessionSetupResType(code, "DE*ABC*E1", Now()),
                 ServiceDiscoveryReqType         => Discovery(code),
                 ServiceDetailReqType r          => new ServiceDetailResType(code, r.ServiceID, ServiceParameterList: null),
                 PaymentServiceSelectionReqType  => new PaymentServiceSelectionResType(code),
@@ -323,6 +323,19 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
         }
 
         // ── response builders ─────────────────────────────────────────────────
+
+        /// <summary>The station's own clock, as <c>SessionSetupRes.EVSETimeStamp</c> reports it — the value
+        /// an EV without a clock of its own takes as the time ([V2G2-748]).</summary>
+        /// <remarks>
+        /// It was the literal <c>1_600_000_000</c> — 13 September 2020 — in every session this station ever
+        /// answered, while the same class read the clock correctly two messages later for
+        /// <c>PaymentDetailsRes</c> and every metering receipt. A foreign decoder printing the date is what
+        /// made it visible (tux-evse, 2026-08-06). Nothing needed a seam for it: the recorder already drives
+        /// a <c>ManualTimeProvider</c> pinned to <c>RecordedAt</c>, so a re-recorded corpus stays
+        /// byte-identical for the same reason those two messages always did.
+        /// </remarks>
+        private long Now() => clock.GetUtcNow().ToUnixTimeSeconds();
+
         private BodyBaseType NewSession()
         {
             // Resume ([V2G2-740]): a SessionSetupReq whose header carries a paused predecessor's session id
@@ -330,7 +343,7 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
             if (ResumeSessionId is not null && _requestHeader!.SessionID.AsSpan().SequenceEqual(ResumeSessionId))
             {
                 _sessionId = ResumeSessionId;
-                return new SessionSetupResType(ResponseCode.OK_OldSessionJoined, "DE*ABC*E1", 1_600_000_000L);
+                return new SessionSetupResType(ResponseCode.OK_OldSessionJoined, "DE*ABC*E1", Now());
             }
 
             _sessionId = FixedSessionId ?? RandomNumberGenerator.GetBytes(8);
@@ -338,7 +351,7 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
             // an OCPP record that cannot be tied to one ISO 15118 session is a record of some
             // transaction or other, and any agreement found against it is luck.
             _backend = Backend?.Invoke(Convert.ToHexString(_sessionId).ToLowerInvariant());
-            return new SessionSetupResType(ResponseCode.OK_NewSessionEstablished, "DE*ABC*E1", 1_600_000_000L);
+            return new SessionSetupResType(ResponseCode.OK_NewSessionEstablished, "DE*ABC*E1", Now());
         }
 
         private BodyBaseType SessionStop(SessionStopReqType req)
@@ -574,7 +587,7 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
             }
             catch (Exception ex) { _contractSubject = $"cert-error: {ex.Message}"; }
 
-            return new PaymentDetailsResType(ResponseCode.OK, _genChallenge, clock.GetUtcNow().ToUnixTimeSeconds());
+            return new PaymentDetailsResType(ResponseCode.OK, _genChallenge, Now());
         }
 
         /// <summary>EIM: plain OK. Contract: validate the <b>signed</b> AuthorizationReq — challenge echo,

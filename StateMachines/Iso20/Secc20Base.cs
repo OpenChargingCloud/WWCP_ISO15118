@@ -616,8 +616,15 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         /// <summary>The energy-transfer service the EV selected in ServiceSelection; 0 before that phase (and
         /// re-set from scratch by a service renegotiation, which re-enters ServiceDiscovery). Kept because the
         /// selected service governs what the rest of the session may say — see
-        /// <see cref="BidirectionalServiceSelected"/>.</summary>
-        protected ushort SelectedEnergyServiceId { get; private set; }
+        /// <see cref="BidirectionalServiceSelected"/>.
+        /// <para>
+        /// <b>Public, like <c>Evcc20Base.SelectedEnergyServiceId</c>, and for the same reason.</b> Which
+        /// service a session settled on is what distinguishes MCS from DC — the two are identical on the
+        /// wire otherwise — and in the <i>reverse</i> direction the station is the only side that can
+        /// report it. While this was <c>protected</c>, a run driven by a foreign EV could not say which
+        /// entry of our own catalogue that EV had picked.
+        /// </para></summary>
+        public ushort SelectedEnergyServiceId { get; private set; }
 
         /// <summary>
         /// Whether the selected service is bidirectional, and so whether the charge-parameter and

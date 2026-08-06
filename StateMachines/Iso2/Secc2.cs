@@ -324,15 +324,17 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
 
         // ── response builders ─────────────────────────────────────────────────
 
-        /// <summary>The station's own clock, as <c>SessionSetupRes.EVSETimeStamp</c> reports it — the value
-        /// an EV without a clock of its own takes as the time ([V2G2-748]).</summary>
+        /// <summary>The station's own clock in Unix seconds, for every <c>EVSETimeStamp</c> this session
+        /// sends — <c>SessionSetupRes</c> and <c>PaymentDetailsRes</c> — which is what an EV without a clock
+        /// of its own takes as the time ([V2G2-748]).</summary>
         /// <remarks>
-        /// It was the literal <c>1_600_000_000</c> — 13 September 2020 — in every session this station ever
-        /// answered, while the same class read the clock correctly two messages later for
-        /// <c>PaymentDetailsRes</c> and every metering receipt. A foreign decoder printing the date is what
-        /// made it visible (tux-evse, 2026-08-06). Nothing needed a seam for it: the recorder already drives
-        /// a <c>ManualTimeProvider</c> pinned to <c>RecordedAt</c>, so a re-recorded corpus stays
-        /// byte-identical for the same reason those two messages always did.
+        /// <c>SessionSetupRes</c> carried the literal <c>1_600_000_000</c> — 13 September 2020 — in every
+        /// session this station ever answered, while <c>PaymentDetailsRes</c> and every metering receipt read
+        /// the clock two messages later. A foreign decoder printing the date is what made it visible
+        /// (tux-evse, 2026-08-06); this helper is here so the two cannot drift apart again. Nothing needed a
+        /// recording seam for it: the corpus recorder already drives a <c>ManualTimeProvider</c> pinned to
+        /// <c>RecordedAt</c>, so a re-recorded session stays byte-identical for the same reason those other
+        /// messages always did.
         /// </remarks>
         private long Now() => clock.GetUtcNow().ToUnixTimeSeconds();
 

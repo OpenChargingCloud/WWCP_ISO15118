@@ -395,8 +395,8 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
         /// <summary>The SASchedule offer: with EVSEProcessing=Finished the response must carry a
         /// SAScheduleList ([V2G2-905]) — a live Josev EVCC crashes on its absence (found 2026-07-22; our
         /// loopback EVCC never read it, which masked the gap). Without a <see cref="TariffSignKey"/>: one
-        /// tuple, one 1-hour 11-kW PMax entry. With one: a two-tuple smart-charging offer whose SalesTariffs
-        /// are digitally signed into this response's header (§7.9.2.5).</summary>
+        /// tuple, one 1-hour <see cref="ThreePhase16A"/> PMax entry. With one: a two-tuple smart-charging
+        /// offer whose SalesTariffs are digitally signed into this response's header (§7.9.2.5).</summary>
         private SAScheduleListType Schedules()
         {
             var schedules = TariffSignKey is null ? PlainSchedule() : TariffSchedules();
@@ -406,27 +406,56 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
             return schedules;
         }
 
+        /// <summary>
+        /// What the ordinary European three-phase charge point actually offers: 3 × 230 V × 16 A.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// It used to be a round 11 kW, and the round number is a trap. A car recorded at a real 16 A
+        /// charge point asks for exactly this figure, which is 40 W — 0.4 % — above 11,000, so
+        /// [V2G2-761] refuses the whole ChargingProfile and the session dies at
+        /// <c>PowerDelivery</c>: the last message before charging would have begun, after everything
+        /// else has gone right. Found 2026-08-07 against both sides of a captured Porsche Taycan 4S
+        /// (<c>docs/interop-runs/2026-08-07-tux-porsche-ac</c> in the conformance repository); the VW
+        /// capture before it asked 4,100 W and sailed through, which is why it took a second car.
+        /// </para>
+        /// <para>
+        /// Nothing about 11,000 was a protocol error — a station may offer what it likes and must
+        /// then enforce it. But this station exists to be interoperated with, and a rounded PMax
+        /// manufactures a refusal no real charger would produce.
+        /// </para>
+        /// <para>
+        /// It is also consistent with what the same response advertises two fields earlier:
+        /// <c>EVSENominalVoltage</c> 230 V and <c>EVSEMaxCurrent</c> 32 A, whose three-phase product
+        /// is 22,080 W. The schedule offers half of that, which is a scheduling decision rather than
+        /// a physical limit, and now at least a physical number.
+        /// </para>
+        /// </remarks>
+        private const int ThreePhase16A = 11_040;
+
         private static SAScheduleListType PlainSchedule() =>
             new(new[]
             {
                 new SAScheduleTupleType(SAScheduleTupleID: 1,
                     new PMaxScheduleType(new[]
                     {
-                        new PMaxScheduleEntryType(new RelativeTimeIntervalType(Start: 0, Duration: 3600), PMax: Watt(11_000)),
+                        new PMaxScheduleEntryType(new RelativeTimeIntervalType(Start: 0, Duration: 3600), PMax: Watt(ThreePhase16A)),
                     }),
                     SalesTariff: null),
             });
 
-        /// <summary>The smart-charging offer: tuple 1 is a flat 11 kW at price levels 2→3, tuple 2 starts
-        /// capped at 7.4 kW on level 1 and opens to 22 kW on level 2 after 30 min — a price-aware EV picks
-        /// tuple 2 (average level 1.5 vs 2.5) and shapes its ChargingProfile to the 7.4/22 kW steps.</summary>
+        /// <summary>The smart-charging offer: tuple 1 is the flat <see cref="ThreePhase16A"/> at price
+        /// levels 2→3, tuple 2 starts capped at 7.4 kW on level 1 and opens to 22 kW on level 2 after
+        /// 30 min — a price-aware EV picks tuple 2 (average level 1.5 vs 2.5) and shapes its
+        /// ChargingProfile to the 7.4/22 kW steps. Tuple 1 carries the same figure as the plain offer for
+        /// the same reason: a car that is not price-aware picks it, and it would meet the same wall.</summary>
         private static SAScheduleListType TariffSchedules() =>
             new(new[]
             {
                 new SAScheduleTupleType(SAScheduleTupleID: 1,
                     new PMaxScheduleType(new[]
                     {
-                        new PMaxScheduleEntryType(new RelativeTimeIntervalType(Start: 0, Duration: 3600), PMax: Watt(11_000)),
+                        new PMaxScheduleEntryType(new RelativeTimeIntervalType(Start: 0, Duration: 3600), PMax: Watt(ThreePhase16A)),
                     }),
                     new SalesTariffType(Id: "salesTariff1", SalesTariffID: 1, SalesTariffDescription: "standard",
                         NumEPriceLevels: 3, SalesTariffEntry: new[] { TariffEntry(0, level: 2), TariffEntry(1800, level: 3) })),

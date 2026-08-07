@@ -24,6 +24,7 @@
     <CompilerVisibleProperty Include="ExiGeneratedNamespace" />
     <CompilerVisibleProperty Include="ExiCodecClassName" />
     <CompilerVisibleProperty Include="ExiFragmentElements" />
+    <CompilerVisibleProperty Include="ExiDocumentElementOrder" />
   </ItemGroup>
 
   <ItemGroup>

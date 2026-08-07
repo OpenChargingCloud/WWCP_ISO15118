@@ -67,11 +67,21 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator
                 // Comma/space-separated global element names to emit EXI fragment codecs for (XMLDSig).
                 Fragments: p.GlobalOptions.TryGetValue("build_property.ExiFragmentElements", out var fe) && fe.Length > 0
                            ? fe.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                           : System.Array.Empty<string>()
+                           : System.Array.Empty<string>(),
+                // How the document grammar numbers global elements. Defaults to cbexigen's grouping,
+                // which is what the vector corpus and every cbexigen-derived stack encode; see
+                // Grammar/DocumentElementOrder.cs for what the other setting is for. An unrecognised
+                // value falls back to the default rather than failing the build — this is a wire-format
+                // switch, and silently doing something a third thing would be worse than ignoring it.
+                DocOrder: p.GlobalOptions.TryGetValue("build_property.ExiDocumentElementOrder", out var deo) &&
+                          string.Equals(deo, "ExiSorted", StringComparison.OrdinalIgnoreCase)
+                           ? DocumentElementOrder.ExiSorted
+                           : DocumentElementOrder.CbV2GCompatible
             ));
 
             context.RegisterSourceOutput(xsdFiles.Combine(config),
-                (spc, pair) => Generate(spc, pair.Left, pair.Right.Ns, pair.Right.Codec, pair.Right.Fragments));
+                (spc, pair) => Generate(spc, pair.Left, pair.Right.Ns, pair.Right.Codec,
+                                        pair.Right.Fragments, pair.Right.DocOrder));
         }
 
         /// <summary>
@@ -83,7 +93,8 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator
         private static readonly ICodecEmitter Emitter = CSharpCodecEmitter.Instance;
 
         private static void Generate(SourceProductionContext spc, ImmutableArray<(string Path, string Content)> files,
-                                     string generatedNamespace, string codecClass, string[] fragmentElements)
+                                     string generatedNamespace, string codecClass, string[] fragmentElements,
+                                     DocumentElementOrder documentElementOrder)
         {
             if (files.IsDefaultOrEmpty) return;
 
@@ -110,7 +121,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator
             SchemaPlan plan;
             try
             {
-                plan = GrammarBuilder.Build(schema, fragmentElements);
+                plan = GrammarBuilder.Build(schema, fragmentElements, documentElementOrder);
             }
             catch (NotSupportedException ex)
             {

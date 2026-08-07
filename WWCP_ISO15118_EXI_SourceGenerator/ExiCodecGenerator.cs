@@ -76,12 +76,18 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator
                 DocOrder: p.GlobalOptions.TryGetValue("build_property.ExiDocumentElementOrder", out var deo) &&
                           string.Equals(deo, "ExiSorted", StringComparison.OrdinalIgnoreCase)
                            ? DocumentElementOrder.ExiSorted
-                           : DocumentElementOrder.CbV2GCompatible
+                           : DocumentElementOrder.CbV2GCompatible,
+                // How the optional-repeating-then-optional construct is given a grammar. Same
+                // default-and-fallback reasoning as above; see Grammar/ParticleGrammar.cs.
+                Particles: p.GlobalOptions.TryGetValue("build_property.ExiParticleGrammar", out var pg) &&
+                           string.Equals(pg, "SchemaConformant", StringComparison.OrdinalIgnoreCase)
+                           ? ParticleGrammar.SchemaConformant
+                           : ParticleGrammar.CbV2GCompatible
             ));
 
             context.RegisterSourceOutput(xsdFiles.Combine(config),
                 (spc, pair) => Generate(spc, pair.Left, pair.Right.Ns, pair.Right.Codec,
-                                        pair.Right.Fragments, pair.Right.DocOrder));
+                                        pair.Right.Fragments, pair.Right.DocOrder, pair.Right.Particles));
         }
 
         /// <summary>
@@ -94,7 +100,8 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator
 
         private static void Generate(SourceProductionContext spc, ImmutableArray<(string Path, string Content)> files,
                                      string generatedNamespace, string codecClass, string[] fragmentElements,
-                                     DocumentElementOrder documentElementOrder)
+                                     DocumentElementOrder documentElementOrder,
+                                     ParticleGrammar particleGrammar)
         {
             if (files.IsDefaultOrEmpty) return;
 
@@ -121,7 +128,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator
             SchemaPlan plan;
             try
             {
-                plan = GrammarBuilder.Build(schema, fragmentElements, documentElementOrder);
+                plan = GrammarBuilder.Build(schema, fragmentElements, documentElementOrder, particleGrammar);
             }
             catch (NotSupportedException ex)
             {

@@ -299,3 +299,43 @@ Same treatment as ACDP, same default:
 reachable from the empty state, and `w.WriteBits(2, 2)` for the empty case — which turns the tail of
 our `WPT_FinePositioningReq` from `…0120` into `…0140`, the bytes EXIficient writes for that message.
 Unset, every byte is as before.
+
+## And the third frame, which was simply a bug (2026-08-07)
+
+The sixth frame EXIficient could not read — `AC_ChargeParameterDiscoveryRes_DER` — was neither of the
+above. No switch, no fork, no cbV2G to match: a defect.
+
+Where the other two needed a judgement about which reading of EXI to follow, this one has only one
+reading. EXI unrolls a bounded particle into one grammar state per occurrence; below `minOccurs` the
+state has a **single** production, `SE(item)`, because ending the element there would be invalid, so
+its event code is one bit. Only from `minOccurs` on does the state also offer the end-element and the
+code widen to two. The generator gave every occurrence after the first the wide code — correct for
+`minOccurs≤1`, one bit too many for anything else.
+
+ISO 15118 has five particles with `minOccurs="2"`: `CurveDataPoint` in both DER amendments, and
+`TxSpecData`, `RxSpecData`, `PulseSequenceOrder` in WPT. cbexigen generates none of them — it cannot
+build the DER schemas at all, and the cbV2G WPT corpus leaves `LF_SystemSetupData`, which is where the
+three WPT ones live, absent. So there were no reference bytes for any of the five, which is exactly why
+this survived: the corpus can only catch what something else also encoded.
+
+Confirmed without ISO's schemas, by asking EXIficient to encode a synthetic
+`minOccurs="2" maxOccurs="10"` document and reading the bits back:
+
+```
+minOccurs=1, 2 items:  SE(Doc) SE·CH·val·EE   SE(2 bits)·CH·val·EE   EE(2 bits)
+minOccurs=2, 2 items:  SE(Doc) SE·CH·val·EE   SE(1 bit) ·CH·val·EE   EE(2 bits)
+either,     10 items:  … the tenth occurrence is followed by a ONE-bit EE — the max-reached state
+```
+
+The ten-item `minOccurs="2"` body is 120 bits with no padding at all, which leaves no room to be wrong
+about the arithmetic.
+
+The second line of that table also generalised something the emitter had only as a `maxOccurs=2`
+special case: a list filled to its maximum ends with a one-bit end-element for **any** maximum. The
+special case was the general rule.
+
+`CodecEmitter.ForcedOccurrences` now drives all four list emitters and their decode counterparts.
+Everything with `minOccurs≤1` is emitted character for character as before — asserted in
+`GeneratorForcedOccurrenceTests`, since the vector corpus is worth exactly as much as the stability of
+those bytes. One vector changed: `AC_ChargeParameterDiscoveryRes_DER`, still 241 B, and EXIficient now
+round-trips it.

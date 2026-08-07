@@ -561,9 +561,11 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
                 _sb.Append("        if (list.Count is < ").Append(Math.Max(1, sp.ListMin))
                    .Append(" or > ").Append(sp.ListMax)
                    .AppendLine(") throw new ArgumentOutOfRangeException(nameof(msg));");
+                int forced = ForcedOccurrences(sp.ListMin);
                 _sb.AppendLine("        for (int i = 0; i < list.Count; i++)");
                 _sb.AppendLine("        {");
-                _sb.AppendLine("            w.WriteBits(0, i == 0 ? 1 : 2);   // SE(item): 1-bit first, 2-bit loop");
+                _sb.Append("            w.WriteBits(0, ").Append(SeWidthExpr("i", forced)).Append(");")
+                   .AppendLine(SeWidthComment(forced));
                 EmitEncodeContent(rep, "list[i]", "            ");
                 _sb.AppendLine("        }");
                 EmitEncodeListTerminator("        ", "list", sp.ListMax);
@@ -1307,9 +1309,14 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
             _sb.Append(indent).Append("w.WriteBits(").Append(firstCode).Append(", ").Append(width)
                .Append(");   // ").AppendLine(p.FieldName);
             EmitEncodeContent(p, list + "[0]", indent);
+            int forced = ForcedOccurrences(p.ListMin);
             _sb.Append(indent).Append("for (int ci = 1; ci < ").Append(list).AppendLine(".Count; ci++)");
             _sb.Append(indent).AppendLine("{");
-            _sb.Append(indent).Append("    w.WriteBits(0, 2);   // ").AppendLine(p.FieldName);
+            if (forced <= 1)
+                _sb.Append(indent).Append("    w.WriteBits(0, 2);   // ").AppendLine(p.FieldName);
+            else
+                _sb.Append(indent).Append("    w.WriteBits(0, ci < ").Append(forced).Append(" ? 1 : 2);   // ")
+                   .Append(p.FieldName).AppendLine(" (1-bit while forced by minOccurs)");
             EmitEncodeContent(p, list + "[ci]", indent + "    ");
             _sb.Append(indent).AppendLine("}");
             _sb.Append(indent).AppendLine("w.WriteBits(1, 2);   // element EE (list end)");
@@ -1324,25 +1331,33 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
             string list = "msg." + term.FieldName;
             if (!first) _sb.Append(indent).AppendLine("else");
             _sb.Append(indent).AppendLine("{");
-            _sb.Append(indent).Append("    if (").Append(list).Append(".Count is < 1 or > ").Append(term.ListMax)
+            _sb.Append(indent).Append("    if (").Append(list).Append(".Count is < ").Append(ForcedOccurrences(term.ListMin))
+               .Append(" or > ").Append(term.ListMax)
                .AppendLine(") throw new ArgumentOutOfRangeException(nameof(msg));");
             EmitEncodeRepeatingItems(term, code, width, indent + "    ", done + " = true;");
             _sb.Append(indent).AppendLine("}");
         }
 
         /// <summary>
-        /// Emits the EE that terminates a repeating element. cbexigen bounded-unrolls a
-        /// <c>maxOccurs=2</c> list, so a full (2-item) list ends with the 1-bit END of the
-        /// max-reached grammar state; every other list length, and any larger max (self-looping
-        /// grammar), ends with the 2-bit loop EE (verified against PaymentOptionListType vs
-        /// SupportedEnergyTransferModeType).
+        /// Emits the EE that terminates a repeating element. A list that has reached its
+        /// <c>maxOccurs</c> is in a state whose only production is the end-element, so the EE there is
+        /// a 1-bit code; at any shorter length the state still offers another item as well, and the EE
+        /// is the 2-bit loop code.
+        /// <para>
+        /// This used to be written only for <c>maxOccurs=2</c>, where cbexigen's bounded unroll made it
+        /// visible (verified against PaymentOptionListType vs SupportedEnergyTransferModeType). It is
+        /// the general rule: EXIficient encoding a synthetic <c>maxOccurs="10"</c> schema ends a
+        /// ten-item list with a single zero bit, not the two-bit loop EE (2026-08-07, alongside the
+        /// <see cref="ForcedOccurrences"/> finding). Truly unbounded lists have no such state and keep
+        /// the loop EE.
+        /// </para>
         /// </summary>
         private void EmitEncodeListTerminator(string indent, string listExpr, int listMax)
         {
-            if (listMax == 2)
+            if (listMax != int.MaxValue)
             {
-                _sb.Append(indent).Append("if (").Append(listExpr)
-                   .AppendLine(".Count >= 2) w.WriteBits(0, 1);   // element EE (list at max)");
+                _sb.Append(indent).Append("if (").Append(listExpr).Append(".Count >= ").Append(listMax)
+                   .AppendLine(") w.WriteBits(0, 1);   // element EE (list at max)");
                 _sb.Append(indent).AppendLine("else w.WriteBits(1, 2);   // element EE");
             }
             else
@@ -1351,14 +1366,14 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
             }
         }
 
-        /// <summary>Decode counterpart of the <c>maxOccurs=2</c> bounded unroll: once the list holds
-        /// the maximum, the terminator is the 1-bit END of the max-reached state, not the 2-bit loop
-        /// EE. Emitted at the top of the decode loop; a no-op for larger (self-looping) maxima.</summary>
+        /// <summary>Decode counterpart of <see cref="EmitEncodeListTerminator"/>: once the list holds
+        /// its maximum, the terminator is the 1-bit END of the max-reached state, not the 2-bit loop
+        /// EE. Emitted at the top of the decode loop; a no-op for unbounded lists.</summary>
         private void EmitDecodeListMaxCheck(string indent, string listExpr, int listMax)
         {
-            if (listMax == 2)
-                _sb.Append(indent).Append("if (").Append(listExpr)
-                   .AppendLine(".Count >= 2) { r.ReadBits(1); break; }   // element EE (list at max)");
+            if (listMax != int.MaxValue)
+                _sb.Append(indent).Append("if (").Append(listExpr).Append(".Count >= ").Append(listMax)
+                   .AppendLine(") { r.ReadBits(1); break; }   // element EE (list at max)");
         }
 
         private static int ProductionCount(ChildPlan c) =>
@@ -1546,9 +1561,11 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
             _sb.Append(indent).Append("var ").Append(list).Append(" = msg.").Append(c.FieldName).AppendLine(";");
             _sb.Append(indent).Append("if (").Append(list).Append(".Count is < ").Append(Math.Max(1, c.ListMin))
                .Append(" or > ").Append(c.ListMax).AppendLine(") throw new ArgumentOutOfRangeException(nameof(msg));");
+            int forced = ForcedOccurrences(c.ListMin);
             _sb.Append(indent).Append("for (int i = 0; i < ").Append(list).AppendLine(".Count; i++)");
             _sb.Append(indent).AppendLine("{");
-            _sb.Append(indent).AppendLine("    w.WriteBits(0, i == 0 ? 1 : 2);   // SE(item): 1-bit first, 2-bit loop");
+            _sb.Append(indent).Append("    w.WriteBits(0, ").Append(SeWidthExpr("i", forced)).Append(");")
+               .AppendLine(SeWidthComment(forced));
             EmitEncodeContent(c, list + "[i]", indent + "    ");
             _sb.Append(indent).AppendLine("}");
             EmitEncodeListTerminator(indent, list, c.ListMax);
@@ -1588,6 +1605,13 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
                     throw new NotSupportedException(
                         $"required repeating '{list.FieldName}' (maxOccurs=2): an optional tail is not supported " +
                         "for the unrolled two-position grammar (only observed with a required tail so far).");
+                // A forced second occurrence would narrow the mid code to one bit, as it does in the
+                // self-loop below. No ISO 15118 particle combines minOccurs≥2 with maxOccurs=2, so rather
+                // than guess at how that interacts with the cbV2G-verified unroll, refuse to generate it.
+                if (ForcedOccurrences(list.ListMin) > 1)
+                    throw new NotSupportedException(
+                        $"required repeating '{list.FieldName}' (minOccurs={list.ListMin}, maxOccurs=2): " +
+                        "a forced second occurrence in the unrolled two-position grammar is unverified.");
                 _sb.Append(indent).Append("if (").Append(listExpr).AppendLine(".Count is < 1 or > 2) throw new ArgumentOutOfRangeException(nameof(msg));");
                 _sb.Append(indent).Append("w.WriteBits(0, 1);   // SE(").Append(list.FieldName).AppendLine(")");
                 EmitEncodeContent(list, listExpr + "[0]", indent);
@@ -1620,9 +1644,18 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
             int prod = ProductionCount(tail);
             int width = BitsForChoices(1 + prod + (tailRequired ? 0 : 1) + 1);   // loop + tail (+ EE) + reserved
 
+            int forcedItems = ForcedOccurrences(list.ListMin);
             _sb.Append(indent).Append("for (int ci = 1; ci < ").Append(listExpr).AppendLine(".Count; ci++)");
             _sb.Append(indent).AppendLine("{");
-            _sb.Append(indent).Append("    w.WriteBits(0, ").Append(width).Append(");   // ").Append(list.FieldName).AppendLine(" (loop)");
+            if (forcedItems <= 1)
+                _sb.Append(indent).Append("    w.WriteBits(0, ").Append(width).Append(");   // ")
+                   .Append(list.FieldName).AppendLine(" (loop)");
+            else
+                // Until minOccurs is met neither the tail nor the EE is reachable, so the state has the
+                // single production SE(item) — one bit, not the loop's width. See ForcedOccurrences.
+                _sb.Append(indent).Append("    w.WriteBits(0, ci < ").Append(forcedItems).Append(" ? 1 : ")
+                   .Append(width).Append(");   // ").Append(list.FieldName)
+                   .AppendLine(" (1-bit while forced by minOccurs, then loop)");
             EmitEncodeContent(list, listExpr + "[ci]", indent + "    ");
             _sb.Append(indent).AppendLine("}");
 
@@ -1674,6 +1707,13 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
             _sb.Append(indent).AppendLine("r.ReadBits(1);   // SE(item) first");
             EmitDecodeContent(c, local + "_first", indent, declare: true);
             _sb.Append(indent).Append(local).Append(".Add(").Append(local).AppendLine("_first);");
+            for (int f = 1; f < ForcedOccurrences(c.ListMin); f++)
+            {
+                _sb.Append(indent).Append("r.ReadBits(1);   // SE(item): forced by minOccurs=")
+                   .Append(c.ListMin).AppendLine();
+                EmitDecodeContent(c, local + "_forced" + f, indent, declare: true);
+                _sb.Append(indent).Append(local).Append(".Add(").Append(local).Append("_forced").Append(f).AppendLine(");");
+            }
             _sb.Append(indent).AppendLine("while (true)");
             _sb.Append(indent).AppendLine("{");
             EmitDecodeListMaxCheck(indent + "    ", local, c.ListMax);
@@ -1746,7 +1786,17 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
                 return;
             }
 
-            // True self-loop mirroring the encode side: every iteration reads [loop, tail, (EE)].
+            // True self-loop mirroring the encode side: every iteration reads [loop, tail, (EE)] —
+            // but only once minOccurs is met. The occurrences before that are forced, so their SE is
+            // a one-bit code with nothing to choose from (see ForcedOccurrences).
+            for (int f = 1; f < ForcedOccurrences(list.ListMin); f++)
+            {
+                _sb.Append(indent).Append("r.ReadBits(1);   // SE(").Append(list.FieldName)
+                   .Append("): forced by minOccurs=").Append(list.ListMin).AppendLine();
+                EmitDecodeContent(list, local + "f" + f, indent, declare: true);
+                _sb.Append(indent).Append(local).Append(".Add(").Append(local).Append("f").Append(f).AppendLine(");");
+            }
+
             int prod = ProductionCount(tail);
             int width = BitsForChoices(1 + prod + (tailRequired ? 0 : 1) + 1);
             int id = _runCounter++;
@@ -1841,6 +1891,13 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
                 _sb.AppendLine("        r.ReadBits(1);   // SE(item) first");
                 EmitDecodeContent(rep, "first", "        ", declare: true);
                 _sb.AppendLine("        list.Add(first);");
+                for (int f = 1; f < ForcedOccurrences(sp.ListMin); f++)
+                {
+                    _sb.Append("        r.ReadBits(1);   // SE(item): forced by minOccurs=")
+                       .Append(sp.ListMin).AppendLine();
+                    EmitDecodeContent(rep, "forced" + f, "        ", declare: true);
+                    _sb.Append("        list.Add(forced").Append(f).AppendLine(");");
+                }
                 _sb.AppendLine("        while (true)");
                 _sb.AppendLine("        {");
                 EmitDecodeListMaxCheck("            ", "list", sp.ListMax);
@@ -2550,5 +2607,42 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
             while (v > 0) { bits++; v >>= 1; }
             return bits;
         }
+
+        /// <summary>
+        /// How many occurrences of a repeating particle the grammar <b>forces</b> before it offers any
+        /// alternative: <c>minOccurs</c>, but never fewer than one.
+        /// <para>
+        /// EXI unrolls a bounded particle into one grammar state per occurrence. The first
+        /// <c>minOccurs</c> of those states have a single production — <c>SE(item)</c>, because nothing
+        /// else is legal yet — so the event code there is one bit wide; only once the minimum is met does
+        /// the state also offer the end-element (and whatever particle follows), which widens the code to
+        /// two. Writing the wide code for the second occurrence of a <c>minOccurs="2"</c> particle emits
+        /// one bit too many, and every bit after it is misaligned.
+        /// </para>
+        /// <para>
+        /// ISO 15118 has exactly five such particles, and all five sit in message sets no reference
+        /// encoder covers: <c>CurveDataPoint</c> (DER IEC and SAE) and <c>TxSpecData</c>,
+        /// <c>RxSpecData</c>, <c>PulseSequenceOrder</c> (WPT). That is why the vector corpus never caught
+        /// this — the affected vectors are our own output, checked only against ourselves. Found
+        /// 2026-08-07 when EXIficient could not read <c>AC_ChargeParameterDiscoveryRes_DER</c> and gave up
+        /// inside the second <c>CurveDataPoint</c>; confirmed independently by encoding a synthetic
+        /// <c>minOccurs="2" maxOccurs="10"</c> schema with EXIficient, where the second occurrence costs
+        /// one bit and the third costs two.
+        /// </para>
+        /// </summary>
+        private static int ForcedOccurrences(int listMin) => Math.Max(1, listMin);
+
+        /// <summary>The SE event-code width for occurrence <paramref name="index"/> of a list: one bit
+        /// while the occurrence is still forced, two once the state also offers a way out. Rendered as
+        /// the original <c>i == 0 ? 1 : 2</c> whenever only the first occurrence is forced, so that the
+        /// generated codec for every <c>minOccurs≤1</c> particle — which is all but five in ISO 15118 —
+        /// is unchanged.</summary>
+        private static string SeWidthExpr(string index, int forced)
+            => forced <= 1 ? index + " == 0 ? 1 : 2"
+                           : index + " < " + forced + " ? 1 : 2";
+
+        private static string SeWidthComment(int forced)
+            => forced <= 1 ? "   // SE(item): 1-bit first, 2-bit loop"
+                           : "   // SE(item): 1-bit while forced (minOccurs=" + forced + "), 2-bit loop";
     }
 }

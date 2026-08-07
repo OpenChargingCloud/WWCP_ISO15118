@@ -171,7 +171,9 @@ EXIficient's own encoder emits a noticeably longer bitstream (243 vs. 173 bytes 
 
 Per the project's wire-semantics rule, this is **not** acted on — cbV2G byte-exact
 match stays the authoritative conformance oracle, and this is a second-oracle
-*validation* tool, not a wire-format source of truth. Recorded here so nobody
+*validation* tool, not a wire-format source of truth. (That rule still stands; see
+*The one place the rule now has a switch* below for the single case where it was
+worth making the alternative buildable rather than only arguable.) Recorded here so nobody
 re-discovers this from scratch: if the encode-side gap is ever worth closing (e.g. to
 also byte-diff against EXIficient directly), start by dumping EXIficient's grammar
 event trace for the `SignatureMethod`/`CanonicalizationMethod`/`DigestMethod`
@@ -209,3 +211,48 @@ Note: encoding this same `SignedInfo` here with the **standalone** `xmldsig-core
 Josev's own jar/grammar, not EXIficient's runtime build of the same schema. See
 `WWCP_ISO15118_EXI_Tests/Interop/JosevPnCSignatureDiag.cs` and
 `docs/interop-runs/2026-07-21-iso20-dc-pnc-tls/notes.md`.
+
+## The one place the rule now has a switch: ACDP document-element numbering (2026-08-07)
+
+Every encoded message opens with a *document element selector* — an index into the schema's global
+elements. cbexigen and a specification-built EXI processor disagree about that index whenever two
+global elements share one named type: cbexigen groups them behind the alphabetically-first element of
+the type, plain lexicographic order does not. In ISO 15118 that happens exactly once, so **ACDP is the
+only message set the two number differently**:
+
+```
+cbexigen : 0 ACDP_ConnectReq  1 ACDP_DisconnectReq  2 ACDP_ConnectRes  3 ACDP_DisconnectRes
+sorted   : 0 ACDP_ConnectReq  1 ACDP_ConnectRes     2 ACDP_DisconnectReq 3 ACDP_DisconnectRes
+```
+
+`ACDP_DisconnectReq` and `ACDP_DisconnectRes` have no types of their own — ISO commented the
+declarations out and pointed the elements at `ACDP_ConnectReqType`/`ResType`.
+
+**How it surfaced.** The conformance repository ran the whole `-20` corpus through EXIficient on
+2026-08-07 (347 frames, 332 byte-exact — `docs/interop-runs/2026-08-07-exificient-iso20/`). Two ACDP
+frames did not survive, and they are exactly the two indices above:
+
+- our `ACDP_DisconnectReq` (selector 1) is read as `ACDP_ConnectRes`, a longer type → the decoder runs
+  out of bits;
+- our `ACDP_ConnectRes` (selector 2) is read as `ACDP_DisconnectReq`, a shorter type → **it decodes
+  cleanly, as the wrong message.** That is the worse of the two: nothing reports it.
+
+**What was done, and what was not.** The default is unchanged and stays cbexigen-compatible: the vector
+corpus is cbV2G's output, and every cbexigen-derived stack in the field (EVerest, tux-evse) numbers
+these the same way we do. What changed is that the alternative is now *buildable* rather than only
+arguable —
+
+```xml
+<ExiDocumentElementOrder>ExiSorted</ExiDocumentElementOrder>
+```
+
+— declared `CompilerVisibleProperty` in every codec project, read by `ExiCodecGenerator`, applied in
+`GrammarBuilder.OrderDocumentElements`, and covered by `GeneratorDocumentOrderTests` on a synthetic
+schema of the same shape rather than on ISO's. Verified end to end: building
+`WWCP_ISO15118_20.ACDP` with the property set produces the sorted numbering, and the first byte after
+the EXI header for `ACDP_DisconnectReq` becomes `08` — which is the byte EXIficient writes for that
+message. Unset, the numbering and every byte are as before.
+
+Deciding which one is *right* needs the EXI 1.0 text on the document grammar's global-element order,
+not this file. What is settled is the consequence of the disagreement, and that producing either
+encoding is now a build property rather than a rewrite.

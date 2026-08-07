@@ -40,6 +40,55 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar
         public static SchemaPlan Build(XsdSchema schema) => Build(schema, System.Array.Empty<string>());
 
         public static SchemaPlan Build(XsdSchema schema, IReadOnlyList<string> fragmentElements)
+            => Build(schema, fragmentElements, DocumentElementOrder.CbV2GCompatible);
+
+        /// <summary>
+        /// Numbers the schema's global elements for the document grammar. Public to the tests, because
+        /// this is the one place where a wire-format fork lives and it deserves to be checked directly
+        /// rather than inferred from generated output.
+        /// </summary>
+        /// <remarks>
+        /// Both modes start from plain lexicographic order over (name, namespace). They diverge only
+        /// when several global elements share one named type: <see cref="DocumentElementOrder.ExiSorted"/>
+        /// leaves them where the sort put them, while <see cref="DocumentElementOrder.CbV2GCompatible"/>
+        /// pulls the whole group up behind the alphabetically-first element of that type, which is what
+        /// cbexigen emits. Types used by a single element are untouched either way — that is why every
+        /// ISO 15118 schema set except ACDP is numbered identically by both.
+        /// </remarks>
+        internal static List<(string Name, string Namespace, string? TypeKey)> OrderDocumentElements(
+            XsdSchema schema, DocumentElementOrder order)
+        {
+            var byName = schema.GlobalElements
+                .Select(g => (g.Name, g.Namespace, TypeKey: string.IsNullOrEmpty(g.TypeRef) ? null : StripPrefix(g.TypeRef)))
+                .OrderBy(x => x.Name, StringComparer.Ordinal)
+                .ThenBy(x => x.Namespace, StringComparer.Ordinal)
+                .ToList();
+
+            if (order == DocumentElementOrder.ExiSorted)
+                return byName;
+
+            var sharedTypeGroups = byName
+                .Where(x => x.TypeKey is not null)
+                .GroupBy(x => x.TypeKey)
+                .Where(g => g.Count() > 1)
+                .ToDictionary(g => g.Key!, g => g.ToList());
+
+            var placed   = new HashSet<string>();
+            var grouped  = new List<(string Name, string Namespace, string? TypeKey)>();
+            foreach (var x in byName)
+            {
+                if (!placed.Add(x.Name + "\0" + x.Namespace)) continue;
+                grouped.Add(x);
+                if (x.TypeKey is not null && sharedTypeGroups.TryGetValue(x.TypeKey, out var group))
+                    foreach (var member in group)
+                        if (placed.Add(member.Name + "\0" + member.Namespace))
+                            grouped.Add(member);
+            }
+            return grouped;
+        }
+
+        public static SchemaPlan Build(XsdSchema schema, IReadOnlyList<string> fragmentElements,
+                                       DocumentElementOrder documentElementOrder)
         {
             var enums = new List<EnumPlan>();
             var opaqueTypes = new List<string>();
@@ -55,34 +104,8 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar
             // decodable. The selector width and each root's index come from this full list (verified
             // against cbV2G: V2G_Message is index 76 of 80, a 7-bit selector).
             //
-            // Exception: when two or more global elements share the exact same named type (ACDP's
-            // ACDP_DisconnectReq/Res deliberately reuse ACDP_ConnectReq/ResType), cbexigen groups them
-            // immediately after the alphabetically-first element of that type, ahead of whatever would
-            // otherwise sort between them — verified against cbV2G's encode_iso20_acdp_exiDocument:
-            // ConnectReq=0, DisconnectReq=1, ConnectRes=2, DisconnectRes=3 (plain name order would put
-            // ConnectRes before DisconnectReq). Types referenced by only one element are unaffected, which
-            // is why this coincides with plain alphabetical-by-name for every other schema set.
-            var byName = schema.GlobalElements
-                .Select(g => (g.Name, g.Namespace, TypeKey: string.IsNullOrEmpty(g.TypeRef) ? null : StripPrefix(g.TypeRef)))
-                .OrderBy(x => x.Name, StringComparer.Ordinal)
-                .ThenBy(x => x.Namespace, StringComparer.Ordinal)
-                .ToList();
-            var sharedTypeGroups = byName
-                .Where(x => x.TypeKey is not null)
-                .GroupBy(x => x.TypeKey)
-                .Where(g => g.Count() > 1)
-                .ToDictionary(g => g.Key!, g => g.ToList());
-            var placed = new HashSet<string>();
-            var docOrder = new List<(string Name, string Namespace, string? TypeKey)>();
-            foreach (var x in byName)
-            {
-                if (!placed.Add(x.Name + "\0" + x.Namespace)) continue;
-                docOrder.Add(x);
-                if (x.TypeKey is not null && sharedTypeGroups.TryGetValue(x.TypeKey, out var group))
-                    foreach (var member in group)
-                        if (placed.Add(member.Name + "\0" + member.Namespace))
-                            docOrder.Add(member);
-            }
+            // Where the two orders differ, and why there is a choice at all, is in DocumentElementOrder.
+            var docOrder = OrderDocumentElements(schema, documentElementOrder);
             int docBits = BitsForChoices(docOrder.Count + 1);
 
             // Build global-element plans for the true document roots — a concrete, non-substituting,

@@ -31,5 +31,6 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar
         int                             DocumentSelectorBits, // width of the document element selector
         int                             FragmentSelectorBits, // width of the EXI fragment element selector
         int                             FragmentEndCode,      // "End Fragment" (ED) event code
-        IReadOnlyList<FragmentPlan>     Fragments);    // signable elements to emit fragment codecs for
+        IReadOnlyList<FragmentPlan>     Fragments,     // signable elements to emit fragment codecs for
+        ParticleGrammar                 ParticleGrammar = ParticleGrammar.CbV2GCompatible);
 }

@@ -25,6 +25,7 @@
     <CompilerVisibleProperty Include="ExiCodecClassName" />
     <CompilerVisibleProperty Include="ExiFragmentElements" />
     <CompilerVisibleProperty Include="ExiDocumentElementOrder" />
+    <CompilerVisibleProperty Include="ExiParticleGrammar" />
   </ItemGroup>
 
   <ItemGroup>

@@ -851,7 +851,9 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
                 if (children[p].Shape == ChildShape.BoundedRepeating) { listIdx = p; break; }
             if (listIdx >= 0 && listIdx != e - 1)
             {
-                EmitEncodeOptionalRunWithMidList(children, s, listIdx, e, indent);
+                if (_plan.ParticleGrammar == ParticleGrammar.SchemaConformant)
+                     EmitEncodeOptionalRunWithMidListSchema(children, s, listIdx, e, indent);
+                else EmitEncodeOptionalRunWithMidList(children, s, listIdx, e, indent);
                 return;
             }
 
@@ -1093,6 +1095,89 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
 
             _sb.Append(inner).AppendLine("}");
             _sb.Append(indent).AppendLine("}");
+        }
+
+
+        /// <summary>
+        /// The same construct, given the grammar ISO's schema actually describes — see
+        /// <see cref="ParticleGrammar.SchemaConformant"/>.
+        ///
+        /// <para>
+        /// Simpler than the cbexigen shape it replaces, because there is nothing to unroll: the list
+        /// loops to its own <c>maxOccurs</c>, and every state offers the same three choices — another
+        /// item, the following optional particle, or the end element. cbexigen instead hides the suffix
+        /// in the zero-item state and runs out of states after two items.
+        /// </para>
+        /// </summary>
+        private void EmitEncodeOptionalRunWithMidListSchema(IReadOnlyList<ChildPlan> children, int s, int listIdx,
+                                                            int e, string indent)
+        {
+            var (list, suffix, suffixTotal) = MidListShape(children, s, listIdx, e);
+
+            string listExpr = "msg." + list.FieldName;
+            int width = BitsForChoices(1 + suffixTotal + 1 + 1);
+            string inner = indent + "    ";
+
+            if (list.ListMax > 0)
+            {
+                _sb.Append(indent).Append("if (").Append(listExpr).Append(".Count > ").Append(list.ListMax).AppendLine(")");
+                _sb.Append(indent).Append("    throw new ArgumentOutOfRangeException(nameof(msg), \"")
+                   .Append(list.FieldName).Append(": at most ").Append(list.ListMax)
+                   .AppendLine(" item(s) per the schema.\");");
+            }
+
+            _sb.Append(indent).Append("foreach (var _item in ").Append(listExpr).AppendLine(")");
+            _sb.Append(indent).AppendLine("{");
+            _sb.Append(inner).Append("w.WriteBits(0, ").Append(width).Append(");   // ").AppendLine(list.FieldName);
+            EmitEncodeContent(list, "_item", inner);
+            _sb.Append(indent).AppendLine("}");
+
+            {
+                string afterSuffix = "w.WriteBits(0, 1);   // element EE";
+                bool first = true;
+                int code = 1;
+                foreach (var sp in suffix)
+                    code = EmitEncodeRunParticle(sp, code, width, ref first, indent, afterSuffix);
+                if (!first) _sb.Append(indent).AppendLine("else");
+                _sb.Append(indent).Append(first ? "" : "    ")
+                   .Append("w.WriteBits(").Append(code).Append(", ").Append(width).AppendLine(");   // element EE");
+            }
+        }
+
+
+        /// <summary>Shared preconditions and shape of the mid-list run, for both particle grammars.</summary>
+        private (ChildPlan List, List<ChildPlan> Suffix, int SuffixTotal) MidListShape(
+            IReadOnlyList<ChildPlan> children, int s, int listIdx, int e)
+        {
+            if (listIdx != s)
+                throw new NotSupportedException(
+                    $"repeating element '{children[listIdx].FieldName}' mid-run: particles before it in the same run are not supported.");
+            var list = children[listIdx];
+            if (list.ListMin != 0)
+                throw new NotSupportedException(
+                    $"repeating element '{list.FieldName}' mid-run must be optional (minOccurs=0).");
+            if (e != children.Count)
+                throw new NotSupportedException(
+                    $"repeating element '{list.FieldName}' mid-run must be followed only by particles ending the sequence " +
+                    "(a required/repeating terminator after it is not supported).");
+
+            var suffix = new List<ChildPlan>();
+            for (int p = listIdx + 1; p < e; p++)
+            {
+                if (children[p].Value is ValueEncoding.SubstitutionChoice or ValueEncoding.InlineChoice)
+                    throw new NotSupportedException(
+                        $"repeating element '{list.FieldName}' mid-run: suffix particle '{children[p].FieldName}' " +
+                        "must be a plain optional element (choice/substitution suffixes are not supported).");
+                suffix.Add(children[p]);
+            }
+            if (suffix.Count > 1)
+                throw new NotSupportedException(
+                    $"repeating element '{list.FieldName}' mid-run: {suffix.Count} following particles " +
+                    "(only one is representable — choosing one ends the run).");
+
+            int suffixTotal = 0;
+            foreach (var sp in suffix) suffixTotal += ProductionCount(sp);
+            return (list, suffix, suffixTotal);
         }
 
         /// <summary>Emits the presence/type-dispatch branch(es) for one run particle: an optional
@@ -1932,7 +2017,9 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
                 if (children[p].Shape == ChildShape.BoundedRepeating) { listIdx = p; break; }
             if (listIdx >= 0 && listIdx != e - 1)
             {
-                EmitDecodeOptionalRunWithMidList(children, s, listIdx, e, indent, locals);
+                if (_plan.ParticleGrammar == ParticleGrammar.SchemaConformant)
+                     EmitDecodeOptionalRunWithMidListSchema(children, s, listIdx, e, indent, locals);
+                else EmitDecodeOptionalRunWithMidList(children, s, listIdx, e, indent, locals);
                 return;
             }
 
@@ -2180,6 +2267,70 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
             _sb.Append(inner).AppendLine("}");
             _sb.Append(indent).AppendLine("}");
         }
+
+        /// <summary>
+        /// Decode side of <see cref="EmitEncodeOptionalRunWithMidListSchema"/>. One state, because every
+        /// state of this grammar offers the same three choices: another item, the following optional
+        /// particle, or the end element.
+        /// </summary>
+        private void EmitDecodeOptionalRunWithMidListSchema(
+            IReadOnlyList<ChildPlan> children, int s, int listIdx, int e, string indent, List<string> locals)
+        {
+            var (list, suffix, suffixTotal) = MidListShape(children, s, listIdx, e);
+
+            _sb.Append(indent).Append("var _").Append(list.FieldName)
+               .Append(" = new List<").Append(list.CsType()).AppendLine(">();");
+            locals.Add("_" + list.FieldName);
+            foreach (var sp in suffix)
+            {
+                _sb.Append(indent).Append(sp.CsType()).Append("? _").Append(sp.FieldName).AppendLine(" = default;");
+                locals.Add("_" + sp.FieldName);
+            }
+
+            string local = "_" + list.FieldName;
+            int width = BitsForChoices(1 + suffixTotal + 1 + 1);
+            int id = _runCounter++;
+            string done = "_idone" + id;
+            string inner = indent + "    ";
+            string sw = inner + "    ";
+            string ca = sw + "    ";
+
+            _sb.Append(indent).Append("bool ").Append(done).AppendLine(" = false;");
+            _sb.Append(indent).Append("while (!").Append(done).AppendLine(")");
+            _sb.Append(indent).AppendLine("{");
+            _sb.Append(inner).Append("uint _c").Append(id).Append(" = r.ReadBits(").Append(width).AppendLine(");");
+            _sb.Append(inner).Append("switch (_c").Append(id).AppendLine(")");
+            _sb.Append(inner).AppendLine("{");
+
+            _sb.Append(sw).AppendLine("case 0u:");
+            _sb.Append(sw).AppendLine("{");
+            string it = "_it" + _tmpCounter++;
+            EmitDecodeContent(list, it, ca, declare: true);
+            _sb.Append(ca).Append(local).Append(".Add(").Append(it).AppendLine(");");
+            _sb.Append(ca).AppendLine("break;");
+            _sb.Append(sw).AppendLine("}");
+
+            int code = 1;
+            foreach (var sp in suffix)
+            {
+                _sb.Append(sw).Append("case ").Append(code).AppendLine("u:");
+                _sb.Append(sw).AppendLine("{");
+                string tmp = "_sx" + _tmpCounter++;
+                EmitDecodeContent(sp, tmp, ca, declare: true);
+                _sb.Append(ca).Append("_").Append(sp.FieldName).Append(" = ").Append(tmp).AppendLine(";");
+                _sb.Append(ca).AppendLine("r.ReadBits(1);   // element EE");
+                _sb.Append(ca).Append(done).AppendLine(" = true;");
+                _sb.Append(ca).AppendLine("break;");
+                _sb.Append(sw).AppendLine("}");
+                code += ProductionCount(sp);
+            }
+
+            _sb.Append(sw).Append("case ").Append(code).Append("u: ").Append(done).AppendLine(" = true; break;");
+            _sb.Append(sw).AppendLine("default: throw new InvalidDataException(\"invalid optional-run event code\");");
+            _sb.Append(inner).AppendLine("}");
+            _sb.Append(indent).AppendLine("}");
+        }
+
 
         /// <summary>Emits the decode <c>switch</c> case(s) for one run particle: an optional element
         /// (one case reading its content), or a substitution reference (one case per member, decoding

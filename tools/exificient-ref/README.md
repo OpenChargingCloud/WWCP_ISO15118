@@ -256,3 +256,46 @@ message. Unset, the numbering and every byte are as before.
 Deciding which one is *right* needs the EXI 1.0 text on the document grammar's global-element order,
 not this file. What is settled is the consequence of the disagreement, and that producing either
 encoding is now a build property rather than a rewrite.
+
+## …and the WPT particle grammar, the same day
+
+The other four frames EXIficient could not read are a different construct: an optional repeating
+element followed by an optional one, which in ISO 15118 occurs only in
+`WPT_FinePositioning{,Setup}Req/ResType` — `VendorSpecificDataContainer` (`minOccurs="0"
+maxOccurs="16"`) then an optional `WPT_LF_DataPackageList`.
+
+Verified against cbV2G at `03350be048b3` (`encode_iso20_wpt_WPT_FinePositioningReqType`, grammar ids
+178/179/180):
+
+```
+cbexigen  state 178 (no items):   SE(list)=0                 EE=1
+          state 179 (one item):   LOOP=0  SE(LF list)=1      EE=2
+          state 180 (two items):          SE(LF list)=0      EE=1    <- no third item, ever
+
+schema    state A   (no items):   SE(list)=0  SE(LF list)=1  EE=2
+          state B   (n items):    LOOP=0      SE(LF list)=1  EE=2    <- loops to maxOccurs
+```
+
+Unlike the ACDP ordering, this one is **not** an EXI interpretation question. The schema says
+`maxOccurs="16"` and makes the suffix independently optional; cbexigen's grammar caps at two and gates
+the suffix behind at least one container. Its own struct array is sized 16, so the ceiling is in the
+grammar, not the storage. Two valid documents are therefore unrepresentable, and the generated encoder
+throws rather than truncate.
+
+The visible symptom is one event code: with no items and no LF list, cbexigen's end-element is `1` and
+the schema grammar's is `2`. EXIficient read our `1` as a start element, looked for content that was
+not there, and reported `Premature EOS` — for all four messages.
+
+Same treatment as ACDP, same default:
+
+```xml
+<ExiParticleGrammar>SchemaConformant</ExiParticleGrammar>
+```
+
+`GrammarBuilder` carries it on the plan; `CodecEmitter` branches to a pair of emitters that are
+*shorter* than the cbexigen ones, because there is nothing to unroll. Covered by
+`GeneratorParticleGrammarTests` on a synthetic schema of the same shape. Building
+`WWCP_ISO15118_20.WPT` with it emits `foreach` over the list with a 16-item guard, the LF list
+reachable from the empty state, and `w.WriteBits(2, 2)` for the empty case — which turns the tail of
+our `WPT_FinePositioningReq` from `…0120` into `…0140`, the bytes EXIficient writes for that message.
+Unset, every byte is as before.

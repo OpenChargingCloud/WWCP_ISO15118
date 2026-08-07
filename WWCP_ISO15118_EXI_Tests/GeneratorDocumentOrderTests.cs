@@ -19,6 +19,7 @@ using System.Linq;
 
 using NUnit.Framework;
 
+using cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit;
 using cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar;
 using cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Xsd;
 
@@ -148,6 +149,99 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
         [Test]
         public void TheDefaultIsCbV2GCompatible()
             => Assert.That(default(DocumentElementOrder), Is.EqualTo(DocumentElementOrder.CbV2GCompatible));
+
+    }
+
+
+    /// <summary>
+    /// <b>The second wire-format fork: an optional repeating element followed by an optional one.</b>
+    ///
+    /// <para>
+    /// ISO 15118 has this only in WPT — <c>VendorSpecificDataContainer</c> (<c>maxOccurs="16"</c>)
+    /// followed by an optional <c>WPT_LF_DataPackageList</c>. cbexigen unrolls it into three states and
+    /// runs out after two items, and hides the following particle from the zero-item state; the schema
+    /// describes a plain loop with the particle reachable throughout. Verified against cbV2G at
+    /// <c>03350be048b3</c>, <c>encode_iso20_wpt_WPT_FinePositioningReqType</c> grammar ids 178/179/180.
+    /// </para>
+    ///
+    /// <para>
+    /// The visible consequence is one event code: with no items and no suffix, cbexigen's end-element is
+    /// <b>1</b> and the schema grammar's is <b>2</b>. That is why EXIficient read our WPT frames as a
+    /// start-element and reported <c>Premature EOS</c> — see
+    /// <c>docs/interop-runs/2026-08-07-exificient-iso20/</c>.
+    /// </para>
+    /// </summary>
+    [TestFixture]
+    public class GeneratorParticleGrammarTests
+    {
+
+        /// <summary>The WPT shape: an optional bounded list, then one optional element, then nothing.</summary>
+        private const string MidListSchema = """
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                   xmlns="urn:test:particles" targetNamespace="urn:test:particles">
+          <xs:element name="Msg" type="MsgType"/>
+          <xs:complexType name="MsgType">
+            <xs:sequence>
+              <xs:element name="Container" type="xs:base64Binary" minOccurs="0" maxOccurs="16"/>
+              <xs:element name="Trailer"   type="TrailerType"     minOccurs="0"/>
+            </xs:sequence>
+          </xs:complexType>
+          <xs:complexType name="TrailerType">
+            <xs:sequence><xs:element name="T" type="xs:unsignedInt"/></xs:sequence>
+          </xs:complexType>
+        </xs:schema>
+        """;
+
+        private static string Emit(ParticleGrammar grammar)
+        {
+            var plan = GrammarBuilder.Build(XsdReader.ParseSet(new[] { MidListSchema }),
+                                            System.Array.Empty<string>(),
+                                            DocumentElementOrder.CbV2GCompatible, grammar);
+            // Every generated file, concatenated: the assertions below name text specific enough
+            // that picking one file would only add a way for this helper to break.
+            return string.Concat(CSharpCodecEmitter.Instance.Emit(plan, "T", "TCodec")
+                                                  .Select(f => f.Source));
+        }
+
+
+        /// <summary>The default reproduces cbexigen, ceiling and all.</summary>
+        [Test]
+        public void CbV2GCompatible_CapsTheListAndHidesTheSuffix()
+        {
+            var src = Emit(ParticleGrammar.CbV2GCompatible);
+            Assert.Multiple(() =>
+            {
+                Assert.That(src, Does.Contain("Count > 2"), "cbexigen cannot represent a third item");
+                Assert.That(src, Does.Contain("cannot be encoded while"),
+                            "and cannot reach the suffix from the zero-item state");
+            });
+        }
+
+
+        /// <summary>
+        /// The schema's own grammar: loops to maxOccurs, suffix reachable throughout — and the empty
+        /// case ends with event code 2, the one byte EXIficient was waiting for.
+        /// </summary>
+        [Test]
+        public void SchemaConformant_LoopsToMaxOccursAndKeepsTheSuffixReachable()
+        {
+            var src = Emit(ParticleGrammar.SchemaConformant);
+            Assert.Multiple(() =>
+            {
+                Assert.That(src, Does.Contain("Count > 16"), "the schema's maxOccurs, not cbexigen's two");
+                Assert.That(src, Does.Contain("foreach"), "a loop, not unrolled states");
+                Assert.That(src, Does.Not.Contain("cannot be encoded while"),
+                            "the suffix is reachable with an empty list");
+                Assert.That(src, Does.Contain("w.WriteBits(2, 2);   // element EE"),
+                            "the empty case ends with code 2 — cbexigen writes 1 there");
+            });
+        }
+
+
+        /// <summary>Unset means cbexigen-compatible, for the same reason as the document order.</summary>
+        [Test]
+        public void TheDefaultIsCbV2GCompatible()
+            => Assert.That(default(ParticleGrammar), Is.EqualTo(ParticleGrammar.CbV2GCompatible));
 
     }
 

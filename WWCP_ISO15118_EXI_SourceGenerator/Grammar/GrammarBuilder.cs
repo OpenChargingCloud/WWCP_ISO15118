@@ -89,6 +89,11 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar
 
         public static SchemaPlan Build(XsdSchema schema, IReadOnlyList<string> fragmentElements,
                                        DocumentElementOrder documentElementOrder)
+            => Build(schema, fragmentElements, documentElementOrder, ParticleGrammar.CbV2GCompatible);
+
+        public static SchemaPlan Build(XsdSchema schema, IReadOnlyList<string> fragmentElements,
+                                       DocumentElementOrder documentElementOrder,
+                                       ParticleGrammar particleGrammar)
         {
             var enums = new List<EnumPlan>();
             var opaqueTypes = new List<string>();
@@ -186,7 +191,8 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar
             }
 
             return new SchemaPlan(schema.TargetNamespace, globals, complex, enums,
-                opaqueTypes.Distinct().ToList(), docBits, fragBits, fragEnd, fragments);
+                opaqueTypes.Distinct().ToList(), docBits, fragBits, fragEnd, fragments,
+                particleGrammar);
         }
 
         private static SequencePlan BuildSequence(

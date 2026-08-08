@@ -12,9 +12,9 @@ set a breakpoint in `Evcc20Base.RunAsync` and step through a session message by 
 
 ```bash
 # in one terminal
-dotnet run --project WWCP_ISO15118_SECC -- --mode dc
+dotnet run --project WWCP_ISO15118_SECC
 # in another
-dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --mode dc
+dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118"
 ```
 
 Which prints, from the car:
@@ -52,8 +52,10 @@ Pin one with `--protocol 2` or `--protocol 20` when the point of the run *is* th
 is what the interop harnesses under `tools/interop-*` do, because a run that silently changed
 protocol would prove nothing.
 
-**`--mode ac`**, because the connector decides the mode. Pass `--mode dc` for a DC session, and make
-sure the station agrees.
+**`--mode dc`.** Unlike the protocol, this is *not* negotiated — the connector decides it, and the
+station must be told the same thing or the session fails on a message set it did not expect. DC is
+the default because it is what this car is usually pointed at, and where the interesting parts live
+(CableCheck, PreCharge, WeldingDetection, the bidirectional envelopes). `--mode ac` for the other one.
 
 There is no default station: a car needs somewhere to drive to, so either `--connect host:port` or
 `--sdp --interface <name>` is required.
@@ -62,10 +64,13 @@ There is no default station: a car needs somewhere to drive to, so either `--con
 
 ```bash
 # a DC session against a station on this machine. IPv6 literals must be bracketed.
-dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --mode dc
+dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118"
 
 # find the station instead of being told where it is (needs a real interface)
-dotnet run --project WWCP_ISO15118_EVCC -- --sdp --interface eth0 --mode dc
+dotnet run --project WWCP_ISO15118_EVCC -- --sdp --interface eth0
+
+# the other connector — the station has to agree, this one is not negotiated
+dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --mode ac
 
 # Plug & Charge: sign the authorization with a contract certificate
 dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --contract-cert contract.p12
@@ -109,4 +114,4 @@ Here is the wiring; the behaviour is in [`WWCP_ISO15118_Session`](../WWCP_ISO151
 in `StateMachines/Iso2/Evcc2.cs` and `StateMachines/Iso20/Evcc20*.cs`.
 
 Whether any of it conforms is a separate question, answered counterparty by counterparty in the
-[conformance repository](../../../../README.md) two levels up.
+[conformance repository](../../../../../README.md) two repositories up.

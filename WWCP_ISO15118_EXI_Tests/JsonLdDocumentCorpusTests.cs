@@ -111,6 +111,38 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
         }
 
 
+        /// <summary>
+        /// The corpus must cover every vector, not merely agree about the ones it happens to contain.
+        /// <para>
+        /// <see cref="EveryDocumentIsUnchanged"/> walks the checked-in documents and compares each
+        /// against what this build produces, which catches a document that <i>changed</i> and is blind
+        /// to one that was never added. That is not hypothetical: six vectors were added on 2026-08-08
+        /// and the whole fixture stayed green while none of them had a pinned JSON-LD form. The two
+        /// directions are different questions and this is the other one.
+        /// </para>
+        /// </summary>
+        [Test]
+        public void EveryVectorIsInTheCorpus()
+        {
+
+            var expected = JsonNode.Parse(File.ReadAllText(CorpusPath))!.AsObject()["sets"]!.AsObject();
+            var actual   = Produce()["sets"]!.AsObject();
+
+            var missing = new List<string>();
+
+            foreach (var (setName, actualSet) in actual)
+                foreach (var (documentName, _) in actualSet!.AsObject())
+                    if (documentName != "@context" &&
+                        expected[setName]?.AsObject().ContainsKey(documentName) != true)
+                        missing.Add($"{setName}/{documentName}");
+
+            Assert.That(missing, Is.Empty,
+                        "vectors with no JSON-LD document — run RegenerateTheCorpus and read the diff:\n  " +
+                        string.Join("\n  ", missing));
+
+        }
+
+
         /// <summary>The checked-in documents, against what this build produces.</summary>
         [Test]
         public void EveryDocumentIsUnchanged()

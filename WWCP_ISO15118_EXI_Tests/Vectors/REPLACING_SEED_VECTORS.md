@@ -7,14 +7,17 @@ reference codec — not merely internal self-consistency.
 
 ## Regenerate
 
-The reference oracle and the regeneration driver live in `tools/`:
+The oracle and the driver that runs it sit in two different repositories, so each command below is
+written from the root of the one that owns it:
 
 ```sh
-# 1. build the oracle (once; needs a C toolchain — WSL works well on Windows)
-wsl -d Debian -- bash /mnt/d/Coding/OpenChargingCloud/Vanaheimr.V2G.Exi/tools/cbv2g-ref/build.sh
+# 1. build the oracle (once; needs a C toolchain — WSL works well on Windows).
+#    From this repository's root.
+wsl -d Debian -- bash tools/cbv2g-ref/build.sh
 
-# 2. regenerate expectedHex for every vector (also verifies each round-trips)
-wsl -d Debian -- python3 /mnt/d/Coding/OpenChargingCloud/Vanaheimr.V2G.Exi/tools/regenerate-appprotocol-vectors.py
+# 2. regenerate expectedHex for every vector (also verifies each round-trips).
+#    From the conformance repository's root — the driver lives there, with the rest of the rig.
+wsl -d Debian -- python3 tools/regenerate-appprotocol-vectors.py
 ```
 
 The pinned commit is recorded in `AppProtocol.vectors.json` under

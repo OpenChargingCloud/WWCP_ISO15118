@@ -32,6 +32,7 @@ using cloud.charging.open.protocols.ISO15118.SLAC.Transport;
 
 using cloud.charging.open.protocols.ISO15118.Discovery;
 using cloud.charging.open.protocols.ISO15118.Sap;
+using cloud.charging.open.protocols.ISO15118.Security;
 using cloud.charging.open.protocols.ISO15118.Session;
 using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Slac;
@@ -83,6 +84,10 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             // .NET backend: a supplied --server-cert (e.g. a CPO/SECC leaf chain a real EVCC's trust anchor
             // accepts) takes precedence over the fresh self-signed dev cert. With --require-client-cert the
             // station requires + (dev: accepts any) the car's client certificate for mutual TLS.
+            var trust = args.TrustRootsPath is null ? null : TrustRoots.Load(args.TrustRootsPath);
+            if (trust is not null)
+                Console.WriteLine($"Trust roots: {string.Join(", ", trust.RootSubjects)}");
+
             var (serverLeaf, serverChain) = Credentials.LoadForTls(args.ServerCertPath, args.ServerCertPass, "--server-cert");
             using var devCert = args.TlsStack == TlsStack.Dotnet && serverLeaf is null ? CreateDevCertificate() : null;
             var dotnetTls = args.TlsStack != TlsStack.Dotnet ? null : new TlsOptions
@@ -91,12 +96,19 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                 ServerCertificateChain    = serverChain,
                 EnabledSslProtocols       = SslProtocols.Tls12 | SslProtocols.Tls13,
                 RequireClientCertificate  = args.RequireClientCert,
-                ClientCertificateValidation = args.RequireClientCert ? (_, _, _, _) => true : null,
+                // With roots configured the car's chain is actually checked; without them the old dev
+                // behaviour stands and any presented certificate is accepted.
+                ClientCertificateValidation = !args.RequireClientCert ? null
+                    : trust is null
+                          ? (_, _, _, _) => true
+                          : (_, cert, _, _) => cert is not null && Report("TLS client", trust.Validate(new X509Certificate2(cert))),
             };
             if (serverLeaf is not null)
                 Console.WriteLine($"Presenting server certificate: {serverLeaf.Subject} (+{serverChain?.Count ?? 0} intermediate(s))"
                                   + (args.RequireClientCert ? "; requiring a client certificate (mutual TLS, dev: accept-any)" : ""));
             var bcTls = args.TlsStack == TlsStack.BouncyCastle ? SeccPki.Generate(args.PkiDir!) : null;
+            if (bcTls is not null && trust is not null)
+                bcTls = bcTls with { ValidatePeerChain = c => Report("TLS client", trust.Validate(c[0], c[1..])) };
 
             using var listener = bcTls is not null
                                      ? new TcpV2GListener(new IPEndPoint(IPAddress.IPv6Any, args.ListenPort), bcTls)
@@ -130,7 +142,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     await SapHandshake.RunSeccSideAsync(stream, args.Protocol, mode: args.Mode);
                     sessionArgs = args;
                 }
-                paused = await RunSessionAsync(stream, sessionArgs, paused);
+                paused = await RunSessionAsync(stream, sessionArgs, trust, paused);
                 if (paused is not null)
                     Console.WriteLine($"Session paused (id {Convert.ToHexString(paused.SessionId)}" +
                                       $"{(paused.Binding is null ? ", unbound — no peer certificate, so a resume cannot be verified" : "")})" +
@@ -146,12 +158,14 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
 
         /// <summary>Runs one session; returns the session id when it ended <b>paused</b> (offer it to the
         /// next session as the resume id), else <c>null</c>.</summary>
-        private static async Task<ResumableSession?> RunSessionAsync(Stream stream, SeccOptions args, ResumableSession? resume = null)
+        private static async Task<ResumableSession?> RunSessionAsync(Stream stream, SeccOptions args,
+                                                                     V2GChainValidator? trust, ResumableSession? resume = null)
         {
             if (args.Protocol == ProtocolVariant.Iso15118_2)
             {
                 var secc2 = new Secc2(args.Mode, TimeSpan.FromSeconds(60), TimeProvider.System)
                 {
+                    ContractChainValidator = trust,
                     ResumeSessionId = resume?.SessionId,
                     RequestRenegotiation = args.Renegotiate,
                     TariffSignKey = args.TariffCertPath is not null
@@ -163,7 +177,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     if (secc2.PnCAuth is { } pnc2)
                         Console.WriteLine($"-2 Plug & Charge: contract {pnc2.ContractSubject}; challenge {(pnc2.ChallengeOk ? "OK" : "MISMATCH")}, " +
                                           $"digest {(pnc2.DigestOk ? "OK" : "FAIL")}, signature {(pnc2.SignatureOk ? "OK" : "FAIL")}" +
-                                          $"{(pnc2.SignatureOk ? $" (grammar={pnc2.SignatureGrammar})" : "")}.");
+                                          $"{(pnc2.SignatureOk ? $" (grammar={pnc2.SignatureGrammar})" : "")}; " +
+                                          $"chain {Describe(pnc2.Chain)}.");
                     foreach (var r in secc2.MeteringReceipts)
                         Console.WriteLine($"-2 MeteringReceipt: digest {(r.DigestOk ? "OK" : "FAIL")}, " +
                                           $"signature {(r.SignatureOk ? "OK" : "FAIL")}{(r.SignatureOk ? $" (grammar={r.SignatureGrammar})" : "")}.");
@@ -184,6 +199,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     (PowerMode.Dc, false) => new Secc20Dc (TimeSpan.FromSeconds(60), TimeProvider.System),
                     _                     => new Secc20Ac (TimeSpan.FromSeconds(60), TimeProvider.System),
                 };
+                secc.ContractChainValidator = trust;
                 secc.PreferDynamicControlMode = args.PreferDynamic;
                 secc.OfferPlugAndCharge       = !args.NoPnc;
                 secc.OfferResume(resume);
@@ -214,6 +230,28 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             }
         }
 
+        /// <summary>
+        /// A chain verdict as one phrase. "not checked" is spelled out rather than shown as a failure,
+        /// because a conformance run must never let "we did not look" read like "we looked and it was bad".
+        /// </summary>
+        private static string Describe(ChainResult result)
+            => result.Ok                        ? $"valid (anchored at {result.Anchor})"
+             : result == ChainResult.NotConfigured ? "not checked — no --trust-roots"
+             :                                    $"REJECTED — {result.Reason}";
+
+        /// <summary>
+        /// Turns a chain verdict into the boolean a TLS callback needs, and says out loud what it decided.
+        /// A refused handshake otherwise surfaces as a bare connection reset, with the reason — expired,
+        /// unknown root, broken signature — known here and printed nowhere.
+        /// </summary>
+        private static bool Report(string what, ChainResult result)
+        {
+            Console.WriteLine(result.Ok
+                                  ? $"{what}: chain valid, anchored at {result.Anchor}."
+                                  : $"{what}: chain REJECTED — {result.Reason}");
+            return result.Ok;
+        }
+
         /// <summary>ISO 15118-20 Table 204, so the line above names the service instead of leaving a bare
         /// number to be looked up.</summary>
         private static string EnergyServiceName(ushort serviceId)
@@ -230,11 +268,13 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             if (secc.PnCAuth is { } pnc)
                 Console.WriteLine($"Plug & Charge: contract {pnc.ContractSubject}; challenge {(pnc.ChallengeOk ? "OK" : "MISMATCH")}, " +
                                   $"digest {(pnc.DigestOk ? "OK" : "FAIL")}, signature {(pnc.SignatureOk ? "OK" : "FAIL")} " +
-                                  $"({pnc.SignatureMethod}{(pnc.SignatureOk ? $", grammar={pnc.SignatureGrammar}" : "")}).");
+                                  $"({pnc.SignatureMethod}{(pnc.SignatureOk ? $", grammar={pnc.SignatureGrammar}" : "")}); " +
+                                  $"chain {Describe(pnc.Chain)}.");
             if (secc.CertInstall is { } ci)
                 Console.WriteLine($"CertificateInstallation: OEM {ci.OemSubject}; digest {(ci.DigestOk ? "OK" : "FAIL")}, " +
                                   $"signature {(ci.SignatureOk ? "OK" : "FAIL")}{(ci.SignatureOk ? $" (grammar={ci.SignatureGrammar})" : "")}, " +
-                                  $"contract issued ({(ci.EncryptedForOem ? "key wrapped for OEM key" : "OEM key not P-521 — blob undecryptable for EV")}).");
+                                  $"contract issued ({(ci.EncryptedForOem ? "key wrapped for OEM key" : "OEM key not P-521 — blob undecryptable for EV")}); " +
+                                  $"OEM chain {Describe(ci.Chain)}.");
         }
 
         private static async Task RunSlacAsync(SeccOptions args)

@@ -21,6 +21,7 @@ using System.Security.Cryptography.X509Certificates;
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages;
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated;
 using cloud.charging.open.protocols.ISO15118.Framing;
+using cloud.charging.open.protocols.ISO15118.Security;
 using cloud.charging.open.protocols.ISO15118.Session;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
@@ -38,8 +39,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
     /// and which <c>SignedInfo</c> grammar the signature verified under: <c>iso20-commonmessages</c> for our/cbV2G
     /// combined-schema form, <c>xmldsig-standalone</c> for the Josev-style standalone-xmldsig form, or
     /// <c>none</c>).</summary>
+    /// <param name="Chain">How the contract chain fared against the configured V2G roots, or
+    /// <c>ChainResult.NotConfigured</c> when none were given — not the same as a pass.</param>
     public sealed record PnCAuthResult(bool ChallengeOk, bool DigestOk, bool SignatureOk, string ContractSubject,
-                                       string SignatureMethod, string SignatureGrammar);
+                                       string SignatureMethod, string SignatureGrammar, ChainResult Chain);
 
     /// <summary>Outcome of a live -20 <c>CertificateInstallationReq</c> (contract provisioning): whether the
     /// OEM-provisioning-chain digest and ECDSA signature verified (and under which SignedInfo grammar — see
@@ -47,8 +50,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
     /// be <b>encrypted for</b> that OEM key (requires a P-521 OEM-provisioning key; a -2-era P-256 OEM cert —
     /// what Josev ships — cannot take part in the -20 secp521r1 ECDH, so the response is well-formed but
     /// undecryptable for the EV).</summary>
+    /// <param name="Chain">How the OEM provisioning chain fared against the configured V2G roots, or
+    /// <c>ChainResult.NotConfigured</c> when none were given. This is the one a real CPO would care about
+    /// most: it decides whether the car asking for a contract is a car the OEM actually built.</param>
     public sealed record CertInstallResult(bool DigestOk, bool SignatureOk, string SignatureGrammar,
-                                           string OemSubject, bool EncryptedForOem);
+                                           string OemSubject, bool EncryptedForOem, ChainResult Chain);
 
     /// <summary>
     /// The SECC side of an ISO 15118-20 session, shared between AC and DC: the CommonMessages phases
@@ -72,6 +78,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         protected Phase20 Phase { get; private set; } = Phase20.SessionSetup;
         protected readonly SessionContext SessionCtx = new(clock);
         private DateTimeOffset _lastSeen = clock.GetUtcNow();
+
+        /// <summary>When set, the EV's contract chain (at AuthorizationReq) and OEM provisioning chain (at
+        /// CertificateInstallationReq) are validated against these roots, and the verdicts ride in
+        /// <see cref="PnCAuth"/> and <see cref="CertInstall"/>. Unset means the signatures still verify
+        /// against the presented leaf and nothing decides who issued it.</summary>
+        public V2GChainValidator? ContractChainValidator { get; set; }
 
         /// <summary>The 16-byte PnC challenge we offered in AuthorizationSetupRes; the EV must echo it in a PnC AuthorizationReq.</summary>
         private byte[]? _genChallenge;
@@ -642,11 +654,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             var buf = new byte[8192];
             if (!CommonMessagesCodec.EncodeFragment_PnC_AReqAuthorizationMode(pnc, buf, out int n))
-                return new PnCAuthResult(challengeOk, DigestOk: false, SignatureOk: false, "?", "fragment-encode-failed", "none");
+                return new PnCAuthResult(challengeOk, DigestOk: false, SignatureOk: false, "?", "fragment-encode-failed", "none", ChainResult.NotConfigured);
             var fragment = buf.AsSpan(0, n);
 
             if (req.Header.Signature is not { } sig || sig.SignedInfo.Reference.Count == 0)
-                return new PnCAuthResult(challengeOk, false, false, "?", "no-signature", "none");
+                return new PnCAuthResult(challengeOk, false, false, "?", "no-signature", "none", ChainResult.NotConfigured);
 
             var reference = sig.SignedInfo.Reference[0];
             bool digestOk = HashOf(reference.DigestMethod.Algorithm, fragment).AsSpan().SequenceEqual(reference.DigestValue);
@@ -654,10 +666,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             string subject = "?";
             bool signatureOk = false;
             string grammar = "none";
+            var chain = ChainResult.NotConfigured;
             try
             {
                 using var contract = X509CertificateLoader.LoadCertificate(pnc.ContractCertificateChain.Certificate);
                 subject = contract.Subject;
+                if (ContractChainValidator is not null)
+                    chain = ContractChainValidator.Validate(contract, pnc.ContractCertificateChain.SubCertificates?.Certificate);
                 using var ecdsa = contract.GetECDsaPublicKey();
                 if (ecdsa is not null)
                 {
@@ -678,7 +693,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             catch (Exception ex) { subject = $"cert-error: {ex.Message}"; }
 
             return new PnCAuthResult(challengeOk, digestOk, signatureOk, subject,
-                                     sig.SignedInfo.SignatureMethod.Algorithm, grammar);
+                                     sig.SignedInfo.SignatureMethod.Algorithm, grammar, chain);
         }
 
         private static byte[] HashOf(string algorithmUri, ReadOnlySpan<byte> data) =>
@@ -869,10 +884,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             bool digestOk = false, signatureOk = false;
             string grammar = "none", oemSubject = "?";
+            var oemChain = ChainResult.NotConfigured;
             ECDsa? oemVerifyKey = null;
             try
             {
                 using var oemLeaf = X509CertificateLoader.LoadCertificate(chain.Certificate);
+                // Whether the car asking for a contract is a car its OEM actually built. The sub-CAs were
+                // carried in the message all along and read by nobody until there was a validator.
+                if (ContractChainValidator is not null)
+                    oemChain = ContractChainValidator.Validate(oemLeaf, chain.SubCertificates?.Certificate);
                 oemSubject = oemLeaf.Subject;
                 oemVerifyKey = oemLeaf.GetECDsaPublicKey();
 
@@ -937,7 +957,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                                                           includeExiTransform: true);
             var resSignature = V2GSignature.BuildSignature(signedInfo, V2GSignature.Sign(signedInfo, cpsKey));
 
-            CertInstall = new CertInstallResult(digestOk, signatureOk, grammar, oemSubject, encryptedForOem);
+            CertInstall = new CertInstallResult(digestOk, signatureOk, grammar, oemSubject, encryptedForOem, oemChain);
 
             return new CertificateInstallationRes(
                 SessionCtx.ToCommonHeader() with { Signature = resSignature },

@@ -35,7 +35,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         ProtocolVariant Protocol, bool OfferBoth, PowerMode Mode, bool Mcs,
         TlsStack TlsStack, bool UseSdp, string? Interface,
         bool UseSlac, string? SlacPeerHost, int SlacPeerPort, string? PkiDir,
-        string? VehicleCertPath, string? VehicleCertPass,
+        string? VehicleCertPath, string? VehicleCertPass, string? TrustRootsPath,
         string? ContractCertPath, string? ContractCertPass,
         string? OemCertPath, string? OemCertPass,
         bool PauseResume, bool EndPaused, string? ResumeSessionIdHex,
@@ -57,7 +57,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             bool tls = false, useSdp = false, useSlac = false;
             bool pauseResume = false, endPaused = false, renegotiate = false;
             string? connectHost = null, iface = null, slacPeerHost = null, pkiDir = null;
-            string? vehicleCertPath = null, vehicleCertPass = null;
+            string? vehicleCertPath = null, vehicleCertPass = null, trustRootsPath = null;
             string? contractCertPath = null, contractCertPass = null;
             string? oemCertPath = null, oemCertPass = null;
             string? resumeSessionIdHex = null, tariffCertPath = null, tariffCertPass = null;
@@ -121,13 +121,17 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                         break;
                     // The car's own identity in the V2G PKI — the CharIN "Vehicle" certificate, which for
                     // -20 is what a station's mutual-TLS handshake asks for and what its resume binding is
-                    // computed over. --client-cert is the older spelling of the same thing, kept because
-                    // live harnesses and recorded run scripts pass it.
-                    case "--vehicle-cert" or "--client-cert":
+                    // computed over.
+                    case "--vehicle-cert":
                         vehicleCertPath = args[++i];
                         break;
-                    case "--vehicle-cert-pass" or "--client-cert-pass":
+                    case "--vehicle-cert-pass":
                         vehicleCertPass = args[++i];
+                        break;
+                    // The V2G root(s) the station's certificate must chain to. One file, or a directory of
+                    // them when several counterparties' hierarchies have to be trusted at once.
+                    case "--trust-roots":
+                        trustRootsPath = args[++i];
                         break;
                     // The OEM provisioning chain, which is a different certificate from both of the above:
                     // it is what the car was born with, and the only thing it can prove before it holds a
@@ -174,11 +178,12 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 backend = TlsStack.Dotnet;
 
             Validate(connectHost, backend, useSdp, iface, useSlac, slacPeerHost, pkiDir, mcs, protocol,
-                     offerBoth, oemCertPath, vehicleCertPath);
+                     offerBoth, oemCertPath, vehicleCertPath, trustRootsPath);
 
             return new EvccOptions(connectHost, connectPort, protocol, offerBoth, mode, mcs, backend,
                                    useSdp, iface, useSlac, slacPeerHost, slacPeerPort, pkiDir,
-                                   vehicleCertPath, vehicleCertPass, contractCertPath, contractCertPass,
+                                   vehicleCertPath, vehicleCertPass, trustRootsPath,
+                                   contractCertPath, contractCertPass,
                                    oemCertPath, oemCertPass,
                                    pauseResume, endPaused, resumeSessionIdHex,
                                    renegotiate, tariffCertPath, tariffCertPass);
@@ -187,7 +192,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         private static void Validate(string? connectHost, TlsStack backend, bool useSdp, string? iface,
                                      bool useSlac, string? slacPeerHost, string? pkiDir,
                                      bool mcs, ProtocolVariant protocol, bool offerBoth,
-                                     string? oemCertPath, string? vehicleCertPath)
+                                     string? oemCertPath, string? vehicleCertPath, string? trustRootsPath)
         {
             if (connectHost is null && !useSdp)
                 throw new ArgumentException($"a car needs somewhere to drive to: --connect host:port (or --sdp --interface <name>).\n{Usage}");
@@ -211,6 +216,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             foreach (var (flag, path) in new[] { ("--vehicle-cert", vehicleCertPath), ("--oem-cert", oemCertPath) })
                 if (path is not null && !File.Exists(path))
                     throw new ArgumentException($"{flag}: no such file '{path}'.");
+
+            // Roots may be a file or a directory, so this one only asks that it is *something*.
+            if (trustRootsPath is not null && !File.Exists(trustRootsPath) && !Directory.Exists(trustRootsPath))
+                throw new ArgumentException($"--trust-roots: no such file or directory '{trustRootsPath}'.");
 
             // Energy-transfer services 8 / 9 exist in no other catalogue, so --mode mcs against -2 is a
             // request that cannot be met. Refused here rather than quietly running plain DC, because a

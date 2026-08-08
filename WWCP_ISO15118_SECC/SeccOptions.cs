@@ -16,7 +16,7 @@
  */
 
 using cloud.charging.open.protocols.ISO15118.StateMachines;
-using cloud.charging.open.protocols.ISO15118.Transport;
+using cloud.charging.open.protocols.ISO15118.SharedCC;
 
 namespace cloud.charging.open.protocols.ISO15118.SECC
 {
@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
     /// </remarks>
     public sealed record SeccOptions(
         int ListenPort, ProtocolVariant Protocol, bool OfferBoth, PowerMode Mode, bool Mcs,
-        TlsBackend TlsBackend, bool UseSdp, string? Interface, bool PreferDynamic, bool NoPnc,
+        TlsStack TlsStack, bool UseSdp, string? Interface, bool PreferDynamic, bool NoPnc,
         bool UseSlac, int SlacListenPort, string? PkiDir,
         string? ServerCertPath, string? ServerCertPass, bool RequireClientCert,
         bool Renegotiate, string? TariffCertPath, string? TariffCertPass)
@@ -50,7 +50,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             var offerBoth = true;
             var mode = PowerMode.Dc;
             var mcs = false;
-            var backend = TlsBackend.None;
+            var backend = TlsStack.None;
             bool tls = false, useSdp = false, useSlac = false;
             bool preferDynamic = false, noPnc = false, requireClientCert = false, renegotiate = false;
             string? iface = null, pkiDir = null, serverCertPath = null, serverCertPass = null;
@@ -93,8 +93,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     case "--tls-backend":
                         backend = args[++i] switch
                         {
-                            "dotnet" => TlsBackend.Dotnet,
-                            "bc" or "bouncycastle" => TlsBackend.BouncyCastle,
+                            "dotnet" => TlsStack.Dotnet,
+                            "bc" or "bouncycastle" => TlsStack.BouncyCastle,
                             var v => throw new ArgumentException($"--tls-backend expects dotnet or bc, got '{v}'."),
                         };
                         break;
@@ -147,8 +147,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             }
 
             // --tls is shorthand for the .NET backend; --tls-backend wins if both are given.
-            if (backend == TlsBackend.None && tls)
-                backend = TlsBackend.Dotnet;
+            if (backend == TlsStack.None && tls)
+                backend = TlsStack.Dotnet;
 
             Validate(listenPort, backend, useSdp, iface, useSlac, slacListenPort, pkiDir, mcs, protocol, offerBoth);
 
@@ -158,14 +158,14 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                                    renegotiate, tariffCertPath, tariffCertPass);
         }
 
-        private static void Validate(int listenPort, TlsBackend backend, bool useSdp, string? iface,
+        private static void Validate(int listenPort, TlsStack backend, bool useSdp, string? iface,
                                      bool useSlac, int slacListenPort, string? pkiDir,
                                      bool mcs, ProtocolVariant protocol, bool offerBoth)
         {
             if (listenPort is <= 0 or > 65535)
                 throw new ArgumentException($"--listen expects a port between 1 and 65535, got {listenPort}.");
 
-            if (backend == TlsBackend.BouncyCastle && pkiDir is null)
+            if (backend == TlsStack.BouncyCastle && pkiDir is null)
                 throw new ArgumentException("--tls-backend bc requires --pki-dir <dir> (shared V2G certificate material).");
 
             if (useSdp && iface is null)

@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WWCP_ISO15118_SharedCC\WWCP_ISO15118_SharedCC.csproj" />
     <ProjectReference Include="..\WWCP_ISO15118_Session\WWCP_ISO15118_Session.csproj" />
     <!-- The BouncyCastle TLS backend generates a strict-20 V2G PKI at runtime and shares it with the
          EVCC program through a pki-dir. Only this side builds the hierarchy; the car reads it back. -->

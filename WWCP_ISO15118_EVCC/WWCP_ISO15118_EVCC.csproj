@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\WWCP_ISO15118_SharedCC\WWCP_ISO15118_SharedCC.csproj" />
     <ProjectReference Include="..\WWCP_ISO15118_Session\WWCP_ISO15118_Session.csproj" />
     <!-- The BouncyCastle TLS backend reads the Vehicle chain and key the station minted into a
          shared pki-dir. This side only loads; the hierarchy is built by WWCP_ISO15118_SECC. -->

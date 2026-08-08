@@ -18,6 +18,7 @@
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Tls;
 
+using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
 
 namespace cloud.charging.open.protocols.ISO15118.EVCC
@@ -39,6 +40,40 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
     public static class EvccPki
     {
         private const int SigScheme = SignatureScheme.ecdsa_secp521r1_sha512;
+
+        /// <summary>
+        /// The car brings its <b>own</b> Vehicle chain and key from a PKCS#12, for a station whose PKI this
+        /// process did not mint.
+        /// </summary>
+        /// <remarks>
+        /// The peer check is the part worth understanding. With <paramref name="pkiDir"/> given we still pin
+        /// the station's leaf from <c>secc.leaf.der</c> there; without it there is nothing to pin against —
+        /// the station is a stranger — so the peer is accepted and the run says so. That is the honest
+        /// shape for a dev tool: a pin invented here would be a pin against nothing.
+        /// </remarks>
+        public static BcTlsOptions WithVehicleCertificate(string path, string? password, string? pkiDir)
+        {
+            var own = Credentials.LoadForBouncyCastle(path, password, "--vehicle-cert");
+
+            byte[]? seccLeaf = null;
+            if (pkiDir is not null)
+            {
+                var candidate = Path.Combine(pkiDir, "secc.leaf.der");
+                if (File.Exists(candidate))
+                    seccLeaf = File.ReadAllBytes(candidate);
+            }
+
+            Console.WriteLine(seccLeaf is not null
+                                  ? "Presenting your Vehicle chain; pinning the station's leaf from --pki-dir."
+                                  : "WARNING: presenting your Vehicle chain and accepting ANY station certificate — " +
+                                    "nothing to pin against without --pki-dir. Dev tool only.");
+
+            return new BcTlsOptions
+            {
+                OwnCredentials   = own,
+                ValidatePeerLeaf = seccLeaf is null ? null : actual => seccLeaf.AsSpan().SequenceEqual(actual),
+            };
+        }
 
         /// <summary>Load the Vehicle chain + key and the SECC leaf to pin, from the shared dir.</summary>
         public static BcTlsOptions Load(string pkiDir)

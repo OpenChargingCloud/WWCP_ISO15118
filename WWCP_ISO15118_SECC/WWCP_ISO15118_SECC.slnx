@@ -2,6 +2,7 @@
   <Project Path="WWCP_ISO15118_SECC.csproj" />
   <Folder Name="/The session layer/">
     <Project Path="../WWCP_ISO15118_Session/WWCP_ISO15118_Session.csproj" />
+    <Project Path="../WWCP_ISO15118_SharedCC/WWCP_ISO15118_SharedCC.csproj" />
   </Folder>
   <Folder Name="/Codec/">
     <Project Path="../WWCP_ISO15118_EXI/WWCP_ISO15118_EXI.csproj" />

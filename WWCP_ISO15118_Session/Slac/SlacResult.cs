@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace Vanaheimr.V2G.Simulation.Slac
+namespace cloud.charging.open.protocols.ISO15118.Slac
 {
     /// <summary>
     /// The outcome of a completed SLAC pairing: the PLC network credentials both sides agreed on

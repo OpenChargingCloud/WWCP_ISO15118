@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -31,18 +31,18 @@ using cloud.charging.open.protocols.ISO15118.SDP.Server;
 using cloud.charging.open.protocols.ISO15118.SLAC.StateMachine;
 using cloud.charging.open.protocols.ISO15118.SLAC.Transport;
 
-using Vanaheimr.V2G.Simulation.Discovery;
-using Vanaheimr.V2G.Simulation.Sap;
-using Vanaheimr.V2G.Simulation.Session;
-using Vanaheimr.V2G.Simulation.Slac;
-using Vanaheimr.V2G.Simulation.StateMachines;
-using Vanaheimr.V2G.Simulation.StateMachines.Iso2;
-using Vanaheimr.V2G.Simulation.StateMachines.Iso20;
-using Vanaheimr.V2G.Simulation.Timing;
-using Vanaheimr.V2G.Simulation.Transport;
-using Vanaheimr.V2G.Simulation.Transport.BouncyCastle;
+using cloud.charging.open.protocols.ISO15118.Discovery;
+using cloud.charging.open.protocols.ISO15118.Sap;
+using cloud.charging.open.protocols.ISO15118.Session;
+using cloud.charging.open.protocols.ISO15118.Slac;
+using cloud.charging.open.protocols.ISO15118.StateMachines;
+using cloud.charging.open.protocols.ISO15118.StateMachines.Iso2;
+using cloud.charging.open.protocols.ISO15118.StateMachines.Iso20;
+using cloud.charging.open.protocols.ISO15118.Timing;
+using cloud.charging.open.protocols.ISO15118.Transport;
+using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
 
-namespace Vanaheimr.V2G.Simulation.Cli
+namespace cloud.charging.open.protocols.ISO15118.Cli
 {
     /// <summary>
     /// One-shot EVCC/SECC session runner with selectable front stages (SLAC, SDP) and TLS backend

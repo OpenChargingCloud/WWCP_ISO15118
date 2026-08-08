@@ -20,12 +20,12 @@ using System.Security.Cryptography.X509Certificates;
 
 using cloud.charging.open.protocols.ISO15118_2;
 using cloud.charging.open.protocols.ISO15118_2.Generated;
-using Vanaheimr.V2G.Simulation.Framing;
-using Vanaheimr.V2G.Simulation.Metering;
-using Vanaheimr.V2G.Simulation.Session;
+using cloud.charging.open.protocols.ISO15118.Framing;
+using cloud.charging.open.protocols.ISO15118.Metering;
+using cloud.charging.open.protocols.ISO15118.Session;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
-namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
+namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 {
     /// <summary>Outcome of validating a -2 Plug &amp; Charge signed <c>AuthorizationReq</c>: GenChallenge echo,
     /// reference digest over the body-element fragment, and the ECDSA signature against the contract leaf

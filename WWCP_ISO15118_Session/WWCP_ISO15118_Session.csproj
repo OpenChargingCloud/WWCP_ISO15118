@@ -4,8 +4,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
-    <RootNamespace>Vanaheimr.V2G.Simulation</RootNamespace>
-    <AssemblyName>Vanaheimr.V2G.Simulation</AssemblyName>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118</RootNamespace>
+    <AssemblyName>WWCP_ISO15118_Session</AssemblyName>
     <!-- The BouncyCastle TLS backend (Transport/BouncyCastle/) is not AOT/trim-clean, so the
          AOT-compatible guarantee is dropped. The default TLS path stays .NET SslStream. -->
   </PropertyGroup>

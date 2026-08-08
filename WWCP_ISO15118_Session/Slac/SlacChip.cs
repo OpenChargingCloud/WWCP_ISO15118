@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -17,7 +17,7 @@
 
 using cloud.charging.open.protocols.ISO15118.SLAC.Avln;
 
-namespace Vanaheimr.V2G.Simulation.Slac
+namespace cloud.charging.open.protocols.ISO15118.Slac
 {
     /// <summary>
     /// Programs the local PLC chip with the SLAC-negotiated credentials and waits until the AVLN is up —

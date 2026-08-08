@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -17,7 +17,7 @@
 
 using System.Security.Cryptography;
 
-namespace Vanaheimr.V2G.Simulation.Metering;
+namespace cloud.charging.open.protocols.ISO15118.Metering;
 
 /// <summary>
 /// A simulated meter that signs its own readings, so <c>SigMeterReading</c> / <c>MeterSignature</c>

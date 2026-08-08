@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace Vanaheimr.V2G.Simulation.Transport.BouncyCastle
+namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
 {
     /// <summary>
     /// Configuration for the BouncyCastle TLS backend (<see cref="BcTlsTransport"/>) — the managed,

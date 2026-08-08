@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -22,7 +22,7 @@ using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Tls;
 
-namespace Vanaheimr.V2G.Simulation.Transport.BouncyCastle
+namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
 {
     /// <summary>
     /// Converts .NET certificate material (<see cref="X509Certificate2"/> + optional intermediate chain)

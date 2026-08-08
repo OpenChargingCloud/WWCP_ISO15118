@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -20,7 +20,7 @@ using System.Security.Cryptography;
 using I2 = cloud.charging.open.protocols.ISO15118_2.Generated;
 using X = cloud.charging.open.protocols.ISO15118_20.XMLDSig.Generated;
 
-namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
+namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 {
     /// <summary>
     /// ISO 15118-<b>2</b> flavour of the Josev signature interop (see the -20 counterparts

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -21,9 +21,9 @@ using Org.BouncyCastle.Tls;
 
 using cloud.charging.open.protocols.ISO15118.PKI;
 
-using Vanaheimr.V2G.Simulation.Transport.BouncyCastle;
+using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
 
-namespace Vanaheimr.V2G.Simulation.Cli
+namespace cloud.charging.open.protocols.ISO15118.Cli
 {
     /// <summary>
     /// Dev-only glue for the <c>--tls-backend bc</c> path: the SECC generates a strict-20 V2G PKI

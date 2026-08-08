@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -20,16 +20,20 @@ using System.Security.Cryptography.X509Certificates;
 
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages;
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated;
-using Vanaheimr.V2G.Simulation.Framing;
-using Vanaheimr.V2G.Simulation.Session;
+using cloud.charging.open.protocols.ISO15118.Framing;
+using cloud.charging.open.protocols.ISO15118.Session;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
 // Each -20 message set carries its own generated ResponseCode and V2GResponseType; IsFailure has to see
 // all three — the same reason Evcc20Base.RefuseOnFailure aliases them.
 using Ac20 = cloud.charging.open.protocols.ISO15118_20.AC.Generated;
 using Dc20 = cloud.charging.open.protocols.ISO15118_20.DC.Generated;
+// `V2GTP` is a namespace here as well as the header codec class, and the namespace wins
+// on a bare identifier -- see docs/wwcp-iso15118-split.md, "V2GTP exists twice".
+using V2GTPCodec = cloud.charging.open.protocols.ISO15118.EXI.Dispatch.V2GTP;
 
-namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
+
+namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 {
     /// <summary>Outcome of validating a live Plug &amp; Charge <c>AuthorizationReq</c>: whether the EV echoed our
     /// <c>GenChallenge</c>, whether the signed-element digest matched its reference, and whether the ECDSA
@@ -449,9 +453,9 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         {
             var (frame, payloadType) = await V2GTPStream.ReadRawFrameAsync(stream, ct).ConfigureAwait(false);
 
-            if (payloadType == V2GTP.PayloadType_DinIso2Main)   // 0x8001 — see doc comment
+            if (payloadType == V2GTPCodec.PayloadType_DinIso2Main)   // 0x8001 — see doc comment
                 return (MessageSet.Iso20CommonMessages,
-                        CommonMessagesCodec.DecodeAny(frame.AsSpan(V2GTP.HeaderSize), out _));
+                        CommonMessagesCodec.DecodeAny(frame.AsSpan(V2GTPCodec.HeaderSize), out _));
 
             if (!V2GTPDispatcher.TryDecode(frame, out var set, out var message, out var error))
                 throw new InvalidDataException($"V2GTP frame: {error}");

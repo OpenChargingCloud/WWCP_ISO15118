@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -19,7 +19,7 @@ using System.Net;
 
 using cloud.charging.open.protocols.ISO15118.SDP.Messages;
 
-namespace Vanaheimr.V2G.Simulation.Discovery
+namespace cloud.charging.open.protocols.ISO15118.Discovery
 {
     /// <summary>
     /// The SECC's TCP endpoint an EVCC should connect to, as produced by <see cref="ISeccDiscovery"/>:

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -19,7 +19,7 @@ using cloud.charging.open.protocols.ISO15118.SLAC.Avln;
 using cloud.charging.open.protocols.ISO15118.SLAC.StateMachine;
 using cloud.charging.open.protocols.ISO15118.SLAC.Transport;
 
-namespace Vanaheimr.V2G.Simulation.Slac
+namespace cloud.charging.open.protocols.ISO15118.Slac
 {
     /// <summary>
     /// SECC/EVSE-side SLAC pairing stage. <see cref="StartAsync"/> begins listening for a PEV (so the

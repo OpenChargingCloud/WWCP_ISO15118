@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -16,12 +16,16 @@
  */
 
 using cloud.charging.open.protocols.ISO15118.AppProtocol;
-using Vanaheimr.V2G.Simulation.Framing;
-using Vanaheimr.V2G.Simulation.Session;
-using Vanaheimr.V2G.Simulation.StateMachines;
+using cloud.charging.open.protocols.ISO15118.Framing;
+using cloud.charging.open.protocols.ISO15118.Session;
+using cloud.charging.open.protocols.ISO15118.StateMachines;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
+// `V2GTP` is a namespace here as well as the header codec class, and the namespace wins
+// on a bare identifier -- see docs/wwcp-iso15118-split.md, "V2GTP exists twice".
+using V2GTPCodec = cloud.charging.open.protocols.ISO15118.EXI.Dispatch.V2GTP;
 
-namespace Vanaheimr.V2G.Simulation.Sap
+
+namespace cloud.charging.open.protocols.ISO15118.Sap
 {
     /// <summary>
     /// One protocol a peer is prepared to run, in a SupportedAppProtocol offer: the variant, and for
@@ -100,7 +104,7 @@ namespace Vanaheimr.V2G.Simulation.Sap
             if (!SupportedAppProtocolCodec.TryEncodeRequest(req, buf, out int n))
                 throw new InvalidOperationException("SAP: EXI encode failed (buffer too small?).");
 
-            await V2GTPStream.WriteRawFrameAsync(stream, V2GTP.PayloadType_AppProtocol, buf.AsMemory(0, n), ct).ConfigureAwait(false);
+            await V2GTPStream.WriteRawFrameAsync(stream, V2GTPCodec.PayloadType_AppProtocol, buf.AsMemory(0, n), ct).ConfigureAwait(false);
 
             if (await ReadSapAsync(stream, ct).ConfigureAwait(false) is not SupportedAppProtocolRes res)
                 throw new SessionAborted("SAP: expected a SupportedAppProtocolRes.");
@@ -158,7 +162,7 @@ namespace Vanaheimr.V2G.Simulation.Sap
             var buf = new byte[16];
             if (!SupportedAppProtocolCodec.TryEncodeResponse(res, buf, out int n))
                 throw new InvalidOperationException("SAP: EXI encode failed (buffer too small?).");
-            await V2GTPStream.WriteRawFrameAsync(stream, V2GTP.PayloadType_AppProtocol, buf.AsMemory(0, n), ct).ConfigureAwait(false);
+            await V2GTPStream.WriteRawFrameAsync(stream, V2GTPCodec.PayloadType_AppProtocol, buf.AsMemory(0, n), ct).ConfigureAwait(false);
 
             if (match is not { } settled)
                 throw new SessionAborted(
@@ -169,14 +173,14 @@ namespace Vanaheimr.V2G.Simulation.Sap
 
         /// <summary>Reads one SupportedAppProtocol frame. SAP shares payload id 0x8001 with the -2 messages
         /// and so is decoded here explicitly, not through the payload-type dispatcher (see
-        /// <see cref="V2GTP.PayloadType_AppProtocol"/>).</summary>
+        /// <see cref="V2GTPCodec.PayloadType_AppProtocol"/>).</summary>
         private static async Task<object> ReadSapAsync(Stream stream, CancellationToken ct)
         {
             var (frame, payloadType) = await V2GTPStream.ReadRawFrameAsync(stream, ct).ConfigureAwait(false);
-            if (payloadType != V2GTP.PayloadType_AppProtocol)
-                throw new SessionAborted($"SAP: expected payload type 0x{V2GTP.PayloadType_AppProtocol:X4}, got 0x{payloadType:X4}.");
+            if (payloadType != V2GTPCodec.PayloadType_AppProtocol)
+                throw new SessionAborted($"SAP: expected payload type 0x{V2GTPCodec.PayloadType_AppProtocol:X4}, got 0x{payloadType:X4}.");
 
-            return SupportedAppProtocolCodec.DecodeAny(frame.AsSpan(V2GTP.HeaderSize), out _);
+            return SupportedAppProtocolCodec.DecodeAny(frame.AsSpan(V2GTPCodec.HeaderSize), out _);
         }
     }
 }

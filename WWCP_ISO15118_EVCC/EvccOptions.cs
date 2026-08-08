@@ -16,6 +16,7 @@
  */
 
 using cloud.charging.open.protocols.ISO15118.StateMachines;
+using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Transport;
 
 namespace cloud.charging.open.protocols.ISO15118.EVCC
@@ -32,10 +33,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
     public sealed record EvccOptions(
         string? ConnectHost, int ConnectPort,
         ProtocolVariant Protocol, bool OfferBoth, PowerMode Mode, bool Mcs,
-        TlsBackend TlsBackend, bool UseSdp, string? Interface,
+        TlsStack TlsStack, bool UseSdp, string? Interface,
         bool UseSlac, string? SlacPeerHost, int SlacPeerPort, string? PkiDir,
-        string? ClientCertPath, string? ClientCertPass,
+        string? VehicleCertPath, string? VehicleCertPass,
         string? ContractCertPath, string? ContractCertPass,
+        string? OemCertPath, string? OemCertPass,
         bool PauseResume, bool EndPaused, string? ResumeSessionIdHex,
         bool Renegotiate, string? TariffCertPath, string? TariffCertPass)
     {
@@ -51,12 +53,13 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             var offerBoth = true;
             var mode = PowerMode.Dc;
             var mcs = false;
-            var backend = TlsBackend.None;
+            var backend = TlsStack.None;
             bool tls = false, useSdp = false, useSlac = false;
             bool pauseResume = false, endPaused = false, renegotiate = false;
             string? connectHost = null, iface = null, slacPeerHost = null, pkiDir = null;
-            string? clientCertPath = null, clientCertPass = null;
+            string? vehicleCertPath = null, vehicleCertPass = null;
             string? contractCertPath = null, contractCertPass = null;
+            string? oemCertPath = null, oemCertPass = null;
             string? resumeSessionIdHex = null, tariffCertPath = null, tariffCertPass = null;
 
             for (int i = 0; i < args.Length; i++)
@@ -96,8 +99,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     case "--tls-backend":
                         backend = args[++i] switch
                         {
-                            "dotnet" => TlsBackend.Dotnet,
-                            "bc" or "bouncycastle" => TlsBackend.BouncyCastle,
+                            "dotnet" => TlsStack.Dotnet,
+                            "bc" or "bouncycastle" => TlsStack.BouncyCastle,
                             var v => throw new ArgumentException($"--tls-backend expects dotnet or bc, got '{v}'."),
                         };
                         break;
@@ -116,11 +119,24 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     case "--pki-dir":
                         pkiDir = args[++i];
                         break;
-                    case "--client-cert":
-                        clientCertPath = args[++i];
+                    // The car's own identity in the V2G PKI — the CharIN "Vehicle" certificate, which for
+                    // -20 is what a station's mutual-TLS handshake asks for and what its resume binding is
+                    // computed over. --client-cert is the older spelling of the same thing, kept because
+                    // live harnesses and recorded run scripts pass it.
+                    case "--vehicle-cert" or "--client-cert":
+                        vehicleCertPath = args[++i];
                         break;
-                    case "--client-cert-pass":
-                        clientCertPass = args[++i];
+                    case "--vehicle-cert-pass" or "--client-cert-pass":
+                        vehicleCertPass = args[++i];
+                        break;
+                    // The OEM provisioning chain, which is a different certificate from both of the above:
+                    // it is what the car was born with, and the only thing it can prove before it holds a
+                    // contract. -20 uses it for CertificateInstallation; see Validate() for -2.
+                    case "--oem-cert":
+                        oemCertPath = args[++i];
+                        break;
+                    case "--oem-cert-pass":
+                        oemCertPass = args[++i];
                         break;
                     case "--contract-cert":
                         contractCertPath = args[++i];
@@ -154,33 +170,47 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             }
 
             // --tls is shorthand for the .NET backend; --tls-backend wins if both are given.
-            if (backend == TlsBackend.None && tls)
-                backend = TlsBackend.Dotnet;
+            if (backend == TlsStack.None && tls)
+                backend = TlsStack.Dotnet;
 
-            Validate(connectHost, backend, useSdp, iface, useSlac, slacPeerHost, pkiDir, mcs, protocol, offerBoth);
+            Validate(connectHost, backend, useSdp, iface, useSlac, slacPeerHost, pkiDir, mcs, protocol,
+                     offerBoth, oemCertPath, vehicleCertPath);
 
             return new EvccOptions(connectHost, connectPort, protocol, offerBoth, mode, mcs, backend,
                                    useSdp, iface, useSlac, slacPeerHost, slacPeerPort, pkiDir,
-                                   clientCertPath, clientCertPass, contractCertPath, contractCertPass,
+                                   vehicleCertPath, vehicleCertPass, contractCertPath, contractCertPass,
+                                   oemCertPath, oemCertPass,
                                    pauseResume, endPaused, resumeSessionIdHex,
                                    renegotiate, tariffCertPath, tariffCertPass);
         }
 
-        private static void Validate(string? connectHost, TlsBackend backend, bool useSdp, string? iface,
+        private static void Validate(string? connectHost, TlsStack backend, bool useSdp, string? iface,
                                      bool useSlac, string? slacPeerHost, string? pkiDir,
-                                     bool mcs, ProtocolVariant protocol, bool offerBoth)
+                                     bool mcs, ProtocolVariant protocol, bool offerBoth,
+                                     string? oemCertPath, string? vehicleCertPath)
         {
             if (connectHost is null && !useSdp)
                 throw new ArgumentException($"a car needs somewhere to drive to: --connect host:port (or --sdp --interface <name>).\n{Usage}");
 
-            if (backend == TlsBackend.BouncyCastle && pkiDir is null)
-                throw new ArgumentException("--tls-backend bc requires --pki-dir <dir> (shared V2G certificate material).");
+            // --pki-dir is how the dev loopback shares material: the station mints a hierarchy and the car
+            // reads its Vehicle chain back out. --vehicle-cert is the other way in, for a run against a
+            // foreign station whose PKI we do not mint — one of the two has to supply the car's identity.
+            if (backend == TlsStack.BouncyCastle && pkiDir is null && vehicleCertPath is null)
+                throw new ArgumentException(
+                    "--tls-backend bc needs the car's own credentials: either --pki-dir <dir> (the dev " +
+                    "hierarchy the station minted) or --vehicle-cert <pfx> (your own Vehicle chain).");
 
             if (useSdp && iface is null)
                 throw new ArgumentException("--sdp requires --interface <name> (the V2G network interface).");
 
             if (useSlac && slacPeerHost is null)
                 throw new ArgumentException("--slac requires --slac-peer <host:port> (the EVSE's SLAC endpoint).");
+
+            // Existence only — the contents are read much later, some of them after the socket is open, and
+            // a mistyped path should not first show up as a station that appears to have hung up on us.
+            foreach (var (flag, path) in new[] { ("--vehicle-cert", vehicleCertPath), ("--oem-cert", oemCertPath) })
+                if (path is not null && !File.Exists(path))
+                    throw new ArgumentException($"{flag}: no such file '{path}'.");
 
             // Energy-transfer services 8 / 9 exist in no other catalogue, so --mode mcs against -2 is a
             // request that cannot be met. Refused here rather than quietly running plain DC, because a
@@ -228,11 +258,26 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "\n" +
             "  TLS:    --tls                       .NET SslStream (accepts any server certificate — dev only)\n" +
             "          --tls-backend dotnet|bc     bc = the -20-faithful profile (TLS 1.3, secp521r1,\n" +
-            "                                      mutual); needs --pki-dir <dir>\n" +
-            "          --client-cert <pfx> [--client-cert-pass <pw>]   present this for mutual TLS\n" +
-            "  PnC:    --contract-cert <pfx> [--contract-cert-pass <pw>]\n" +
-            "                                      -2/-20 Plug & Charge: sign the authorization with the\n" +
-            "                                      contract certificate instead of paying externally\n" +
+            "                                      mutual). Required on Windows and macOS for a real -20\n" +
+            "                                      session; see the README.\n" +
+            "          --pki-dir <dir>             the dev hierarchy the station minted\n" +
+            "\n" +
+            "  The car carries up to three different certificates. They are not interchangeable:\n" +
+            "          --vehicle-cert <pfx> [--vehicle-cert-pass <pw>]\n" +
+            "                                      the CharIN *Vehicle* certificate — who this car is, in\n" +
+            "                                      the V2G PKI. Presented in the TLS handshake; for -20 the\n" +
+            "                                      station's resume binding is computed over it. Works on\n" +
+            "                                      both backends. (--client-cert is the older spelling.)\n" +
+            "          --contract-cert <pfx> [--contract-cert-pass <pw>]\n" +
+            "                                      the *contract* certificate — who pays. -2/-20 Plug &\n" +
+            "                                      Charge: signs the authorization instead of paying\n" +
+            "                                      externally.\n" +
+            "          --oem-cert <pfx> [--oem-cert-pass <pw>]\n" +
+            "                                      the *OEM provisioning* certificate — what the car was\n" +
+            "                                      born with, and all it can prove before it holds a\n" +
+            "                                      contract. -20: requests CertificateInstallation and\n" +
+            "                                      unwraps the issued contract key (needs a P-521 key).\n" +
+            "                                      Accepted for -2, where nothing uses it yet.\n" +
             "  Tariff: --tariff-cert <pfx> [--tariff-cert-pass <pw>]   verify the station's signed\n" +
             "                                      SalesTariff / AbsolutePriceSchedule with this public key\n" +
             "  Pause:  --pause-resume              pause after the charge loop, reconnect, rejoin the session\n" +

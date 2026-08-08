@@ -30,8 +30,33 @@ Everything the session layer implements, on the station side:
 | **Signed tariffs** | `--tariff-cert` signs the `-2` SalesTariff / `-20` AbsolutePriceSchedule offer |
 | **Pause / resume** | keeps accepting after a paused session, and for `-20` verifies that the car coming back is the car that left |
 | **Renegotiation** | `--renegotiate` notifies once mid-loop |
-| **TLS** | .NET `SslStream`, or BouncyCastle for the profile `-20` actually asks for |
+| **TLS** | two backends — see [Which TLS backend](#which-tls-backend-and-why-it-is-not-a-preference) below, because on Windows and macOS this is not a matter of taste |
 | **SDP and SLAC** | `--sdp` advertises the endpoint on a link; `--slac` runs a pairing stage first |
+
+## Which TLS backend, and why it is not a preference
+
+`--tls` / `--tls-backend dotnet` uses .NET's `SslStream`, which is fast and native. It also cannot
+serve the ISO 15118-20 TLS profile on two of the three platforms this runs on, and the failures are
+not all loud:
+
+| | .NET `SslStream` | BouncyCastle |
+|---|---|---|
+| **Linux** (OpenSSL) | TLS 1.3, secp521r1, per-connection suite pinning — all fine | fine |
+| **Windows** (Schannel) | TLS 1.3 yes, but **no secp521r1 certificates** (measured: P-256 mutual TLS succeeds, P-521 fails "Authentication failed" server-side), **no per-connection cipher-suite pinning** (Schannel takes its list from system-wide policy; .NET throws), and it refuses to present a client chain whose root the machine does not trust | fine |
+| **macOS** (SecureTransport) | **no TLS 1.3 at all** — Apple's API never gained it and .NET throws `PlatformNotSupportedException` | fine |
+
+ISO 15118-20 asks for TLS 1.3, secp521r1 (or Ed448), and a pinned suite pair. So:
+
+- **On Linux, either works.** Use `--tls` unless you want the -20 profile enforced rather than merely available.
+- **On Windows and macOS, a real `-20` TLS session needs `--tls-backend bc`.** With `--tls` there you
+  get a session that looks like it worked and is not `-20`-conformant: on macOS it silently negotiates
+  TLS 1.2, on Windows it runs on -2-grade P-256 material.
+- **For `-2`, `--tls` is fine everywhere.** The -2 profile is TLS 1.2 with P-256, which every platform does.
+
+That is why this project's own Windows mutual-TLS tests use P-256, and why the one counterparty that
+ships genuine secp521r1 material was reached with the managed backend. The measurements live in
+`Transport/TlsPlatform.cs`; the reasoning and the deviation policy in
+`EVSimulatorApp/docs/pki-model.md`.
 
 ## The defaults, and why
 

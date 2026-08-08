@@ -33,6 +33,7 @@ using cloud.charging.open.protocols.ISO15118.SLAC.Transport;
 using cloud.charging.open.protocols.ISO15118.Discovery;
 using cloud.charging.open.protocols.ISO15118.Sap;
 using cloud.charging.open.protocols.ISO15118.Session;
+using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Slac;
 using cloud.charging.open.protocols.ISO15118.StateMachines;
 using cloud.charging.open.protocols.ISO15118.StateMachines.Iso2;
@@ -115,7 +116,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 // station picked — the case a multiplexing station (EVerest's IsoMux) exists for.
                 var accepted = await SapHandshake.RunEvccSideAsync(stream, BothOffers(args.Mode));
                 Console.WriteLine($"SAP: offered -20 (priority 1) and -2 (priority 2); " +
-                                  $"the station picked {ProtocolName(accepted.Protocol)}.");
+                                  $"the station picked {V2GInterface.Name(accepted.Protocol)}.");
                 return await RunSessionAsync(stream, args with { Protocol = accepted.Protocol }, pause, resume);
             }
 
@@ -129,26 +130,33 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
 
         private static async Task<Stream> ConnectAsync(EvccOptions args, string host, int port)
         {
-            switch (args.TlsBackend)
+            switch (args.TlsStack)
             {
-                case TlsBackend.BouncyCastle:
-                    return await TcpV2GClient.ConnectAsync(host, port, EvccPki.Load(args.PkiDir!));
+                case TlsStack.BouncyCastle:
+                    // Two ways in, and the difference matters: --pki-dir is the dev loopback, where the
+                    // station minted this car's Vehicle chain and we read it back; --vehicle-cert is a run
+                    // against a station whose PKI is not ours, where the car brings its own identity and
+                    // there is nothing to pin the peer against beyond what the caller trusts.
+                    var bc = args.VehicleCertPath is not null
+                                 ? EvccPki.WithVehicleCertificate(args.VehicleCertPath, args.VehicleCertPass, args.PkiDir)
+                                 : EvccPki.Load(args.PkiDir!);
+                    return await TcpV2GClient.ConnectAsync(host, port, bc);
 
-                case TlsBackend.Dotnet:
+                case TlsStack.Dotnet:
                     // Dev tool only: no out-of-band way to learn the SECC dev-cert thumbprint, so accept any.
                     Console.WriteLine("WARNING: accepting any TLS server certificate — dev tool only, never against a real SECC.");
-                    var (clientLeaf, clientChain) = LoadCertificateWithChain(args.ClientCertPath, args.ClientCertPass);
+                    var (vehicleLeaf, vehicleChain) = Credentials.LoadForTls(args.VehicleCertPath, args.VehicleCertPass, "--vehicle-cert");
                     var tlsOptions = new TlsOptions
                     {
                         ServerCertificateValidation = (_, _, _, _) => true,
                         // Negotiate TLS 1.2 or 1.3 so this interoperates with a peer in either mode (Josev's
                         // SECC serves TLS 1.2 unilateral by default, TLS 1.3 mutual with ENABLE_TLS_1_3=True).
                         EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-                        ClientCertificate = clientLeaf,
-                        ClientCertificateChain = clientChain,
+                        ClientCertificate = vehicleLeaf,
+                        ClientCertificateChain = vehicleChain,
                     };
-                    if (clientLeaf is not null)
-                        Console.WriteLine($"Presenting client certificate for mutual TLS: {clientLeaf.Subject} (+{clientChain?.Count ?? 0} intermediate(s))");
+                    if (vehicleLeaf is not null)
+                        Console.WriteLine($"Presenting Vehicle certificate for mutual TLS: {vehicleLeaf.Subject} (+{vehicleChain?.Count ?? 0} intermediate(s))");
                     return await TcpV2GClient.ConnectAsync(host, port, tlsOptions);
 
                 default:
@@ -171,6 +179,12 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
                 if (args.TariffCertPath is not null)
                     evcc.TariffVerifyKey = LoadTariffVerifyKey(args.TariffCertPath, args.TariffCertPass);
+                // Accepted for -2 and refused nowhere, but there is no -2 path that uses it: our Evcc2 has
+                // no CertificateInstallation. Said out loud rather than ignored, because a flag that is
+                // quietly dropped is worse than one that is not offered.
+                if (args.OemCertPath is not null)
+                    Console.WriteLine("--oem-cert: ignored for -2 — this EVCC implements CertificateInstallation " +
+                                      "only for -20. Run with --protocol 20 to use it.");
                 await evcc.RunAsync();
                 Console.WriteLine($"  {evcc.Exchanges} exchanges, {evcc.BytesOnWire} bytes on the wire (request side), " +
                                   $"auth: {evcc.AuthorizationMode}, metering receipts sent: {evcc.MeteringReceiptsSent}, " +
@@ -197,11 +211,19 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 evcc.ResumeFrom(resume);
                 if (args.ContractCertPath is not null)
                     evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
+                if (args.OemCertPath is not null)
+                    evcc.CertInstallRequest = LoadOemCredentials(args.OemCertPath, args.OemCertPass);
                 if (args.TariffCertPath is not null)
                     evcc.TariffVerifyKey = LoadTariffVerifyKey(args.TariffCertPath, args.TariffCertPass);
                 await evcc.RunAsync();
                 Console.WriteLine($"  {evcc.Exchanges} exchanges, {evcc.BytesOnWire} bytes on the wire (request side), " +
                                   $"auth: {evcc.AuthorizationMode}, session setup: {evcc.SessionSetupCode}.");
+                if (evcc.InstalledContractCertificate is not null)
+                    Console.WriteLine("  CertificateInstallation: a contract certificate was issued and its private " +
+                                      "key unwrapped — the ECDH/AES-GCM round trip closed.");
+                else if (args.OemCertPath is not null)
+                    Console.WriteLine("  CertificateInstallation: not completed — the station either did not offer " +
+                                      "the service or refused the request.");
                 if (evcc.Tariff is { } t20)
                     Console.WriteLine($"-20 AbsolutePriceSchedule: signature {(t20.SignaturePresent ? "present" : "absent")}, " +
                                       $"digest {(t20.DigestOk ? "OK" : "FAIL")}, ECDSA-P521/SHA-512 {(t20.SignatureOk ? "OK" : "FAIL/unverified")}.");
@@ -219,11 +241,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             if (!args.UseSdp)
                 return (args.ConnectHost!, args.ConnectPort);
 
-            var iface = ResolveInterface(args.Interface!);
+            var iface = V2GInterface.Resolve(args.Interface!);
             var discovery = new SdpSeccDiscovery(new EVCC_SDPClientOptions
             {
                 Interface            = iface,
-                RequestedSecurity    = args.TlsBackend == TlsBackend.None ? SDP_Security.NoTLS : SDP_Security.TLS,
+                RequestedSecurity    = args.TlsStack == TlsStack.None ? SDP_Security.NoTLS : SDP_Security.TLS,
                 // Single-host interop (the SECC on the same machine, e.g. Josev in Docker/WSL): the
                 // ff02::1 SDP_Request only reaches a LOCAL SECC via multicast loopback — with the
                 // client's real-hardware default (off) the discovery times out against a healthy SECC
@@ -232,7 +254,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 MulticastLoopback    = true,
                 // A plaintext run must accept the NoTLS response it asked for — the client's CRA/NIS2
                 // default rejects it (the EVCC-side mirror of the SECC's RejectNoTlsRequests policy).
-                RejectNoTlsResponses = args.TlsBackend != TlsBackend.None,
+                RejectNoTlsResponses = args.TlsStack != TlsStack.None,
             });
             Console.WriteLine($"SDP: discovering the SECC on {iface.Name}...");
             var endpoint = await discovery.DiscoverAsync();
@@ -243,7 +265,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         private static async Task RunSlacAsync(EvccOptions args)
         {
             var peer = new IPEndPoint(IPAddress.Parse(args.SlacPeerHost!), args.SlacPeerPort);
-            await using var transport = new UdpSlacTransport(RandomMac(), new IPEndPoint(IPAddress.Any, 0), bootstrapPeers: [peer]);
+            await using var transport = new UdpSlacTransport(V2GInterface.RandomMac(), new IPEndPoint(IPAddress.Any, 0), bootstrapPeers: [peer]);
             var slac = new SlacEvStage(transport, new EvSlacOptions { PevId = new byte[17] });
             Console.WriteLine($"SLAC: pairing with EVSE at {peer}...");
             var result = await slac.PairAsync();
@@ -251,43 +273,45 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         }
 
         // ── helpers ──────────────────────────────────────────────────────────────────────────────────
+        // The PKCS#12 mechanics live in WWCP_ISO15118_SharedCC; what is left here is turning them into
+        // the shapes only a car has.
 
-        private static V2GNetworkInterface ResolveInterface(string name)
-            => new SystemV2GNetworkInterfaceProvider().FindByName(name)
-               ?? throw new ArgumentException($"no V2G-capable network interface named '{name}' found.");
-
-        private static MACAddress RandomMac() => MACAddress.FromPhysicalAddress(new PhysicalAddress(RandomNumberGenerator.GetBytes(6)));
-
-        private static string ProtocolName(ProtocolVariant p) => p == ProtocolVariant.Iso15118_2 ? "-2" : "-20";
-
-        /// <summary>Loads a PKCS#12 certificate for mutual TLS, splitting the private-key leaf from its
-        /// intermediate CA chain so <c>SslStream</c> can send both. Returns (null, null) when
-        /// <paramref name="path"/> is null.</summary>
-        private static (X509Certificate2? Leaf, X509Certificate2Collection? Chain) LoadCertificateWithChain(string? path, string? password)
-        {
-            if (path is null)
-                return (null, null);
-
-            var all = X509CertificateLoader.LoadPkcs12CollectionFromFile(path, password, X509KeyStorageFlags.Exportable);
-            var leaf = all.FirstOrDefault(c => c.HasPrivateKey) ?? all[0];
-            var chain = new X509Certificate2Collection(all.Where(c => !ReferenceEquals(c, leaf)).ToArray());
-            return (leaf, chain);
-        }
-
-        /// <summary>Loads the Plug &amp; Charge contract credentials from a PKCS#12: the cert with a private key
-        /// is the contract leaf (its ECDSA key signs), every other cert goes into SubCertificates in file order
-        /// (the MO sub-CAs). Fails loud if no cert carries an EC private key.</summary>
+        /// <summary>The Plug &amp; Charge <b>contract</b> credentials: who pays.</summary>
         private static PncEvccOptions LoadContractCredentials(string path, string? password)
         {
-            var collection = X509CertificateLoader.LoadPkcs12CollectionFromFile(path, password,
-                X509KeyStorageFlags.EphemeralKeySet);
-            var leaf = collection.FirstOrDefault(c => c.HasPrivateKey)
-                ?? throw new ArgumentException($"--contract-cert: no certificate in '{path}' carries a private key.");
-            var key = leaf.GetECDsaPrivateKey()
-                ?? throw new ArgumentException($"--contract-cert: the contract leaf's private key is not ECDSA.");
-            var subCerts = collection.Where(c => !c.HasPrivateKey).Select(c => c.RawData).ToArray();
-            Console.WriteLine($"PnC: contract cert {leaf.Subject} (+{subCerts.Length} sub-CA(s)), key {key.KeySize}-bit EC.");
-            return new PncEvccOptions(leaf.RawData, subCerts, key);
+            var (leaf, subCerts, key, subject) = Credentials.LoadChain(path, password, "--contract-cert");
+            Console.WriteLine($"PnC: contract cert {subject} (+{subCerts.Length} sub-CA(s)), key {key.KeySize}-bit EC.");
+            return new PncEvccOptions(leaf, subCerts, key);
+        }
+
+        /// <summary>
+        /// The <b>OEM provisioning</b> credentials: what the car was born with. Set on the -20 EVCC they
+        /// make it request CertificateInstallation before authorizing — the chain signed over its own EXI
+        /// fragment, and the issued contract key ECDH-unwrapped from the response.
+        /// </summary>
+        /// <remarks>
+        /// The key has to be <b>P-521</b>: the unwrap is an ECDH against the station's ephemeral secp521r1
+        /// key, and a -2-era P-256 OEM certificate — which is what Josev ships — cannot take part. The
+        /// station answers such a request with a well-formed response the car then cannot decrypt, so the
+        /// curve is checked here where it can still be explained rather than at the failure.
+        /// </remarks>
+        private static CertInstallEvccOptions LoadOemCredentials(string path, string? password)
+        {
+            var (leaf, subCerts, key, subject) = Credentials.LoadChain(path, password, "--oem-cert", exportable: true);
+
+            if (key.KeySize != 521)
+                Console.WriteLine($"WARNING: --oem-cert key is {key.KeySize}-bit, and -20 contract provisioning " +
+                                  "agrees on secp521r1. The station's response will be well-formed and " +
+                                  "undecryptable for this car.");
+
+            // The same private key twice: once to sign the request, once as an ECDH handle to unwrap the
+            // issued contract key. Re-imported rather than cast, because ECDsa and ECDiffieHellman are
+            // separate handle types over one keypair.
+            var agreement = ECDiffieHellman.Create();
+            agreement.ImportECPrivateKey(key.ExportECPrivateKey(), out _);
+
+            Console.WriteLine($"CertificateInstallation: OEM cert {subject} (+{subCerts.Length} sub-CA(s)), key {key.KeySize}-bit EC.");
+            return new CertInstallEvccOptions(leaf, subCerts, key, agreement);
         }
 
         /// <summary>Loads the tariff <b>verification</b> key from a PKCS#12 — the leaf's ECDSA public key,

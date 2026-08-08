@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118.SharedCC</RootNamespace>
+    <AssemblyName>WWCP_ISO15118_SharedCC</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WWCP_ISO15118_Session\WWCP_ISO15118_Session.csproj" />
+    <ProjectReference Include="..\WWCP_ISO15118_NetworkInterfaces\WWCP_ISO15118_NetworkInterfaces.csproj" />
+  </ItemGroup>
+</Project>

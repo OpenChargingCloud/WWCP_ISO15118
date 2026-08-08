@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-using Vanaheimr.V2G.Simulation.Session;
-using Vanaheimr.V2G.Simulation.Timing;
+using cloud.charging.open.protocols.ISO15118.Session;
+using cloud.charging.open.protocols.ISO15118.Timing;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
 using Dc20         = cloud.charging.open.protocols.ISO15118_20.DC.Generated;
 using Dc20Rational = cloud.charging.open.protocols.ISO15118_20.DC.RationalNumber;
 
-namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
+namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 {
     /// <summary>EVCC-side DC hooks: charge-parameter discovery, CableCheck+PreCharge, one DC charge-loop iteration, WeldingDetection.</summary>
     public class Evcc20Dc(Stream stream, TimeProvider clock, IAsyncDelay pollDelay, TimeSpan perMessageTimeout)

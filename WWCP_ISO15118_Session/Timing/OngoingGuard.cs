@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-using Vanaheimr.V2G.Simulation.Session;
+using cloud.charging.open.protocols.ISO15118.Session;
 
-namespace Vanaheimr.V2G.Simulation.Timing
+namespace cloud.charging.open.protocols.ISO15118.Timing
 {
 
     /// <summary>

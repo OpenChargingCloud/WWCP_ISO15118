@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -16,8 +16,12 @@
  */
 
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
+// `V2GTP` is a namespace here as well as the header codec class, and the namespace wins
+// on a bare identifier -- see docs/wwcp-iso15118-split.md, "V2GTP exists twice".
+using V2GTPCodec = cloud.charging.open.protocols.ISO15118.EXI.Dispatch.V2GTP;
 
-namespace Vanaheimr.V2G.Simulation.Framing
+
+namespace cloud.charging.open.protocols.ISO15118.Framing
 {
     /// <summary>
     /// Reads and writes single V2GTP frames on a <see cref="Stream"/> — the one place in this project
@@ -48,11 +52,11 @@ namespace Vanaheimr.V2G.Simulation.Framing
         /// Reads one V2GTP frame at the transport level — the 8-byte header plus its declared payload — and
         /// returns the whole frame together with its payload type, WITHOUT resolving it to a message set.
         /// Used by the SupportedAppProtocol handshake, which shares payload id 0x8001 with the -2 messages and
-        /// so cannot be routed by payload type alone (see <see cref="V2GTP.PayloadType_AppProtocol"/>).
+        /// so cannot be routed by payload type alone (see <see cref="V2GTPCodec.PayloadType_AppProtocol"/>).
         /// </summary>
         public static async Task<(byte[] Frame, ushort PayloadType)> ReadRawFrameAsync(Stream stream, CancellationToken ct = default)
         {
-            var frame = new byte[V2GTP.HeaderSize];
+            var frame = new byte[V2GTPCodec.HeaderSize];
             try
             {
                 await stream.ReadExactlyAsync(frame, ct).ConfigureAwait(false);
@@ -62,28 +66,28 @@ namespace Vanaheimr.V2G.Simulation.Framing
                 throw new InvalidDataException("V2GTP frame: connection closed before a full 8-byte header arrived.", ex);
             }
 
-            if (!V2GTP.TryReadHeader(frame, out ushort payloadType, out uint payloadLength))
+            if (!V2GTPCodec.TryReadHeader(frame, out ushort payloadType, out uint payloadLength))
                 throw new InvalidDataException("V2GTP frame: bad version/type bytes in the 8-byte header.");
 
             // Before the allocation, not after. The length is the peer's word for how much memory to
             // set aside, and `checked` would only turn the largest lies into an OverflowException
-            // while still honouring a 2 GiB one. See V2GTP.MaximumPayloadBytes.
-            if (payloadLength > V2GTP.MaximumPayloadBytes)
+            // while still honouring a 2 GiB one. See V2GTPCodec.MaximumPayloadBytes.
+            if (payloadLength > V2GTPCodec.MaximumPayloadBytes)
                 throw new InvalidDataException(
                     $"V2GTP frame: a frame of payload type 0x{payloadType:x4} declares {payloadLength} " +
-                    $"payload byte(s); this reader accepts at most {V2GTP.MaximumPayloadBytes}.");
+                    $"payload byte(s); this reader accepts at most {V2GTPCodec.MaximumPayloadBytes}.");
 
-            Array.Resize(ref frame, V2GTP.HeaderSize + (int)payloadLength);
+            Array.Resize(ref frame, V2GTPCodec.HeaderSize + (int)payloadLength);
             if (payloadLength > 0)
             {
                 try
                 {
-                    await stream.ReadExactlyAsync(frame.AsMemory(V2GTP.HeaderSize), ct).ConfigureAwait(false);
+                    await stream.ReadExactlyAsync(frame.AsMemory(V2GTPCodec.HeaderSize), ct).ConfigureAwait(false);
                 }
                 catch (EndOfStreamException ex)
                 {
                     throw new InvalidDataException(
-                        $"V2GTP frame: connection closed after {frame.Length - V2GTP.HeaderSize} of {payloadLength} declared payload byte(s).", ex);
+                        $"V2GTP frame: connection closed after {frame.Length - V2GTPCodec.HeaderSize} of {payloadLength} declared payload byte(s).", ex);
                 }
             }
 
@@ -97,7 +101,7 @@ namespace Vanaheimr.V2G.Simulation.Framing
         public static async Task WriteFrameAsync(
             Stream stream, MessageSet set, ReadOnlyMemory<byte> exiPayload, CancellationToken ct = default)
         {
-            var dest = new byte[V2GTP.HeaderSize + exiPayload.Length];
+            var dest = new byte[V2GTPCodec.HeaderSize + exiPayload.Length];
             if (!V2GTPDispatcher.TryEncode(set, exiPayload.Span, dest, out int bytesWritten))
                 throw new InvalidOperationException("V2GTP frame: encode failed (payload too large for its length field?).");
 
@@ -108,14 +112,14 @@ namespace Vanaheimr.V2G.Simulation.Framing
         /// <summary>
         /// Writes one V2GTP frame with an explicit payload type — used by the SupportedAppProtocol handshake,
         /// which frames with payload id 0x8001 directly rather than through the message-set dispatcher (SAP
-        /// and -2 share that id; see <see cref="V2GTP.PayloadType_AppProtocol"/>).
+        /// and -2 share that id; see <see cref="V2GTPCodec.PayloadType_AppProtocol"/>).
         /// </summary>
         public static async Task WriteRawFrameAsync(
             Stream stream, ushort payloadType, ReadOnlyMemory<byte> exiPayload, CancellationToken ct = default)
         {
-            var dest = new byte[V2GTP.HeaderSize + exiPayload.Length];
-            V2GTP.WriteHeader(dest, payloadType, (uint)exiPayload.Length);
-            exiPayload.Span.CopyTo(dest.AsSpan(V2GTP.HeaderSize));
+            var dest = new byte[V2GTPCodec.HeaderSize + exiPayload.Length];
+            V2GTPCodec.WriteHeader(dest, payloadType, (uint)exiPayload.Length);
+            exiPayload.Span.CopyTo(dest.AsSpan(V2GTPCodec.HeaderSize));
 
             await stream.WriteAsync(dest, ct).ConfigureAwait(false);
             await stream.FlushAsync(ct).ConfigureAwait(false);

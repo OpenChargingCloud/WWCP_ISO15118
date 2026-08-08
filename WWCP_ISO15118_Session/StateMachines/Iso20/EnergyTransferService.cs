@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
+namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 {
     /// <summary>
     /// The ISO 15118-20 energy-transfer service ids (Table 204; 8/9 from the MCS amendment, taken from

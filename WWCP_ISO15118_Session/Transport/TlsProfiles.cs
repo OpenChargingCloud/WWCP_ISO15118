@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -17,7 +17,7 @@
 
 using System.Net.Security;
 
-namespace Vanaheimr.V2G.Simulation.Transport
+namespace cloud.charging.open.protocols.ISO15118.Transport
 {
     /// <summary>
     /// The cipher suites each ISO 15118 protocol's TLS profile pins, per <c>docs/pki-model.md</c>. Constants

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -18,7 +18,7 @@
 using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 
-namespace Vanaheimr.V2G.Simulation.Transport.BouncyCastle
+namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
 {
     /// <summary>
     /// SECC-side BouncyCastle TLS server: TLS 1.3 with the -20 cipher suites, presents its SECC certificate,

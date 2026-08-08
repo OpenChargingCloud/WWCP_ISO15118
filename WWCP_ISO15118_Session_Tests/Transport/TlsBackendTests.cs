@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -19,9 +19,9 @@ using System.Security.Authentication;
 
 using NUnit.Framework;
 
-using Vanaheimr.V2G.Simulation.Transport;
+using cloud.charging.open.protocols.ISO15118.Transport;
 
-namespace Vanaheimr.V2G.Simulation.Tests.Transport;
+namespace cloud.charging.open.protocols.ISO15118.Tests.Transport;
 
 /// <summary>
 /// Which backend a <see cref="TlsOptions"/> session lands on. The rules here are deliberately

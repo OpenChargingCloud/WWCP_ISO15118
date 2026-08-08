@@ -20,17 +20,21 @@ using System.Security.Cryptography.X509Certificates;
 
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages;
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated;
-using Vanaheimr.V2G.Simulation.Framing;
-using Vanaheimr.V2G.Simulation.Session;
-using Vanaheimr.V2G.Simulation.Timing;
+using cloud.charging.open.protocols.ISO15118.Framing;
+using cloud.charging.open.protocols.ISO15118.Session;
+using cloud.charging.open.protocols.ISO15118.Timing;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
 // Each -20 message set carries its own generated ResponseCode and V2GResponseType; RefuseOnFailure
 // has to see all three.
 using Ac20 = cloud.charging.open.protocols.ISO15118_20.AC.Generated;
 using Dc20 = cloud.charging.open.protocols.ISO15118_20.DC.Generated;
+// `V2GTP` is a namespace here as well as the header codec class, and the namespace wins
+// on a bare identifier -- see docs/wwcp-iso15118-split.md, "V2GTP exists twice".
+using V2GTPCodec = cloud.charging.open.protocols.ISO15118.EXI.Dispatch.V2GTP;
 
-namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
+
+namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 {
     /// <summary>The EV's verdict over a signed -20 <c>AbsolutePriceSchedule</c> in ScheduleExchangeRes:
     /// whether the header carried a signature, the reference digest matched the schedule's re-encoded EXI
@@ -582,7 +586,7 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
             RefuseOnFailure(message);
 
             Exchanges++;
-            BytesOnWire += V2GTP.HeaderSize + reqLen;
+            BytesOnWire += V2GTPCodec.HeaderSize + reqLen;
             return (set, message);
         }
 

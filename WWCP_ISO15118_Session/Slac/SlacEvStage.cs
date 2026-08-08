@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -20,7 +20,7 @@ using cloud.charging.open.protocols.ISO15118.SLAC.Selection;
 using cloud.charging.open.protocols.ISO15118.SLAC.StateMachine;
 using cloud.charging.open.protocols.ISO15118.SLAC.Transport;
 
-namespace Vanaheimr.V2G.Simulation.Slac
+namespace cloud.charging.open.protocols.ISO15118.Slac
 {
     /// <summary>
     /// EV-side SLAC pairing stage: runs the full <see cref="EvSlacSession"/> matching sequence over the

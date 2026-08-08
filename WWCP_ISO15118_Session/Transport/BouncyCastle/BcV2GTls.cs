@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -19,7 +19,7 @@ using Org.BouncyCastle.Tls;
 using Org.BouncyCastle.Tls.Crypto;
 using Org.BouncyCastle.Tls.Crypto.Impl.BC;
 
-namespace Vanaheimr.V2G.Simulation.Transport.BouncyCastle
+namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
 {
     /// <summary>
     /// Shared building blocks for the BouncyCastle V2G TLS client/server: the ISO 15118-20 signature

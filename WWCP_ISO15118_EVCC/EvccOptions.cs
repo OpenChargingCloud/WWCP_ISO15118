@@ -119,7 +119,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     case "--pki-dir":
                         pkiDir = args[++i];
                         break;
-                    // The car's own identity in the V2G PKI — the CharIN "Vehicle" certificate, which for
+                    // The car's own identity in the V2G PKI — the "Vehicle" certificate, which for
                     // -20 is what a station's mutual-TLS handshake asks for and what its resume binding is
                     // computed over.
                     case "--vehicle-cert":
@@ -273,10 +273,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "\n" +
             "  The car carries up to three different certificates. They are not interchangeable:\n" +
             "          --vehicle-cert <pfx> [--vehicle-cert-pass <pw>]\n" +
-            "                                      the CharIN *Vehicle* certificate — who this car is, in\n" +
+            "                                      the *Vehicle* certificate — who this car is, in\n" +
             "                                      the V2G PKI. Presented in the TLS handshake; for -20 the\n" +
             "                                      station's resume binding is computed over it. Works on\n" +
-            "                                      both backends. (--client-cert is the older spelling.)\n" +
+            "                                      both backends.\n" +
             "          --contract-cert <pfx> [--contract-cert-pass <pw>]\n" +
             "                                      the *contract* certificate — who pays. -2/-20 Plug &\n" +
             "                                      Charge: signs the authorization instead of paying\n" +

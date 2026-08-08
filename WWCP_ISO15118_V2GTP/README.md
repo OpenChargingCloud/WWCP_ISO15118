@@ -250,6 +250,9 @@ Important files:
 - `V2GTP_Frame.cs` — complete frame model and parser/encoder
 - `V2GTP_PayloadType.cs` — known payload types and helpers
 - `V2GTP_ProtocolVersion.cs` — version constants
+- `V2GTPCodec.cs` — the same header as flat spans and `Try…` returns, for callers reading frames off
+  a socket into a rented buffer. A second face on `V2GTP_Header`, not a second implementation; it
+  sits in namespace `…ISO15118.EXI.Dispatch`, which is why it is named `V2GTPCodec` and not `V2GTP`
 - `Exceptions/` — typed V2GTP parsing exceptions
 
 ## Target framework

@@ -13,7 +13,7 @@ do, because they carry no generated codec.
 | | What it does | Needs |
 |---|---|---|
 | [`SECC_Example.md`](SECC_Example.md) | A charging station in one file: accept an EV, finish the handshake, answer its first message. The four things that catch people, written out. | reading only |
-| `ChargingSimulation` | The full ISO 15118-2 session, AC or DC, EV and SECC talking to each other. **Every line it prints is a real EXI round trip** — no mocked bytes anywhere. | nothing but the schemas |
+| `ChargingSimulation` | An ISO 15118-2 session end to end, AC or DC, EV and SECC talking to each other. **Every line it prints is a real EXI round trip** — no mocked bytes anywhere. | nothing but the schemas |
 
 ```bash
 dotnet run --project demos/ChargingSimulation -- dc
@@ -22,7 +22,14 @@ dotnet run --project demos/ChargingSimulation -- dc
 `ac` picks the other mode. `--slow` makes the SECC stall on `AuthorizationReq` until the EV's
 timeout fires; `--break-sequence` makes the EV send `PowerDeliveryReq` out of order until the SECC's
 sequence guard rejects it. Both flags exist to show a guard doing its job — the fastest way to see
-what the state machine is actually for. This is the runnable companion to `SECC_Example.md`.
+what a state machine is actually for. This is the runnable companion to `SECC_Example.md`.
+
+> **This is a teaching demo, not the stack's EVCC and SECC.** Its `Evcc` and `Secc` are ~150 lines
+> each, written to be read in one sitting: ISO 15118-2 only, EIM only, a `Wire` that hands the bytes
+> straight to an in-process object, and three charge-loop cycles. The real session layer is
+> `WWCP_ISO15118_Session` — both protocols, Plug & Charge, TLS, SLAC and SDP in front of it — and
+> `WWCP_ISO15118_CLI` runs *that* over a socket. If you want a peer to point at another
+> implementation, you want the CLI; if you want to see what the messages are, you want this.
 
 ## SECC discovery: SDP
 

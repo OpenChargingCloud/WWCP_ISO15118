@@ -5,7 +5,7 @@
     "name": "cbV2G",
     "repo": "https://github.com/EVerest/libcbv2g",
     "commit": "03350be048b35b179905129005a97144a4bdcf93",
-    "note": "Wire-conformant ISO 15118-20 WPT reference. Each vector is a fixed message emitted by tools/cbv2g-ref/main_iso20.c (run: cbv2g_iso20 WPT_<name>). Header SessionID is 8x0x00, TimeStamp=1700000000, no Signature. Baseline coverage only: VendorSpecificDataContainer/ManufacturerSpecificDataContainer empty, WPT_LF_DataPackageList and LF_SystemSetupData absent -- those two fields exercise a grammar shape this repo's generator designed independently (no working cbV2G reference exists for it, see docs/xsd-inventory-15118-20.md) and are covered by self-consistency roundtrip tests instead. The C# test builds the matching message via Iso15118_20WptFixtures and diffs its bytes."
+    "note": "Wire-conformant ISO 15118-20 WPT reference. Each vector is a fixed message emitted by tools/cbv2g-ref/main_iso20.c (run: cbv2g_iso20 WPT_<name>). Header SessionID is 8x0x00, TimeStamp=1700000000, no Signature. The twelve cbV2G vectors are baseline coverage only: VendorSpecificDataContainer/ManufacturerSpecificDataContainer empty, WPT_LF_DataPackageList and LF_SystemSetupData absent -- those two fields exercise a grammar shape this repo's generator designed independently (no working cbV2G reference exists for it, see docs/xsd-inventory-15118-20.md). Until 2026-08-08 they were covered by self-consistency roundtrip tests alone, which cannot catch an encoder and decoder that are wrong in the same way; the four *_LFTransmitter*/*_LFReceiver* vectors below now cover LF_SystemSetupData with an independent codec instead. The C# test builds the matching message via Iso15118_20WptFixtures and diffs its bytes."
   },
   "deviatesFromReferenceEncoder": {
     "since": "2026-08-08",
@@ -61,6 +61,30 @@
     {
       "name": "WPT_ChargeLoopRes",
       "expectedHex": "80 70 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 64 00 7a 0e 09 00 1e 83 80 80 00 00 06"
+    },
+    {
+      "name": "WPT_FinePositioningSetupReq_LFTransmitter2",
+      "source": "Vanaheimr.V2G.Exi (C#), verified through EXIficient",
+      "note": "TxSpecData and PulseSequenceOrder, both minOccurs=2, at exactly the minimum — every occurrence forced, every start-element a 1-bit code.",
+      "expectedHex": "80 84 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 08 24 04 00 20 04 10 00 c8 00 10 00 00 00 00 00 00 00 00 00 00 10 02 80 00 00 00 00 00 50 00 08 01 00 20 02 00 42 0a 02 80 78 00"
+    },
+    {
+      "name": "WPT_FinePositioningSetupReq_LFTransmitter3",
+      "source": "Vanaheimr.V2G.Exi (C#), verified through EXIficient",
+      "note": "The same, one past the minimum: the third occurrence is the first real choice and widens to 2 bits. This is the transition that was encoded wrongly until 2026-08-07.",
+      "expectedHex": "80 84 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 08 24 04 00 20 06 10 00 c8 00 10 00 00 00 00 00 00 00 00 00 00 10 02 80 00 00 00 00 00 50 00 00 06 01 40 00 00 00 00 00 28 00 02 00 40 08 00 80 10 00 60 0c 41 40 50 0f 00"
+    },
+    {
+      "name": "WPT_FinePositioningSetupRes_LFReceiver2",
+      "source": "Vanaheimr.V2G.Exi (C#), verified through EXIficient",
+      "note": "RxSpecData at exactly minOccurs=2.",
+      "expectedHex": "80 88 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 82 40 40 02 80 40 02 00 00 00 00 00 00 00 00 00 00 02 00 50 00 00 00 00 00 0a 00 01 00"
+    },
+    {
+      "name": "WPT_FinePositioningSetupRes_LFReceiver3",
+      "source": "Vanaheimr.V2G.Exi (C#), verified through EXIficient",
+      "note": "RxSpecData one past the minimum.",
+      "expectedHex": "80 88 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 82 40 40 02 80 60 02 00 00 00 00 00 00 00 00 00 00 02 00 50 00 00 00 00 00 0a 00 00 00 c0 28 00 00 00 00 00 05 00 00 40"
     }
   ]
 }

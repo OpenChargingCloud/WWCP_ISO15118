@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Linq;
+
 using cloud.charging.open.protocols.ISO15118_20.AC_DER_IEC.Generated;
 
 namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
@@ -34,6 +36,61 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
     {
         private static MessageHeaderType Header() => new(SessionID: new byte[8], TimeStamp: 1_700_000_000UL, Signature: null);
         private static RationalNumberType Rational(sbyte exponent, short value) => new(exponent, value);
+
+        /// <summary>
+        /// A volt-var curve with <paramref name="points"/> data points — IEC's only
+        /// <c>minOccurs="2"</c> particle, and the one shape the rest of this corpus never reaches.
+        /// Distinct x and y per point, so a misread offset shows up in a byte diff instead of hiding
+        /// behind a run of identical tuples.
+        /// </summary>
+        private static DERCurveType VoltVarCurve(int points)
+            => new(XUnit: CurveDataPointsUnit.V,
+                   YUnit: CurveDataPointsUnit.var,
+                   CurveDataPoints: new CurveDataPointsListType(
+                       Enumerable.Range(0, points)
+                                 .Select(i => new DataTupleType(
+                                                  XValue: Rational(0, (short) (220 + i * 5)),
+                                                  YValue: new SetpointExcitationType(
+                                                              SetpointValue: Rational(0, (short) (i * 100)),
+                                                              Excitation:    null)))
+                                 .ToArray()),
+                   MinCosPhi:    null,
+                   LockValueUnit: null,
+                   LockInValue:  null,
+                   LockOutValue: null,
+                   PT1ResponseReactivePower:             false,
+                   StepResponseTimeConstantReactivePower: Rational(0, 5),
+                   IntentionalDelay: null);
+
+        /// <summary>The IEC DER response of this corpus, with the curve hung off `ReactivePowerSupport`
+        /// and everything else exactly as the plain vector has it — so a byte diff between them is the
+        /// curve and nothing else.</summary>
+        private static AC_ChargeParameterDiscoveryRes CurveResponse(int points)
+            => new(Header(), ResponseCode.OK,
+                   new DER_AC_CPDResEnergyTransferModeType(
+                       EVSEMaximumChargePower: Rational(0, 22000),
+                       EVSEMaximumChargePower_L2: null, EVSEMaximumChargePower_L3: null,
+                       EVSEMinimumChargePower: Rational(0, 100),
+                       EVSEMinimumChargePower_L2: null, EVSEMinimumChargePower_L3: null,
+                       EVSENominalFrequency: Rational(0, 50),
+                       MaximumPowerAsymmetry: null, EVSEPowerRampLimitation: null,
+                       EVSEPresentActivePower: null,
+                       EVSEPresentActivePower_L2: null, EVSEPresentActivePower_L3: null,
+                       EVSENominalChargePower: Rational(0, 11000),
+                       EVSENominalChargePower_L2: null, EVSENominalChargePower_L3: null,
+                       EVSENominalDischargePower: Rational(0, 5000),
+                       EVSENominalDischargePower_L2: null, EVSENominalDischargePower_L3: null,
+                       EVSEMaximumDischargePower: Rational(0, 7000),
+                       EVSEMaximumDischargePower_L2: null, EVSEMaximumDischargePower_L3: null,
+                       EVOperatingMode: EvOperatingMode.GridFollowing,
+                       GridConnectionMode: GridConnectionMode.GridConnected,
+                       DERControl: new DERControlType(
+                           OvervoltageFaultRideThrough: null, UndervoltageFaultRideThrough: null,
+                           ZeroCurrent: null,
+                           ReactivePowerSupport: new ReactivePowerSupportType(
+                               VoltVar: VoltVarCurve(points), WattVar: null, WattCosPhi: null),
+                           ActivePowerSupport: null,
+                           MaximumLevelDCInjection: null)));
 
         public static bool TryEncode(string vectorName, byte[] dest, out int bytesWritten)
         {
@@ -314,6 +371,24 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
                                 DSOMaximumDischargePower_L2: null, DSOMaximumDischargePower_L3: null,
                                 DSOQSetpoint: null, DSOCosPhiSetpoint: null))
                         .TryEncode(dest, out bytesWritten);
+
+                // ---- CurveDataPoint: IEC's minOccurs="2" particle ----
+                //
+                // The plain AC_ChargeParameterDiscoveryRes_DER above populates DERControl with every
+                // member null, so no curve, so no CurveDataPointsListType — which is why the IEC corpus
+                // never exercised the forced-occurrence path that the SAE corpus tripped over on
+                // 2026-08-07 (cause C). These two do, at exactly minOccurs and one past it: below the
+                // minimum each occurrence is forced and its start-element is a 1-bit code, and only the
+                // third is a real choice at 2 bits.
+                //
+                // Ours, verified through EXIficient rather than against a reference encoder — cbexigen
+                // cannot generate the DER schemas at all.
+
+                case "AC_ChargeParameterDiscoveryRes_DER_Curve2":
+                    return CurveResponse(points: 2).TryEncode(dest, out bytesWritten);
+
+                case "AC_ChargeParameterDiscoveryRes_DER_Curve3":
+                    return CurveResponse(points: 3).TryEncode(dest, out bytesWritten);
 
                 default:
                     throw new ArgumentException($"no AC_DER_IEC fixture for vector '{vectorName}'");

@@ -2680,6 +2680,373 @@
         },
         "spcChargeDiagnostics": "SPCNoIssue",
         "manufacturerSpecificDataContainer": []
+      },
+      "WPT_FinePositioningSetupReq_LFTransmitter2": {
+        "@context": "urn:iso:std:iso:15118:-20:WPT",
+        "@type": "WPT_FinePositioningSetupReq",
+        "header": {
+          "@type": "MessageHeaderType",
+          "sessionID": "0000000000000000",
+          "timeStamp": "1700000000"
+        },
+        "evProcessing": "Finished",
+        "evDeviceFinePositioningMethodList": {
+          "@type": "WPT_FinePositioningMethodListType",
+          "wpt_FinePositioningMethod": [
+            "Manual"
+          ]
+        },
+        "evDevicePairingMethodList": {
+          "@type": "WPT_PairingMethodListType",
+          "wpt_PairingMethod": [
+            "LPE"
+          ]
+        },
+        "evDeviceAlignmentCheckMethodList": {
+          "@type": "WPT_AlignmentCheckMethodListType",
+          "wpt_AlignmentCheckMethod": [
+            "PowerCheck"
+          ]
+        },
+        "naturalOffset": 0,
+        "vendorSpecificDataContainer": [],
+        "lf_SystemSetupData": {
+          "@type": "WPT_LF_SystemSetupDataType",
+          "lf_TransmitterSetupData": {
+            "@type": "WPT_LF_TransmitterDataType",
+            "numberOfTransmitters": 2,
+            "signalFrequency": {
+              "@type": "RationalNumberType",
+              "exponent": 0,
+              "value": 100
+            },
+            "txSpecData": [
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 1,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                }
+              },
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 2,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 10,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 5,
+                  "coord_Z": 0
+                }
+              }
+            ],
+            "txPackageSpecData": {
+              "@type": "WPT_TxRxPackageSpecDataType",
+              "pulseSequenceOrder": [
+                {
+                  "@type": "WPT_TxRxPulseOrderType",
+                  "indexNumber": 1,
+                  "txRxIdentifier": 1
+                },
+                {
+                  "@type": "WPT_TxRxPulseOrderType",
+                  "indexNumber": 2,
+                  "txRxIdentifier": 2
+                }
+              ],
+              "pulseSeparationTime": 10,
+              "pulseDuration": 20,
+              "packageSeparationTime": 30
+            }
+          }
+        }
+      },
+      "WPT_FinePositioningSetupReq_LFTransmitter3": {
+        "@context": "urn:iso:std:iso:15118:-20:WPT",
+        "@type": "WPT_FinePositioningSetupReq",
+        "header": {
+          "@type": "MessageHeaderType",
+          "sessionID": "0000000000000000",
+          "timeStamp": "1700000000"
+        },
+        "evProcessing": "Finished",
+        "evDeviceFinePositioningMethodList": {
+          "@type": "WPT_FinePositioningMethodListType",
+          "wpt_FinePositioningMethod": [
+            "Manual"
+          ]
+        },
+        "evDevicePairingMethodList": {
+          "@type": "WPT_PairingMethodListType",
+          "wpt_PairingMethod": [
+            "LPE"
+          ]
+        },
+        "evDeviceAlignmentCheckMethodList": {
+          "@type": "WPT_AlignmentCheckMethodListType",
+          "wpt_AlignmentCheckMethod": [
+            "PowerCheck"
+          ]
+        },
+        "naturalOffset": 0,
+        "vendorSpecificDataContainer": [],
+        "lf_SystemSetupData": {
+          "@type": "WPT_LF_SystemSetupDataType",
+          "lf_TransmitterSetupData": {
+            "@type": "WPT_LF_TransmitterDataType",
+            "numberOfTransmitters": 3,
+            "signalFrequency": {
+              "@type": "RationalNumberType",
+              "exponent": 0,
+              "value": 100
+            },
+            "txSpecData": [
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 1,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                }
+              },
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 2,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 10,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 5,
+                  "coord_Z": 0
+                }
+              },
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 3,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 20,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 10,
+                  "coord_Z": 0
+                }
+              }
+            ],
+            "txPackageSpecData": {
+              "@type": "WPT_TxRxPackageSpecDataType",
+              "pulseSequenceOrder": [
+                {
+                  "@type": "WPT_TxRxPulseOrderType",
+                  "indexNumber": 1,
+                  "txRxIdentifier": 1
+                },
+                {
+                  "@type": "WPT_TxRxPulseOrderType",
+                  "indexNumber": 2,
+                  "txRxIdentifier": 2
+                },
+                {
+                  "@type": "WPT_TxRxPulseOrderType",
+                  "indexNumber": 3,
+                  "txRxIdentifier": 3
+                }
+              ],
+              "pulseSeparationTime": 10,
+              "pulseDuration": 20,
+              "packageSeparationTime": 30
+            }
+          }
+        }
+      },
+      "WPT_FinePositioningSetupRes_LFReceiver2": {
+        "@context": "urn:iso:std:iso:15118:-20:WPT",
+        "@type": "WPT_FinePositioningSetupRes",
+        "header": {
+          "@type": "MessageHeaderType",
+          "sessionID": "0000000000000000",
+          "timeStamp": "1700000000"
+        },
+        "responseCode": "OK",
+        "primaryDeviceFinePositioningMethodList": {
+          "@type": "WPT_FinePositioningMethodListType",
+          "wpt_FinePositioningMethod": [
+            "Manual"
+          ]
+        },
+        "primaryDevicePairingMethodList": {
+          "@type": "WPT_PairingMethodListType",
+          "wpt_PairingMethod": [
+            "LPE"
+          ]
+        },
+        "primaryDeviceAlignmentCheckMethodList": {
+          "@type": "WPT_AlignmentCheckMethodListType",
+          "wpt_AlignmentCheckMethod": [
+            "PowerCheck"
+          ]
+        },
+        "naturalOffset": 0,
+        "vendorSpecificDataContainer": [],
+        "lf_SystemSetupData": {
+          "@type": "WPT_LF_SystemSetupDataType",
+          "lf_ReceiverSetupData": {
+            "@type": "WPT_LF_ReceiverDataType",
+            "numberOfReceivers": 2,
+            "rxSpecData": [
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 1,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                }
+              },
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 2,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 10,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 5,
+                  "coord_Z": 0
+                }
+              }
+            ]
+          }
+        }
+      },
+      "WPT_FinePositioningSetupRes_LFReceiver3": {
+        "@context": "urn:iso:std:iso:15118:-20:WPT",
+        "@type": "WPT_FinePositioningSetupRes",
+        "header": {
+          "@type": "MessageHeaderType",
+          "sessionID": "0000000000000000",
+          "timeStamp": "1700000000"
+        },
+        "responseCode": "OK",
+        "primaryDeviceFinePositioningMethodList": {
+          "@type": "WPT_FinePositioningMethodListType",
+          "wpt_FinePositioningMethod": [
+            "Manual"
+          ]
+        },
+        "primaryDevicePairingMethodList": {
+          "@type": "WPT_PairingMethodListType",
+          "wpt_PairingMethod": [
+            "LPE"
+          ]
+        },
+        "primaryDeviceAlignmentCheckMethodList": {
+          "@type": "WPT_AlignmentCheckMethodListType",
+          "wpt_AlignmentCheckMethod": [
+            "PowerCheck"
+          ]
+        },
+        "naturalOffset": 0,
+        "vendorSpecificDataContainer": [],
+        "lf_SystemSetupData": {
+          "@type": "WPT_LF_SystemSetupDataType",
+          "lf_ReceiverSetupData": {
+            "@type": "WPT_LF_ReceiverDataType",
+            "numberOfReceivers": 3,
+            "rxSpecData": [
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 1,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                }
+              },
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 2,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 10,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 5,
+                  "coord_Z": 0
+                }
+              },
+              {
+                "@type": "WPT_TxRxSpecDataType",
+                "txRxIdentifier": 3,
+                "txRxPosition": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 20,
+                  "coord_Y": 0,
+                  "coord_Z": 0
+                },
+                "txRxOrientation": {
+                  "@type": "WPT_CoordinateXYZType",
+                  "coord_X": 0,
+                  "coord_Y": 10,
+                  "coord_Z": 0
+                }
+              }
+            ]
+          }
+        }
       }
     },
     "ISO 15118-20 ACDP": {
@@ -3290,6 +3657,220 @@
             "@type": "RationalNumberType",
             "exponent": 0,
             "value": 7000
+          }
+        }
+      },
+      "AC_ChargeParameterDiscoveryRes_DER_Curve2": {
+        "@context": "urn:iso:std:iso:15118:-20:AC-DER-IEC",
+        "@type": "AC_ChargeParameterDiscoveryRes",
+        "header": {
+          "@type": "MessageHeaderType",
+          "sessionID": "0000000000000000",
+          "timeStamp": "1700000000"
+        },
+        "responseCode": "OK",
+        "ac_CPDResEnergyTransferMode": {
+          "@type": "DER_AC_CPDResEnergyTransferModeType",
+          "evseMaximumChargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 22000
+          },
+          "evseMinimumChargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 100
+          },
+          "evseNominalFrequency": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 50
+          },
+          "evseNominalChargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 11000
+          },
+          "evseNominalDischargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 5000
+          },
+          "evseMaximumDischargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 7000
+          },
+          "evOperatingMode": "GridFollowing",
+          "gridConnectionMode": "GridConnected",
+          "derControl": {
+            "@type": "DERControlType",
+            "reactivePowerSupport": {
+              "@type": "ReactivePowerSupportType",
+              "voltVar": {
+                "@type": "DERCurveType",
+                "xUnit": "V",
+                "yUnit": "var",
+                "curveDataPoints": {
+                  "@type": "CurveDataPointsListType",
+                  "curveDataPoint": [
+                    {
+                      "@type": "DataTupleType",
+                      "xValue": {
+                        "@type": "RationalNumberType",
+                        "exponent": 0,
+                        "value": 220
+                      },
+                      "yValue": {
+                        "@type": "SetpointExcitationType",
+                        "setpointValue": {
+                          "@type": "RationalNumberType",
+                          "exponent": 0,
+                          "value": 0
+                        }
+                      }
+                    },
+                    {
+                      "@type": "DataTupleType",
+                      "xValue": {
+                        "@type": "RationalNumberType",
+                        "exponent": 0,
+                        "value": 225
+                      },
+                      "yValue": {
+                        "@type": "SetpointExcitationType",
+                        "setpointValue": {
+                          "@type": "RationalNumberType",
+                          "exponent": 0,
+                          "value": 100
+                        }
+                      }
+                    }
+                  ]
+                },
+                "pt1ResponseReactivePower": false,
+                "stepResponseTimeConstantReactivePower": {
+                  "@type": "RationalNumberType",
+                  "exponent": 0,
+                  "value": 5
+                }
+              }
+            }
+          }
+        }
+      },
+      "AC_ChargeParameterDiscoveryRes_DER_Curve3": {
+        "@context": "urn:iso:std:iso:15118:-20:AC-DER-IEC",
+        "@type": "AC_ChargeParameterDiscoveryRes",
+        "header": {
+          "@type": "MessageHeaderType",
+          "sessionID": "0000000000000000",
+          "timeStamp": "1700000000"
+        },
+        "responseCode": "OK",
+        "ac_CPDResEnergyTransferMode": {
+          "@type": "DER_AC_CPDResEnergyTransferModeType",
+          "evseMaximumChargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 22000
+          },
+          "evseMinimumChargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 100
+          },
+          "evseNominalFrequency": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 50
+          },
+          "evseNominalChargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 11000
+          },
+          "evseNominalDischargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 5000
+          },
+          "evseMaximumDischargePower": {
+            "@type": "RationalNumberType",
+            "exponent": 0,
+            "value": 7000
+          },
+          "evOperatingMode": "GridFollowing",
+          "gridConnectionMode": "GridConnected",
+          "derControl": {
+            "@type": "DERControlType",
+            "reactivePowerSupport": {
+              "@type": "ReactivePowerSupportType",
+              "voltVar": {
+                "@type": "DERCurveType",
+                "xUnit": "V",
+                "yUnit": "var",
+                "curveDataPoints": {
+                  "@type": "CurveDataPointsListType",
+                  "curveDataPoint": [
+                    {
+                      "@type": "DataTupleType",
+                      "xValue": {
+                        "@type": "RationalNumberType",
+                        "exponent": 0,
+                        "value": 220
+                      },
+                      "yValue": {
+                        "@type": "SetpointExcitationType",
+                        "setpointValue": {
+                          "@type": "RationalNumberType",
+                          "exponent": 0,
+                          "value": 0
+                        }
+                      }
+                    },
+                    {
+                      "@type": "DataTupleType",
+                      "xValue": {
+                        "@type": "RationalNumberType",
+                        "exponent": 0,
+                        "value": 225
+                      },
+                      "yValue": {
+                        "@type": "SetpointExcitationType",
+                        "setpointValue": {
+                          "@type": "RationalNumberType",
+                          "exponent": 0,
+                          "value": 100
+                        }
+                      }
+                    },
+                    {
+                      "@type": "DataTupleType",
+                      "xValue": {
+                        "@type": "RationalNumberType",
+                        "exponent": 0,
+                        "value": 230
+                      },
+                      "yValue": {
+                        "@type": "SetpointExcitationType",
+                        "setpointValue": {
+                          "@type": "RationalNumberType",
+                          "exponent": 0,
+                          "value": 200
+                        }
+                      }
+                    }
+                  ]
+                },
+                "pt1ResponseReactivePower": false,
+                "stepResponseTimeConstantReactivePower": {
+                  "@type": "RationalNumberType",
+                  "exponent": 0,
+                  "value": 5
+                }
+              }
+            }
           }
         }
       }

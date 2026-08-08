@@ -112,9 +112,15 @@ A conformance and research peer, not a charging station. Four things it does not
 the reason not to put it in front of a real car as anything but a test instrument:
 
 - **No certificate chain is validated.** Signatures verify against the leaf the car presented;
-  nothing walks `SubCertificates` to a V2G root, checks validity dates or consults revocation, and
-  `--require-client-cert` accepts any client certificate. It proves a signature is well-formed, not
-  that a contract is good.
+  nothing walks `SubCertificates` to a V2G root, checks validity dates or consults revocation. It
+  proves a signature is well-formed, not that a contract is good.
+
+  The TLS half is worth stating separately, because "mutual TLS succeeded" reads like an identity
+  check and here it mostly is not: `--require-client-cert` on the .NET backend **requires** a client
+  certificate and then accepts **any** — the car has to present something, and nothing decides what.
+  Only `--tls-backend bc` checks, and it checks by pinning the exact Vehicle leaf this station just
+  minted into `--pki-dir`, which is one dev process recognising another rather than trust in a PKI.
+  The car's README has the same table from its side.
 - **The timeouts are not the standard's** — a flat 2 s per message and 60 s per sequence, not the
   per-message performance tables.
 - **The charge loop is a fixed three iterations**, not a battery filling up.

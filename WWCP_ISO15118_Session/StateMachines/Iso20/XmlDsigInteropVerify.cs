@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
     /// only this form verifies over there. Our production/default signing (<c>V2GSignature</c>) stays
     /// cbV2G-byte-exact per the project ground rule.
     /// </para>
-    /// See <c>docs/interop-runs/2026-07-21-iso20-dc-pnc-tls/notes.md</c>.
+    /// See <c>ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso20-dc-pnc-tls/notes.md</c>.
     /// </summary>
     // Public to match XmlDsigInteropSign and the -2 XmlDsigInterop2, both of which already are. The
     // asymmetry was accidental: verifying is exactly as much a caller's business as signing, and the

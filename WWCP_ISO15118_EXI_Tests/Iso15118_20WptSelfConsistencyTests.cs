@@ -23,7 +23,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
     /// <summary>
     /// Self-consistency (encode → decode → re-encode) coverage for the two WPT fields that exercise
     /// grammar shapes this repo's generator designed independently, because no working cbV2G reference
-    /// exists for them (see <c>Iso15118_20WptFixtures</c> and <c>docs/xsd-inventory-15118-20.md</c>):
+    /// exists for them (see <c>Iso15118_20WptFixtures</c> and <c>EVSimulatorApp/docs/xsd-inventory-15118-20.md</c>):
     /// <c>WPT_LF_DataPackageList</c> (an optional bounded list mid-run, capped at 2 items — cbV2G's own
     /// generated grammar for it does work, just not past that cap) and <c>LF_SystemSetupData</c> (whose
     /// <c>WPT_LF_TransmitterDataType.TxSpecData</c>, minOccurs=2/maxOccurs=255 followed by an optional

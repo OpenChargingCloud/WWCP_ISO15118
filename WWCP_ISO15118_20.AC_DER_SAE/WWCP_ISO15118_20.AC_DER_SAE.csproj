@@ -41,7 +41,7 @@
          DER member still encodes byte-identically under both grammars (the added members do not push
          the event code over an n-bit boundary), so plain AC traffic stays compatible; it is only
          DER-carrying messages that a plain AC peer cannot read. A session must therefore agree on the
-         variant up front - that negotiation is not wired yet (see docs/ac-der.md).
+         variant up front - that negotiation is not wired yet (see EVSimulatorApp/docs/ac-der.md).
 
          AC_DER schema from the free Amendment 1 bundle:
          https://standards.iso.org/iso/15118/-20/ed-1/en/Amd/1/AMD1_xsdSchema.zip

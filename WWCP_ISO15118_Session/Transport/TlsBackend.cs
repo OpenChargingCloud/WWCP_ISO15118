@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
     /// <summary>
     /// Which TLS implementation carries a <see cref="TlsOptions"/>-configured session. The two backends
     /// are not interchangeable — they differ in what they can be held to and in what they demand of the
-    /// certificate material — so the choice is stated, not guessed (<c>docs/pki-model.md</c>).
+    /// certificate material — so the choice is stated, not guessed (<c>EVSimulatorApp/docs/pki-model.md</c>).
     /// </summary>
     public enum TlsBackend
     {

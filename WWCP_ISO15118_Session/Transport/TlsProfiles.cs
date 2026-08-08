@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ using System.Net.Security;
 namespace cloud.charging.open.protocols.ISO15118.Transport
 {
     /// <summary>
-    /// The cipher suites each ISO 15118 protocol's TLS profile pins, per <c>docs/pki-model.md</c>. Constants
+    /// The cipher suites each ISO 15118 protocol's TLS profile pins, per <c>EVSimulatorApp/docs/pki-model.md</c>. Constants
     /// only — a caller still states its profile explicitly on <see cref="TlsOptions"/>, because the guide's
     /// core lesson is that a library default is exactly what lets the wrong profile through unnoticed.
     /// <para>

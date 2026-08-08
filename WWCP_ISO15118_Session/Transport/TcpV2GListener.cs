@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         /// </summary>
         /// <remarks>
         /// Null by default, so nothing changes for existing callers. It exists for the pairing
-        /// check (EVSimulatorApp <c>docs/CONCEPT.md</c> §4.6 Tier 1), which gates the accept rather
+        /// check (<c>EVSimulatorApp/docs/CONCEPT.md</c> §4.6 Tier 1), which gates the accept rather
         /// than the session: that slot is where SLAC sits in a real deployment, it works identically
         /// for -2 and -20, and it needs no schema deviation. Checking here rather than after the
         /// handshake also means an unadmitted peer cannot make the station do public-key work — the

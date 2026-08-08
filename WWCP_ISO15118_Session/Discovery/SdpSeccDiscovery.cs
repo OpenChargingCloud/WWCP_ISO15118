@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ namespace cloud.charging.open.protocols.ISO15118.Discovery
     /// Note: SDP is UDP/IPv6 link-local multicast on a real interface, so the full exchange is exercised
     /// only in real/CLI runs — an EVCC and SECC in the same process on one host cannot hear each other's
     /// multicast (both disable multicast loopback), so CI covers the message layer and the result mapping
-    /// (<see cref="MapResult"/>) instead. See <c>docs/pki-model.md</c>.
+    /// (<see cref="MapResult"/>) instead. See <c>EVSimulatorApp/docs/pki-model.md</c>.
     /// </para>
     /// </summary>
     public sealed class SdpSeccDiscovery(EVCC_SDPClientOptions options) : ISeccDiscovery

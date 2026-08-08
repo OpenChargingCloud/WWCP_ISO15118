@@ -168,7 +168,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
     /// The visible consequence is one event code: with no items and no suffix, cbexigen's end-element is
     /// <b>1</b> and the schema grammar's is <b>2</b>. That is why EXIficient read our WPT frames as a
     /// start-element and reported <c>Premature EOS</c> — see
-    /// <c>docs/interop-runs/2026-08-07-exificient-iso20/</c>.
+    /// <c>ISO15118ConformanceTests/docs/interop-runs/2026-08-07-exificient-iso20/</c>.
     /// </para>
     /// </summary>
     [TestFixture]

@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
     /// it carries the .NET backend's P-256 certificates onto a stack that otherwise pins secp521r1/Ed448, so
     /// it widens the accepted client-certificate signature schemes accordingly. For real -20 conformance use
     /// <see cref="BcTlsOptions"/> directly with the PKI builder's strict-20 chains (see
-    /// <c>docs/pki-model.md</c>).
+    /// <c>EVSimulatorApp/docs/pki-model.md</c>).
     /// </para>
     /// </summary>
     public static class TlsPlatform
@@ -65,7 +65,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         /// is the exception: Schannel takes its suite list from system-wide policy, and .NET throws
         /// <see cref="PlatformNotSupportedException"/> for a per-connection policy there. On such a platform
         /// <see cref="TlsOptions.CipherSuites"/> cannot be enforced and the deviation has to be recorded
-        /// instead of pinned (<c>docs/pki-model.md</c> asks for exactly that).
+        /// instead of pinned (<c>EVSimulatorApp/docs/pki-model.md</c> asks for exactly that).
         /// </summary>
         // The guard attribute lets the platform-compatibility analyser (CA1416) see that a true value rules
         // Windows out, so callers may touch CipherSuitesPolicy behind this check without a suppression.

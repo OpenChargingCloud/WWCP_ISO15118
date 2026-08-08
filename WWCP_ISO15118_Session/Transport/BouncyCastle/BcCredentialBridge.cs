@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
         }
 
         // The TLS 1.3 signature scheme follows the leaf's curve: the certificate and the scheme it signs
-        // with are one unit (docs/pki-model.md — "the certificate-chain curve must match the negotiated
+        // with are one unit (EVSimulatorApp/docs/pki-model.md — "the certificate-chain curve must match the negotiated
         // TLS profile"), so deriving it here rather than letting a caller pick keeps them from drifting.
         private static (AsymmetricKeyParameter, int) ExtractPrivateKey(X509Certificate2 leaf)
         {

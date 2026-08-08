@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// EV sends, and what our EV sent was always charge-only. So our EVCC could select MCS_BPT from
         /// everest-core 2026.02.1's catalogue and was then refused <c>FAILED_WrongChargeParameter</c> at
         /// <c>DC_ChargeParameterDiscoveryRes</c> — correctly
-        /// (<c>docs/interop-runs/2026-08-05-everest-mcs-bpt/</c> in the conformance-tests repository).
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-05-everest-mcs-bpt/</c>).
         /// </para>
         /// </remarks>
         protected bool BidirectionalService
@@ -100,7 +100,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         /// <summary>
         /// The vehicle's own energy counter — what this EV thinks it took, kept independently of what
-        /// the station reports (<c>docs/CONCEPT.md</c> §4.2/§4.3).
+        /// the station reports (<c>EVSimulatorApp/docs/CONCEPT.md</c> §4.2/§4.3).
         /// </summary>
         /// <remarks>
         /// On the base rather than per set: the counter is the vehicle's, and AC and DC differ only in
@@ -212,7 +212,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// The mirror of <c>Secc20Base.PreferDynamicControlMode</c>, and it arrived much later: until
         /// 2026-08-03 our station could answer a Dynamic EV but our car could not be one. Every recorded
         /// Dynamic run had Josev's EVCC on the other side
-        /// (<c>docs/interop-runs/2026-07-22-iso20-dynamic-sdp/</c>), so the mode was validated in exactly one
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-07-22-iso20-dynamic-sdp/</c>), so the mode was validated in exactly one
         /// direction and the roadmap's "Scheduled and Dynamic" quietly meant "Scheduled both ways, Dynamic
         /// inbound".
         /// </para>
@@ -258,7 +258,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <c>Evcc20Ac</c> / <c>Evcc20Dc</c> then build the <c>BPT_*</c> request types. A station enforces
         /// that coupling, and EVerest's taught it to us the hard way — a plain
         /// <c>DC_CPDReqEnergyTransferModeType</c> sent under service 9 was refused with
-        /// <c>FAILED_WrongChargeParameter</c> (<c>docs/interop-runs/2026-08-05-everest-mcs-bpt/</c>).
+        /// <c>FAILED_WrongChargeParameter</c> (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-05-everest-mcs-bpt/</c>).
         /// </para>
         /// <para>
         /// A station advertising no bidirectional service is unaffected. The reorder is stable and the
@@ -599,7 +599,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <c>DC_CableCheckRes</c> with <c>FAILED</c> and our car went on to PreCharge, PowerDelivery and
         /// into the charge loop — a station could answer FAILED to every message of a session and we
         /// would drive it to completion
-        /// (<c>docs/interop-runs/2026-08-01-edf-iso20-dc-notls/</c>).
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-01-edf-iso20-dc-notls/</c>).
         /// </para>
         /// <para>
         /// The loopback suite could not have found this: our own SECC never answers FAILED, so no

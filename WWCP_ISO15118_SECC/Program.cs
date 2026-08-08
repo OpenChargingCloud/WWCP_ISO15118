@@ -33,6 +33,7 @@ using cloud.charging.open.protocols.ISO15118.SLAC.Transport;
 using cloud.charging.open.protocols.ISO15118.Discovery;
 using cloud.charging.open.protocols.ISO15118.Sap;
 using cloud.charging.open.protocols.ISO15118.Session;
+using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Slac;
 using cloud.charging.open.protocols.ISO15118.StateMachines;
 using cloud.charging.open.protocols.ISO15118.StateMachines.Iso2;
@@ -82,9 +83,9 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             // .NET backend: a supplied --server-cert (e.g. a CPO/SECC leaf chain a real EVCC's trust anchor
             // accepts) takes precedence over the fresh self-signed dev cert. With --require-client-cert the
             // station requires + (dev: accepts any) the car's client certificate for mutual TLS.
-            var (serverLeaf, serverChain) = LoadCertificateWithChain(args.ServerCertPath, args.ServerCertPass);
-            using var devCert = args.TlsBackend == TlsBackend.Dotnet && serverLeaf is null ? CreateDevCertificate() : null;
-            var dotnetTls = args.TlsBackend != TlsBackend.Dotnet ? null : new TlsOptions
+            var (serverLeaf, serverChain) = Credentials.LoadForTls(args.ServerCertPath, args.ServerCertPass, "--server-cert");
+            using var devCert = args.TlsStack == TlsStack.Dotnet && serverLeaf is null ? CreateDevCertificate() : null;
+            var dotnetTls = args.TlsStack != TlsStack.Dotnet ? null : new TlsOptions
             {
                 ServerCertificate         = serverLeaf ?? devCert,
                 ServerCertificateChain    = serverChain,
@@ -95,15 +96,15 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             if (serverLeaf is not null)
                 Console.WriteLine($"Presenting server certificate: {serverLeaf.Subject} (+{serverChain?.Count ?? 0} intermediate(s))"
                                   + (args.RequireClientCert ? "; requiring a client certificate (mutual TLS, dev: accept-any)" : ""));
-            var bcTls = args.TlsBackend == TlsBackend.BouncyCastle ? SeccPki.Generate(args.PkiDir!) : null;
+            var bcTls = args.TlsStack == TlsStack.BouncyCastle ? SeccPki.Generate(args.PkiDir!) : null;
 
             using var listener = bcTls is not null
                                      ? new TcpV2GListener(new IPEndPoint(IPAddress.IPv6Any, args.ListenPort), bcTls)
                                      : new TcpV2GListener(new IPEndPoint(IPAddress.IPv6Any, args.ListenPort), dotnetTls);
 
             Console.WriteLine($"SECC listening on {listener.LocalEndpoint} " +
-                              $"(protocol {(args.OfferBoth ? "both (-20 preferred)" : ProtocolName(args.Protocol))}, " +
-                              $"{ModeName(args.Mode)}, TLS {args.TlsBackend})...");
+                              $"(protocol {(args.OfferBoth ? "both (-20 preferred)" : V2GInterface.Name(args.Protocol))}, " +
+                              $"{V2GInterface.Name(args.Mode)}, TLS {args.TlsStack})...");
 
             await using var sdp = args.UseSdp ? await StartSdpAsync(args, listener.LocalEndpoint.Port) : null;
 
@@ -121,7 +122,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     // A mini-IsoMux: accept both protocols, follow the EV's priority, and run the state
                     // machine the handshake settled on rather than one chosen before it ran.
                     var settled = await SapHandshake.RunSeccSideAsync(stream, BothOffers(args.Mode));
-                    Console.WriteLine($"SAP: the EV's offer settled on {ProtocolName(settled.Protocol)}.");
+                    Console.WriteLine($"SAP: the EV's offer settled on {V2GInterface.Name(settled.Protocol)}.");
                     sessionArgs = args with { Protocol = settled.Protocol };
                 }
                 else
@@ -154,7 +155,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     ResumeSessionId = resume?.SessionId,
                     RequestRenegotiation = args.Renegotiate,
                     TariffSignKey = args.TariffCertPath is not null
-                        ? LoadTariffSigningKey(args.TariffCertPath, args.TariffCertPass) : null,
+                        ? LoadTariffKey(args.TariffCertPath, args.TariffCertPass) : null,
                 };
                 try { await secc2.RunAsync(stream); }
                 finally
@@ -188,7 +189,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                 secc.OfferResume(resume);
                 secc.RequestRenegotiation = args.Renegotiate;
                 if (args.TariffCertPath is not null)
-                    secc.TariffSignKey = LoadTariffSigningKey(args.TariffCertPath, args.TariffCertPass);
+                    secc.TariffSignKey = LoadTariffKey(args.TariffCertPath, args.TariffCertPass);
                 // finally: the PnC/cert-install verdicts are the run's evidence — print them even when the
                 // peer aborts mid-session (e.g. Josev's EVCC crashes on its own unimplemented cert-install res).
                 try { await secc.RunAsync(stream); }
@@ -238,7 +239,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
 
         private static async Task RunSlacAsync(SeccOptions args)
         {
-            await using var transport = new UdpSlacTransport(RandomMac(), new IPEndPoint(IPAddress.Any, args.SlacListenPort));
+            await using var transport = new UdpSlacTransport(V2GInterface.RandomMac(), new IPEndPoint(IPAddress.Any, args.SlacListenPort));
             await using var slac = new SlacEvseStage(transport,
                 new EvseSlacOptions { EvseId = new byte[17], Nid = RandomNumberGenerator.GetBytes(7), Nmk = RandomNumberGenerator.GetBytes(16) });
             await slac.StartAsync();
@@ -249,8 +250,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
 
         private static async Task<SeccSdpAdvertiser> StartSdpAsync(SeccOptions args, int tcpPort)
         {
-            var iface  = ResolveInterface(args.Interface!);
-            var noTls  = args.TlsBackend == TlsBackend.None;
+            var iface  = V2GInterface.Resolve(args.Interface!);
+            var noTls  = args.TlsStack == TlsStack.None;
             var server = new SECC_SDPServer(BuildSdpOptions(iface, tcpPort, noTls));
             // iface.LinkLocalIPAddress already carries the interface ScopeId on Linux; re-derive a scoped
             // address so the display shows the scope exactly once (not "…%2%2").
@@ -280,41 +281,16 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             };
 
         // ── helpers ──────────────────────────────────────────────────────────────────────────────────
+        // Everything a car would need in the same shape lives in WWCP_ISO15118_SharedCC; what is left
+        // here is what only a station does.
 
-        private static V2GNetworkInterface ResolveInterface(string name)
-            => new SystemV2GNetworkInterfaceProvider().FindByName(name)
-               ?? throw new ArgumentException($"no V2G-capable network interface named '{name}' found.");
-
-        private static MACAddress RandomMac() => MACAddress.FromPhysicalAddress(new PhysicalAddress(RandomNumberGenerator.GetBytes(6)));
-
-        private static string ProtocolName(ProtocolVariant p) => p == ProtocolVariant.Iso15118_2 ? "-2" : "-20";
-        private static string ModeName(PowerMode m) => m == PowerMode.Ac ? "AC" : "DC";
-
-        /// <summary>Loads a PKCS#12 certificate for TLS, splitting the private-key leaf from its intermediate
-        /// CA chain so <c>SslStream</c> can send both. Returns (null, null) when <paramref name="path"/> is null.</summary>
-        private static (X509Certificate2? Leaf, X509Certificate2Collection? Chain) LoadCertificateWithChain(string? path, string? password)
+        /// <summary>The tariff <b>signing</b> key: the leaf's ECDSA private key, which signs the -2
+        /// SalesTariffs / -20 AbsolutePriceSchedule offer. The verifying half is the car's, and lives in
+        /// the EVCC program — same file, opposite key.</summary>
+        private static ECDsa LoadTariffKey(string path, string? password)
         {
-            if (path is null)
-                return (null, null);
-
-            var all = X509CertificateLoader.LoadPkcs12CollectionFromFile(path, password, X509KeyStorageFlags.Exportable);
-            var leaf = all.FirstOrDefault(c => c.HasPrivateKey) ?? all[0];
-            var chain = new X509Certificate2Collection(all.Where(c => !ReferenceEquals(c, leaf)).ToArray());
-            return (leaf, chain);
-        }
-
-        /// <summary>Loads the tariff <b>signing</b> key from a PKCS#12 — the leaf's ECDSA private key, which
-        /// signs the -2 SalesTariffs / -20 AbsolutePriceSchedule offer. The car's side verifies with the
-        /// matching public key; that half lives in the EVCC program.</summary>
-        private static ECDsa LoadTariffSigningKey(string path, string? password)
-        {
-            var collection = X509CertificateLoader.LoadPkcs12CollectionFromFile(path, password,
-                X509KeyStorageFlags.EphemeralKeySet);
-            var leaf = collection.FirstOrDefault(c => c.HasPrivateKey) ?? collection.FirstOrDefault()
-                ?? throw new ArgumentException($"--tariff-cert: '{path}' contains no certificate.");
-            var key = leaf.GetECDsaPrivateKey()
-                ?? throw new ArgumentException("--tariff-cert: the station needs an ECDSA private key to sign.");
-            Console.WriteLine($"Tariff: signing with {leaf.Subject}, {key.KeySize}-bit EC.");
+            var (key, subject) = Credentials.LoadEcdsaKey(path, password, wantPrivate: true, "--tariff-cert");
+            Console.WriteLine($"Tariff: signing with {subject}, {key.KeySize}-bit EC.");
             return key;
         }
 

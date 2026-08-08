@@ -33,12 +33,51 @@ Everything the session layer implements, on the car's side:
 | **Both protocols** | offers `-20` and `-2` in one handshake and runs whichever the station picks |
 | **AC, DC and MCS** | `--mode ac\|dc\|mcs`; MCS is the DC message set under energy-transfer services 8/9 |
 | **EIM and Plug & Charge** | `--contract-cert` signs the authorization with a real contract certificate instead of paying externally |
+| **CertificateInstallation** | `--oem-cert` asks the station to issue a contract, and unwraps the key it sends back (`-20`) |
 | **Scheduled and Dynamic** | follows the control mode the station offers |
 | **Signed tariffs** | `--tariff-cert` verifies the station's signed SalesTariff / AbsolutePriceSchedule and reports digest and ECDSA separately |
 | **Pause / resume** | `--pause-resume` pauses after the charge loop, reconnects and rejoins — and says so when the station refuses |
 | **Renegotiation** | `--renegotiate` sends `PowerDelivery(Renegotiate)` after the first cycle |
-| **TLS** | .NET `SslStream`, or BouncyCastle for the profile `-20` actually asks for |
+| **TLS** | two backends — see [Which TLS backend](#which-tls-backend-and-why-it-is-not-a-preference), because on Windows and macOS this is not a matter of taste |
 | **SDP and SLAC** | `--sdp` finds the station on the link; `--slac` runs a pairing stage first |
+
+## The car's three certificates
+
+They are not interchangeable, and mixing them up produces failures that read like protocol bugs.
+
+| Flag | Which certificate | What it is for |
+|---|---|---|
+| `--vehicle-cert` | the CharIN **Vehicle** certificate | **who this car is.** Presented in the TLS handshake, on either backend. For `-20` it is also what the station's resume binding is computed over — `SHA-512(session-id ‖ SHA-512(vehicle leaf))` — so a resume only works if the car comes back with the same one. `--client-cert` is the older spelling, still accepted. |
+| `--contract-cert` | the **contract** certificate | **who pays.** Plug & Charge in `-2` and `-20`: signs the authorization instead of paying externally. |
+| `--oem-cert` | the **OEM provisioning** certificate | **what the car was born with** — the only identity it has before it holds a contract. `-20`: sends a signed `CertificateInstallationReq` and ECDH-unwraps the contract key the station issues. |
+
+Two things about `--oem-cert` worth knowing before you use it. Its key must be **P-521**: the unwrap
+is an ECDH against the station's ephemeral secp521r1 key, so a `-2`-era P-256 OEM certificate gets a
+well-formed response it cannot decrypt — the program warns rather than letting you discover it as a
+decryption failure. And it is accepted for `-2` but does nothing there: this EVCC implements
+CertificateInstallation only for `-20`, and says so on the run rather than dropping the flag quietly.
+
+## Which TLS backend, and why it is not a preference
+
+`--tls` / `--tls-backend dotnet` uses .NET's `SslStream`, which is fast and native. It also cannot
+carry the ISO 15118-20 TLS profile on two of the three platforms this runs on:
+
+| | .NET `SslStream` | BouncyCastle |
+|---|---|---|
+| **Linux** (OpenSSL) | TLS 1.3, secp521r1, suite pinning — all fine | fine |
+| **Windows** (Schannel) | TLS 1.3 yes, but **no secp521r1 certificates** (measured: P-256 mutual TLS succeeds, P-521 fails "Authentication failed"), **no per-connection suite pinning**, and it will not present a client chain whose root the machine does not trust | fine |
+| **macOS** (SecureTransport) | **no TLS 1.3 at all** — Apple's API never gained it | fine |
+
+So: on Linux either works; **on Windows and macOS a real `-20` TLS session needs `--tls-backend bc`**,
+because `--tls` there gives you something that looks like it worked and is not `-20`-conformant
+(macOS quietly negotiates TLS 1.2, Windows runs on -2-grade P-256 material). For `-2`, whose profile
+is TLS 1.2 with P-256, `--tls` is fine everywhere.
+
+The Windows client-chain rule is the one that bites hardest here, because it is the car that presents
+a client certificate: Schannel builds and validates that chain locally *before* the handshake and
+refuses a root it does not trust — which a freshly minted V2G test root never is. `--tls-backend bc`
+with `--vehicle-cert` sidesteps it entirely. Measurements in `Transport/TlsPlatform.cs`, reasoning in
+`EVSimulatorApp/docs/pki-model.md`.
 
 ## The defaults, and why
 
@@ -74,6 +113,14 @@ dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --mode ac
 
 # Plug & Charge: sign the authorization with a contract certificate
 dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --contract-cert contract.p12
+
+# ask the station to issue one instead, and unwrap the key it sends back (-20, P-521 OEM key)
+dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --protocol 20 \
+    --oem-cert oem.p12 --oem-cert-pass secret
+
+# bring your own Vehicle chain to a station whose PKI is not ours
+dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" \
+    --tls-backend bc --vehicle-cert vehicle.p12
 
 # pause after the charge loop, reconnect, rejoin the same session
 dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --pause-resume

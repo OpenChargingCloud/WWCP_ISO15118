@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -17,7 +17,7 @@
 
 using cloud.charging.open.protocols.ISO15118.SDP.Client;
 
-namespace Vanaheimr.V2G.Simulation.Discovery
+namespace cloud.charging.open.protocols.ISO15118.Discovery
 {
     /// <summary>
     /// Discovery via the real SECC Discovery Protocol: multicasts an <c>SDP_Request</c> on the configured

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-using Vanaheimr.V2G.Simulation.StateMachines;
-using Vanaheimr.V2G.Simulation.Transport;
+using cloud.charging.open.protocols.ISO15118.StateMachines;
+using cloud.charging.open.protocols.ISO15118.Transport;
 
-namespace Vanaheimr.V2G.Simulation.Cli
+namespace cloud.charging.open.protocols.ISO15118.Cli
 {
     /// <summary>
     /// Hand-rolled flag parsing (no arg-parsing package anywhere in this repo) for the two subcommands.

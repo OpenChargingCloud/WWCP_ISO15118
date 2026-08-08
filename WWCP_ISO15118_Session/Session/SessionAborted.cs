@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace Vanaheimr.V2G.Simulation.Session
+namespace cloud.charging.open.protocols.ISO15118.Session
 {
     /// <summary>Raised when a session ends abnormally — a sequence-guard rejection or a timeout.</summary>
     public sealed class SessionAborted(string reason) : Exception(reason);

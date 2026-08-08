@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-namespace Vanaheimr.V2G.Simulation.Discovery
+namespace cloud.charging.open.protocols.ISO15118.Discovery
 {
     /// <summary>Thrown when SDP discovery does not yield a usable SECC endpoint (rejected or timed out).</summary>
     public sealed class SeccDiscoveryException(string message) : Exception(message);

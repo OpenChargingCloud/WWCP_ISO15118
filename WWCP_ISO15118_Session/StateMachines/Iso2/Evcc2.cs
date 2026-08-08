@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -20,17 +20,21 @@ using System.Security.Cryptography.X509Certificates;
 
 using cloud.charging.open.protocols.ISO15118_2;
 using cloud.charging.open.protocols.ISO15118_2.Generated;
-using Vanaheimr.V2G.Simulation.Framing;
-using Vanaheimr.V2G.Simulation.Metering;
-using Vanaheimr.V2G.Simulation.Session;
-using Vanaheimr.V2G.Simulation.StateMachines.Iso20;
-using Vanaheimr.V2G.Simulation.Timing;
+using cloud.charging.open.protocols.ISO15118.Framing;
+using cloud.charging.open.protocols.ISO15118.Metering;
+using cloud.charging.open.protocols.ISO15118.Session;
+using cloud.charging.open.protocols.ISO15118.StateMachines.Iso20;
+using cloud.charging.open.protocols.ISO15118.Timing;
 using System.Collections.Concurrent;
 using System.Reflection;
 
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
+// `V2GTP` is a namespace here as well as the header codec class, and the namespace wins
+// on a bare identifier -- see docs/wwcp-iso15118-split.md, "V2GTP exists twice".
+using V2GTPCodec = cloud.charging.open.protocols.ISO15118.EXI.Dispatch.V2GTP;
 
-namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
+
+namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 {
     /// <summary>The EV's smart-charging verdict over the SASchedule offer: how many tuples were offered,
     /// whether the SalesTariffs carried a header signature and it verified (digest per tariff + ECDSA,
@@ -416,7 +420,7 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
             RefuseOnFailure(reply.Body.BodyElement!);
 
             Exchanges++;
-            BytesOnWire += V2GTP.HeaderSize + reqLen; // request side; response side is the peer's own accounting
+            BytesOnWire += V2GTPCodec.HeaderSize + reqLen; // request side; response side is the peer's own accounting
 
             _sid = reply.Header.SessionID;             // adopt the SECC-assigned session id
             _lastHeader = reply.Header;                // tariff verification reads the response signature

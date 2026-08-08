@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../WWCP_ISO15118_Session/Vanaheimr.V2G.Simulation.csproj" />
+    <ProjectReference Include="../WWCP_ISO15118_Session/WWCP_ISO15118_Session.csproj" />
   </ItemGroup>
 
 </Project>

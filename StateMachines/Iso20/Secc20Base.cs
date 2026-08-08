@@ -89,8 +89,55 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         public byte[] SessionId => SessionCtx.SessionId;
 
         /// <summary>A paused predecessor's session id: a SessionSetupReq carrying it rejoins the old session
-        /// (<c>ResponseCode.OK_OldSessionJoined</c>); anything else starts fresh.</summary>
+        /// (<c>ResponseCode.OK_OldSessionJoined</c>) <em>if</em> the requester also proves it is the same EV
+        /// (<see cref="ResumeBinding"/>); anything else starts fresh.</summary>
         public byte[]? ResumeSessionId { get; set; }
+
+        /// <summary>
+        /// The paused predecessor's <see cref="SessionBinding"/>. A resume must present the same one, or it
+        /// is not the EV that paused and gets a new session.
+        /// </summary>
+        /// <remarks>
+        /// Set together with <see cref="ResumeSessionId"/> — the two travel as a pair, and offering the id
+        /// without the binding offers a session nobody can claim, which is the intended failure direction.
+        /// </remarks>
+        public byte[]? ResumeBinding { get; set; }
+
+        /// <summary>
+        /// The vehicle's TLS leaf certificate (DER). Resolved from the stream in
+        /// <see cref="RunAsync(Stream, CancellationToken)"/> when it is an authenticated <c>SslStream</c>;
+        /// settable for callers that drive <see cref="Handle"/> directly.
+        /// </summary>
+        public byte[]? VehicleLeafCertificate { get; set; }
+
+        /// <summary>The binding of the session in effect — hand it to the next connection together with
+        /// <see cref="SessionId"/> when this session pauses. Null when no peer certificate was available.</summary>
+        public byte[]? SessionBinding { get; private set; }
+
+        /// <summary>What this station answered the opening SessionSetupReq with: a new session, or a rejoined
+        /// one. The mirror of <c>Evcc20Base.SessionSetupCode</c>, and what a test asserts a resume on.</summary>
+        public ResponseCode SessionSetupCode { get; private set; }
+
+        /// <summary>The energy-transfer service the paused session had settled on. A resumed session does not
+        /// repeat service negotiation, so without this the station would forget which service it is running
+        /// and stop expecting the <c>BPT_*</c> types a bidirectional one requires.</summary>
+        public ushort ResumeEnergyServiceId { get; set; }
+
+        /// <summary>What to hand the next connection, or <c>null</c> when this session did not pause.</summary>
+        public ResumableSession? PausedSession
+
+            => Paused
+                   ? new ResumableSession(SessionId, SessionBinding, SelectedEnergyServiceId)
+                   : null;
+
+        /// <summary>Offer a paused predecessor to this connection — all three values at once, because a
+        /// session id offered without its binding is a session nobody can claim.</summary>
+        public void OfferResume(ResumableSession? paused)
+        {
+            ResumeSessionId       = paused?.SessionId;
+            ResumeBinding         = paused?.Binding;
+            ResumeEnergyServiceId = paused?.EnergyServiceId ?? 0;
+        }
 
         /// <summary>When set, a new session is given this id instead of a fresh random one — the seam that
         /// makes a <b>recorded</b> session reproducible (<c>Tests/Traces</c>). The session id travels in every
@@ -286,7 +333,7 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
             var (respSet, response, next) = (Phase, set, request) switch
             {
                 (Phase20.SessionSetup, MessageSet.Iso20CommonMessages, SessionSetupReq r) =>
-                    Step(MessageSet.Iso20CommonMessages, SessionSetup(r), Phase20.AuthorizationSetup),
+                    SessionSetupStep(r),
 
                 (Phase20.AuthorizationSetup, MessageSet.Iso20CommonMessages, AuthorizationSetupReq r) =>
                     Step(MessageSet.Iso20CommonMessages, AuthSetup(r), Phase20.Authorization),
@@ -370,6 +417,12 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         /// <summary>Reads/handles/replies over <paramref name="stream"/> until the session reaches <see cref="Phase20.Done"/>.</summary>
         public async Task RunAsync(Stream stream, CancellationToken ct = default)
         {
+            // The vehicle's certificate comes from the handshake that already happened, so nothing above has
+            // to pass it in. `-20` permits only full-handshake TLS, initial or resumed, so in a conformant
+            // session this is always present; over plain TCP it stays null and a resume cannot be verified,
+            // which SessionSetup then treats as a new session.
+            VehicleLeafCertificate ??= SessionBinding20.PeerLeafOf(stream);
+
             // 8 KiB: a CertificateInstallationRes (contract chain + encrypted key + CPS chain + signature)
             // outgrows the 1 KiB the plain charge messages need.
             var buf = new byte[8192];
@@ -409,6 +462,33 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         protected abstract int EncodeAny(MessageSet set, object message, byte[] dest);
 
         private static (MessageSet, object, Phase20) Step(MessageSet set, object response, Phase20 next) => (set, response, next);
+
+        /// <summary>
+        /// SessionSetup, plus the phase its own answer implies: a <b>resumed</b> session opens at
+        /// ChargeParameterDiscovery, a new one at AuthorizationSetup.
+        /// </summary>
+        /// <remarks>
+        /// A resumed `-20` session repeats neither authorization — the paused session's stays valid for the
+        /// whole service session — nor service negotiation: the standard names exactly one message the EV
+        /// may send next, and it is the charge-parameter one. `-2` requires the opposite, both sides
+        /// supplying the same values again, and this used to step unconditionally to AuthorizationSetup
+        /// because it was written from `-2`. EVerest's station answered our resumed
+        /// <c>AuthorizationSetupReq</c> with <c>FAILED_SequenceError</c> on 2026-08-08, which is how the
+        /// difference surfaced. Deciding the phase from the response code keeps the two branches from
+        /// drifting apart again.
+        /// </remarks>
+        private (MessageSet, object, Phase20) SessionSetupStep(SessionSetupReq request)
+        {
+
+            var response = SessionSetup(request);
+
+            return Step(MessageSet.Iso20CommonMessages,
+                        response,
+                        response.ResponseCode == ResponseCode.OK_OldSessionJoined
+                            ? Phase20.ChargeParams
+                            : Phase20.AuthorizationSetup);
+
+        }
         private static (MessageSet, object, Phase20) Append((MessageSet Set, object Response) result, Phase20 next) =>
             (result.Set, result.Response, next);
 
@@ -430,17 +510,51 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         };
 
         // ── CommonMessages phase handlers (identical for AC and DC — EIM only) ─
+        /// <summary>
+        /// Rejoins a paused session, or starts a new one.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Two conditions, not one. The session id has to match — and the requester has to be the EV that
+        /// paused it, which `-20` makes a *shall* and leaves the method of proving open. We use the
+        /// standard's own example, the TLS vehicle certificate hashed into the session id
+        /// (<see cref="SessionBinding20"/>). Until 2026-08-08 only the first condition was checked, because
+        /// this was written by analogy to `-2`, where the first condition is the whole rule; the comment
+        /// that said so is what eventually gave the bug away.
+        /// </para>
+        /// <para>
+        /// A failed check is not an error to report: it *is* a new session, with a fresh id and
+        /// <c>OK_NewSessionEstablished</c>, and the EV that asked to resume learns nothing about why. That
+        /// is deliberate in the standard and worth keeping — a distinguishable rejection would tell an
+        /// attacker that the session id it guessed was real.
+        /// </para>
+        /// </remarks>
         private SessionSetupRes SessionSetup(SessionSetupReq req)
         {
-            // Resume: a SessionSetupReq whose header carries a paused predecessor's session id rejoins that
-            // session (ISO 15118-20 §8.4 — same OldSessionJoined mechanic as -2); anything else starts fresh.
-            if (ResumeSessionId is not null && req.Header.SessionID.AsSpan().SequenceEqual(ResumeSessionId))
+
+            if (ResumeSessionId is not null &&
+                req.Header.SessionID.AsSpan().SequenceEqual(ResumeSessionId) &&
+                SessionBinding20.Matches(ResumeBinding, SessionBinding20.Compute(ResumeSessionId, VehicleLeafCertificate)))
             {
-                SessionCtx.SessionId = ResumeSessionId;
+                SessionCtx.SessionId    = ResumeSessionId;
+                SessionBinding          = ResumeBinding;
+                SessionSetupCode        = ResponseCode.OK_OldSessionJoined;
+                // The service session continues, so the service it settled on continues with it.
+                SelectedEnergyServiceId = ResumeEnergyServiceId;
                 return new SessionSetupRes(SessionCtx.ToCommonHeader(), ResponseCode.OK_OldSessionJoined, "DE*ABC*E1");
             }
 
-            SessionCtx.SessionId = FixedSessionId ?? System.Security.Cryptography.RandomNumberGenerator.GetBytes(8);
+            // A new session's id must differ from the one that was offered for the resume, so an EV whose
+            // resume was refused cannot mistake the answer for an acceptance. FixedSessionId is the
+            // recording seam and would otherwise be able to collide with it.
+            var sessionId = FixedSessionId ?? System.Security.Cryptography.RandomNumberGenerator.GetBytes(8);
+            while (ResumeSessionId is not null && sessionId.AsSpan().SequenceEqual(ResumeSessionId))
+                sessionId = System.Security.Cryptography.RandomNumberGenerator.GetBytes(8);
+
+            SessionCtx.SessionId = sessionId;
+            SessionBinding       = SessionBinding20.Compute(sessionId, VehicleLeafCertificate);
+            SessionSetupCode     = ResponseCode.OK_NewSessionEstablished;
+
             // A transaction begins when the session does, bound to it from the first byte — see
             // Secc2 for why an unbound OCPP record is worth nothing to compare against.
             _backend = Backend?.Invoke(Convert.ToHexString(SessionCtx.SessionId).ToLowerInvariant());

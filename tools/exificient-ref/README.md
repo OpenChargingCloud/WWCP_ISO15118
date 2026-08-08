@@ -118,7 +118,7 @@ convention stated rather than assumed.
 
 This is the **only** external oracle available for AC DER: cbexigen cannot generate the
 amendment schemas at all (it crashes on a substitution-group head fed by two schemas —
-see [`docs/ac-der.md`](../../docs/ac-der.md)), so there are no cbV2G reference bytes to
+see `docs/ac-der.md` in the `EVSimulatorApp` repository above this one), so there are no cbV2G reference bytes to
 diff against. EXIficient is schema-generic and has no such limitation.
 
 Because there is no cbV2G ground truth for AC DER, the run was **calibrated first** on a

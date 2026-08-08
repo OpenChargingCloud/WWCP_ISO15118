@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
     /// files, so a byte-identical decode → re-encode here is the highest-value conformance signal short of a
     /// live over-the-wire run. These frames carry Josev's own per-session SessionID/TimeStamp (not the fixed
     /// zero header the cbV2G fixtures build), so they are validated by round-trip, not by fixture rebuild.
-    /// See <c>docs/interop-runs/2026-07-21-iso20-dc-pnc-notls/</c> and <c>docs/interop-runs/README.md</c>
+    /// See <c>ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso20-dc-pnc-notls/</c> and <c>ISO15118ConformanceTests/docs/interop-runs/README.md</c>
     /// (the record-mode → vector adoption path).
     /// </summary>
     [TestFixture]

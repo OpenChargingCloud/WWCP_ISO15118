@@ -47,7 +47,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
         // SAP and -2 frames are told apart by session phase (SAP is always first), NOT by payload type, so this
         // is not a distinct wire value. It is kept as a named alias for the SAP framing path (which decodes SAP
         // explicitly rather than through the payload-type dispatcher). A live interop run against Josev caught
-        // the earlier 0x8000 here as a wire-conformance bug — see docs/interop-runs/2026-07-21-iso20-dc-pnc-tcp/.
+        // the earlier 0x8000 here as a wire-conformance bug — see ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso20-dc-pnc-tcp/.
         public const ushort PayloadType_AppProtocol      = (ushort) V2GTP_PayloadType.ExiSupportedAppProtocol;
         public const ushort PayloadType_DinIso2Main      = (ushort) V2GTP_PayloadType.ExiMainstream;
         public const ushort PayloadType_Iso20Main        = (ushort) V2GTP_PayloadType.ExiIso20Mainstream;

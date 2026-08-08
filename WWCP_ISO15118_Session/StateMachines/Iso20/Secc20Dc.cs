@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// negotiate DC_BPT or MCS_BPT and then charge one way under it, and this station would serve it to
         /// completion. everest-core 2026.02.1 refuses exactly that session with
         /// <c>FAILED_WrongChargeParameter</c> — it refused ours
-        /// (<c>docs/interop-runs/2026-08-05-everest-mcs-bpt/</c>) — and it is right: ISO 15118-20 carries the
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-05-everest-mcs-bpt/</c>) — and it is right: ISO 15118-20 carries the
         /// direction in the polymorphic type, so the selected service binds every message that follows.
         /// </para>
         /// <para>

@@ -53,7 +53,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
     /// EXIficient to <i>encode</i> the synthetic schema below: for <c>minOccurs="2"</c> the second
     /// occurrence's start-element is one bit and the third's is two, and a list filled to
     /// <c>maxOccurs</c> ends with a one-bit end-element. See
-    /// <c>docs/interop-runs/2026-08-07-exificient-iso20/</c> in the conformance repository.
+    /// <c>ISO15118ConformanceTests/docs/interop-runs/2026-08-07-exificient-iso20/</c>.
     /// </para>
     ///
     /// <para>

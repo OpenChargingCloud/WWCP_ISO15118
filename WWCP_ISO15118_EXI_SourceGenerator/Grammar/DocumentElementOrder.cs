@@ -33,7 +33,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar
     /// <para>
     /// This is a real fork in the wire format, not a stylistic one, and it was found by pointing an
     /// independent codec at frames nobody else had ever read: see
-    /// <c>docs/interop-runs/2026-08-07-exificient-iso20/</c> in the conformance repository. Two of the
+    /// <c>ISO15118ConformanceTests/docs/interop-runs/2026-08-07-exificient-iso20/</c>. Two of the
     /// eight ACDP messages encode differently under the two modes, and one of them is decoded as a
     /// <i>different message</i> by a peer that disagrees with the encoder — which is worse than a
     /// decode error, because nothing reports it.

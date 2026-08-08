@@ -42,7 +42,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
         /// </summary>
         /// <remarks>
         /// The JSON-LD pass is part of this emitter rather than an emitter of its own, and that is
-        /// docs/CONCEPT.md §4.4's actual requirement: "wire codec and JSON-LD codec come from the
+        /// EVSimulatorApp/docs/CONCEPT.md §4.4's actual requirement: "wire codec and JSON-LD codec come from the
         /// same type graph in the same generator pass, so they cannot drift". Two emitters would
         /// leave a seam where someone could regenerate one and not the other; there is no such seam
         /// here.

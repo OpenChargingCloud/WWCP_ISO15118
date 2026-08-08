@@ -28,7 +28,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Interop
 {
     /// <summary>
     /// Root-causes the Plug &amp; Charge <c>SignedInfo</c> signature-verification finding from the live -20 PnC
-    /// interop run (Josev EVCC → our SECC, <c>docs/interop-runs/2026-07-21-iso20-dc-pnc-tls/</c>). The earlier
+    /// interop run (Josev EVCC → our SECC, <c>ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso20-dc-pnc-tls/</c>). The earlier
     /// "Josev signs a non-reproducible <c>SignedInfo</c> form" conclusion is now <b>refuted</b>: Josev's exact
     /// signing octets were reproduced with Josev's own <c>EXICodec.jar</c> and its captured signature verifies
     /// against them.

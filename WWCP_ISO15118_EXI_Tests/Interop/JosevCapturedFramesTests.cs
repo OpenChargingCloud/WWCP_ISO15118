@@ -26,7 +26,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Interop
     /// <summary>
     /// Cross-validation against real EXI bytes captured from a live <b>Josev</b> session
     /// (SwitchEV/iso15118 @ commit <c>d645255</c>, ISO 15118-2 AC EIM, no TLS — see
-    /// <c>docs/interop-runs/2026-07-21-iso2-ac-eim-notls/</c>). Josev encodes with EXIficient, which shares
+    /// <c>ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso2-ac-eim-notls/</c>). Josev encodes with EXIficient, which shares
     /// no lineage with the cbV2G oracle our vectors come from — so bytes that our codec both decodes and
     /// re-encodes identically are an <i>independent</i> conformance signal. These run in normal CI (the
     /// captured bytes are baked in; no Josev needed at test time).

@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
     /// the check is not a hardening opportunity but a hole: a second EV that names another's SessionID
     /// inherits that EV's authorization, EIM or Plug &amp; Charge alike, and charges on someone else's
     /// contract. Ours omitted it until 2026-08-08, having been written by analogy to `-2`, which has no
-    /// such requirement (<c>docs/normative-basis.md</c> in the conformance repository).
+    /// such requirement (<c>ISO15118ConformanceTests/docs/normative-basis.md</c>).
     /// </para>
     /// <para>
     /// <b>What it computes</b> is the standard's own worked example:

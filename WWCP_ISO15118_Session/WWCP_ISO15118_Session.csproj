@@ -34,7 +34,7 @@
     <ProjectReference Include="..\WWCP_ISO15118_SDP\WWCP_ISO15118_SDP.csproj" />
     <ProjectReference Include="..\WWCP_ISO15118_NetworkInterfaces\WWCP_ISO15118_NetworkInterfaces.csproj" />
     <!-- SLAC (PLC pairing) — the stage before SDP. Note: this drags in the heavy transitive chain
-         SLAC -> Hermod -> Styx; a deliberate tradeoff (see docs/pki-model.md, "Hermod slim-down" TODO). -->
+         SLAC -> Hermod -> Styx; a deliberate tradeoff (see EVSimulatorApp/docs/pki-model.md, "Hermod slim-down" TODO). -->
     <ProjectReference Include="..\WWCP_ISO15118_SLAC\WWCP_ISO15118_SLAC.csproj" />
   </ItemGroup>
 </Project>

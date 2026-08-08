@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -415,7 +415,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// [V2G2-761] refuses the whole ChargingProfile and the session dies at
         /// <c>PowerDelivery</c>: the last message before charging would have begun, after everything
         /// else has gone right. Found 2026-08-07 against both sides of a captured Porsche Taycan 4S
-        /// (<c>docs/interop-runs/2026-08-07-tux-porsche-ac</c> in the conformance repository); the VW
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-07-tux-porsche-ac</c>); the VW
         /// capture before it asked 4,100 W and sailed through, which is why it took a second car.
         /// </para>
         /// <para>
@@ -549,7 +549,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
             bool receipt = DemandReceipt();
             // A station with a real meter reports it every cycle, not only when it wants a receipt
-            // signed back: the signed reading is the point on its own (docs/CONCEPT.md §4.3), and
+            // signed back: the signed reading is the point on its own (EVSimulatorApp/docs/CONCEPT.md §4.3), and
             // MeterInfo is optional here. Without a meter installed, nothing changes.
             bool reading = receipt || InstalledMeter is not null;
             return new CurrentDemandResType(ResponseCode.OK, DcEvseStatus(Notification()),
@@ -757,7 +757,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// The field is a standard one, <c>maxLength 64</c> — exactly one raw ECDSA P-256 <c>r‖s</c>
         /// pair — and it exists so the <em>meter</em> can sign what it measured rather than the SECC
         /// asserting it. It is almost never populated in practice, which is precisely why a simulator
-        /// should populate it (<c>docs/CONCEPT.md</c> §4.3). What is signed is our own layout, since
+        /// should populate it (<c>EVSimulatorApp/docs/CONCEPT.md</c> §4.3). What is signed is our own layout, since
         /// the standard defines the field and not its content: see <see cref="MeterSigningPayload"/>.
         /// </remarks>
         private MeterInfoType Meter()

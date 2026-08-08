@@ -29,7 +29,7 @@
     <!-- ACDP + the CommonTypes/xmldsig it imports, as one collected set. CommonTypes is deliberately
          duplicated per message-set assembly (mirrors cbexigen/cbV2G itself). Fetched from
          https://standards.iso.org/iso/15118/-20/ed-1/en/ (same source as the other -20 XSDs in this
-         repo; see docs/xsd-inventory-15118-20.md). -->
+         repo; see EVSimulatorApp/docs/xsd-inventory-15118-20.md). -->
     <AdditionalFiles Include="Schemas\V2G_CI_ACDP.xsd" />
     <AdditionalFiles Include="Schemas\V2G_CI_CommonTypes.xsd" />
     <AdditionalFiles Include="Schemas\xmldsig-core-schema.xsd" />

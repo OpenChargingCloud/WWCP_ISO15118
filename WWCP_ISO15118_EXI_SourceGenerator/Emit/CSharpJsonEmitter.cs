@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Emit
 {
     /// <summary>
     /// The JSON-LD (de)serializer, emitted from the same <see cref="SchemaPlan"/> as the wire codec
-    /// (docs/CONCEPT.md §4.4).
+    /// (EVSimulatorApp/docs/CONCEPT.md §4.4).
     /// </summary>
     /// <remarks>
     /// <para>

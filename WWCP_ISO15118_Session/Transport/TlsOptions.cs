@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
     /// TLS knobs for <see cref="TcpV2GListener"/>/<see cref="TcpV2GClient"/>. Supports both server-side TLS
     /// (ISO 15118-2) and <b>mutual TLS</b> (ISO 15118-20): the SECC presents its server certificate and,
     /// when <see cref="RequireClientCertificate"/> is set, requires and validates the EVCC's TLS client
-    /// certificate (the CharIN "Vehicle" certificate) — see <c>docs/pki-model.md</c>.
+    /// certificate (the CharIN "Vehicle" certificate) — see <c>EVSimulatorApp/docs/pki-model.md</c>.
     /// <para>
     /// <b>Known gap:</b> ISO 15118-20's TLS profile pins specific cipher suites/curves (TLS 1.3,
     /// <c>TLS_AES_256_GCM_SHA384</c>/<c>TLS_CHACHA20_POLY1305_SHA256</c>, secp521r1); this uses
@@ -61,7 +61,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         public RemoteCertificateValidationCallback? ClientCertificateValidation { get; init; }
 
         /// <summary>The TLS version(s) this session may negotiate. <b>Required, deliberately without a default:</b>
-        /// the version belongs to the protocol's profile — <c>docs/pki-model.md</c> pins the mapping strictly to
+        /// the version belongs to the protocol's profile — <c>EVSimulatorApp/docs/pki-model.md</c> pins the mapping strictly to
         /// -2 ↔ TLS 1.2 and -20 ↔ TLS 1.3 — so no single value can be right for both, and a library default is
         /// exactly what the guide warns against. This used to default to <see cref="SslProtocols.Tls13"/>, which
         /// silently ran ISO 15118-2 sessions over TLS 1.3, the one combination the document rules out.
@@ -74,7 +74,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         public required SslProtocols EnabledSslProtocols { get; init; }
 
         /// <summary>The cipher suites this session may negotiate — the other half of the protocol's TLS profile
-        /// (<c>docs/pki-model.md</c>: version, suites, signature algorithms and curve are one coupled unit, and
+        /// (<c>EVSimulatorApp/docs/pki-model.md</c>: version, suites, signature algorithms and curve are one coupled unit, and
         /// letting the stack auto-select is the documented failure mode). Null: whatever the platform prefers,
         /// which is <i>not</i> profile-conformant — measured on macOS, an unpinned ISO 15118-2 session at
         /// TLS 1.2 negotiates <c>TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384</c> instead of the profile's AES-128-CBC.

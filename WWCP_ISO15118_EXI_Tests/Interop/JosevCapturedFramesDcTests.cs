@@ -24,7 +24,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Interop
 {
     /// <summary>
     /// ISO 15118-2 <b>DC</b> EIM frames captured from a live Josev session (SwitchEV/iso15118 @ <c>d645255</c>,
-    /// rebuilt on Debian trixie, EIM, no TLS — see <c>docs/interop-runs/2026-07-21-iso2-dc-eim-notls/</c>).
+    /// rebuilt on Debian trixie, EIM, no TLS — see <c>ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso2-dc-eim-notls/</c>).
     /// Josev encodes with EXIficient; our codec must decode and re-encode each byte-for-byte. This covers the
     /// full DC charge loop (ChargeParameterDiscovery → CableCheck → PreCharge → PowerDelivery → CurrentDemand
     /// → WeldingDetection), including the DC-specific <c>PhysicalValue</c>/<c>DC_EVStatus</c> content. Runs in

@@ -51,7 +51,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar
     /// end-element is code <b>1</b> and the schema grammar's is <b>2</b>. That single code is why
     /// EXIficient could not read any of the four WPT frames on 2026-08-07 — it read our 1 as
     /// <c>SE(WPT_LF_DataPackageList)</c>, went looking for content that was not there, and reported
-    /// <c>Premature EOS</c>. See <c>docs/interop-runs/2026-08-07-exificient-iso20/</c> in the conformance
+    /// <c>Premature EOS</c>. See <c>ISO15118ConformanceTests/docs/interop-runs/2026-08-07-exificient-iso20/</c> in the conformance
     /// repository.
     /// </para>
     /// </summary>

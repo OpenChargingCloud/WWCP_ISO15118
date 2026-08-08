@@ -12,6 +12,11 @@ the different subprotocols. An overview of the research papers, vulnerability di
 practitioner whitepapers behind them is in **[SecurityResearch.md](SecurityResearch.md)** — worth
 reading before the code, because several decisions here only make sense against it.
 
+Two layers, and the difference matters when you go looking for something: the **codec** turns frames
+into message objects and back, and the **session** layer above it is what actually holds a
+conversation — SLAC, discovery, TLS, the handshake, and the EVCC and SECC state machines for both
+protocols. Since 2026-08-08 both are here; the state machines used to live one repository up.
+
 
 ## The ISO 15118 EXI codec
 
@@ -111,24 +116,77 @@ must pass without a C toolchain, without Java, and without a network. The refere
 `tools/` are for regenerating vectors, never for running the tests.
 
 
+## The session layer
+
+`WWCP_ISO15118_Session` is the part that holds a conversation rather than encoding one. An EVCC and
+a SECC for each protocol, the transport under them, and the stages that run before the first V2G
+message:
+
+| | |
+|---|---|
+| `StateMachines/Iso2/` | `Evcc2`, `Secc2` — the -2 session, EIM and Plug & Charge: PaymentDetails, signed `AuthorizationReq`, signed `MeteringReceiptReq`, signed SalesTariff offers, pause/resume, renegotiation |
+| `StateMachines/Iso20/` | `Evcc20Base`/`Secc20Base` plus AC, DC and MCS specialisations — Scheduled and Dynamic control modes, bidirectional (BPT), Plug & Charge, CertificateInstallation, and resume bound to the vehicle certificate |
+| `Transport/` | TCP, and TLS through two backends: .NET `SslStream`, or BouncyCastle for the secp521r1/Ed448 profile -20 asks for and Windows Schannel cannot do |
+| `Sap/`, `Discovery/`, `Slac/` | the handshake, SDP, and the ISO 15118-3 pairing stage — everything before the first `SessionSetupReq` |
+| `Metering/` | a signing meter, and `ISessionBackend`: the one-method seam where a station reports what it delivered |
+
+`Secc2.Handle` and its -20 equivalent are pure synchronous transitions — a request in, a response
+and the next phase out — so a session is testable without a socket; `RunAsync` is the thin loop that
+drives one from a real stream. `WWCP_ISO15118_CLI` is that, wired to command-line flags:
+
+```bash
+dotnet run --project WWCP_ISO15118_CLI -- secc --listen 15118 --protocol 20 --mode dc
+dotnet run --project WWCP_ISO15118_CLI -- evcc --connect '[::1]:15118' --protocol 20 --mode dc
+```
+
+**This half does not build from a standalone clone**, and that is why `WWCP_ISO15118.EXI.slnx` holds
+the codec projects only. `WWCP_ISO15118_SLAC` references `..\..\Hermod\Hermod\Hermod.csproj` — a
+sibling of *this* directory, which exists only when this repository is checked out where it normally
+is, at `libs/WWCP_ISO15118/` inside `EVSimulatorApp`. Session and CLI depend on SLAC, so they inherit
+that. Build them through `EVSimulatorApp.slnx` one level up, or through the conformance repository's
+solution two levels up; the codec solution here needs nothing outside this repository.
+
+**What it deliberately is not.** This is a conformance and research peer, and four things it does
+not do are the reason it should not be put in front of a real car or a real charger as anything but
+a test instrument:
+
+- **No certificate chain is validated.** Signatures are verified against the leaf the peer presented;
+  nothing walks `SubCertificates` to a V2G root, checks validity dates, or consults revocation, and
+  the CLI's TLS callbacks accept any peer certificate. Good enough to prove a signature is
+  well-formed and byte-exact, nowhere near enough to decide that a contract is *good*.
+- **The timeouts are not the standard's.** `MessageTimeoutOptions` says so itself: a flat 2 s per
+  message and 60 s per sequence, not the per-message performance tables of -2 and -20.
+- **The charge loop is a fixed three iterations**, not a battery filling up.
+- **There is no electrical layer at all** — no contactor, no Control Pilot, no isolation monitoring,
+  no power electronics. On the SECC side that is the entire safety-relevant half of a charging
+  station, and it is governed by IEC 61851 rather than by ISO 15118.
+
+What it *is* good for is the other half: what the bytes on the wire are, and whether an independent
+stack agrees. That claim is the one the conformance repository above this one measures, counterparty
+by counterparty.
+
+
 ## What else is in here
 
 | You need | Where it is |
 |---|---|
+| **A charging session** — the EVCC and SECC state machines, -2 and -20 | `WWCP_ISO15118_Session` |
+| A session from the command line, either role | `WWCP_ISO15118_CLI` |
 | SECC discovery | `WWCP_ISO15118_SDP` |
 | SLAC / HomePlug Green PHY | `WWCP_ISO15118_SLAC`, and `WWCP_ISO15118_SLAC_Pentests` |
 | V2G PKI, certificate chains, CSRs | `WWCP_ISO15118_PKI` |
+| Enumerating and picking the V2G network interface | `WWCP_ISO15118_NetworkInterfaces` |
 | Runnable demos | [`demos/`](demos/README.md) |
 
 New here? Start in **[`demos/`](demos/README.md)** — one runnable program per subprotocol, each the
-shortest honest use of its project, several printing every frame they send. `ChargingSimulation`
-alone is a full ISO 15118-2 session where every printed line is a real EXI round trip.
+shortest honest use of its project, several printing every frame they send.
 
-Not here: SECC/EVCC state machines, TLS profiles, metering and an OCPP-facing backend live in
-`Vanaheimr.V2G.Simulation`, in the conformance repository this one is a submodule of. The Kotlin,
-Swift and TypeScript codecs are generated by `tools/EVSimulatorApp.Codegen` in the `EVSimulatorApp`
-repository — the port back ends live with their only consumer, while the generator front end and
-the C# back end are here.
+Not here: the **apps** built on this stack — the WebView EV simulator, the Capacitor shells, the QR
+pairing and its Raspberry-Pi SECC counterpart, the Kotlin/Swift/TypeScript ports of the codec and
+the post-quantum experiment — live in the `EVSimulatorApp` repository above this one, along with the
+OCPP-facing backend a station's `ISessionBackend` gets wired to. The **evidence** that any of it
+conforms — the recorded corpus, the loopback E2Es, the live cross-checks against Josev, EVerest,
+eVDriveFlow and tux-evse — lives in `ISO15118ConformanceTests` above that.
 
 
 ### Future

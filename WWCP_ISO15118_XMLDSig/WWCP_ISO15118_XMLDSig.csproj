@@ -13,7 +13,7 @@
          which is what Josev / EXIficient's `XMLDSIG_Core_Schema_Grammar` signs — distinct from the
          combined `V2G_CI_CommonMessages` fragment grammar our production -20 codec uses. It lets our
          SECC *verify* foreign PnC signatures produced over the standalone grammar; we never *sign*
-         with it. See docs/interop-runs/2026-07-21-iso20-dc-pnc-tls/notes.md. -->
+         with it. See ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso20-dc-pnc-tls/notes.md. -->
     <ExiGeneratedNamespace>cloud.charging.open.protocols.ISO15118_20.XMLDSig.Generated</ExiGeneratedNamespace>
     <ExiCodecClassName>XmlDsigCodec</ExiCodecClassName>
     <ExiFragmentElements>SignedInfo</ExiFragmentElements>

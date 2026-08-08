@@ -46,7 +46,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests;
 /// vector corpus encodes each message into its own fresh — therefore zeroed — array, so the recorded
 /// bytes are exactly the ones a clean buffer produces and the corpus stayed green. Both gates were
 /// looking; neither was looking here. That is the same shape as the two bugs the cross-emitter comparison
-/// found (<c>docs/CONCEPT.md</c> §5, Track A note), and the same lesson: a check that only ever compares
+/// found (<c>EVSimulatorApp/docs/CONCEPT.md</c> §5, Track A note), and the same lesson: a check that only ever compares
 /// a codec against itself, or against inputs it also controls, has a blind spot exactly where those two
 /// overlap.
 /// </para>

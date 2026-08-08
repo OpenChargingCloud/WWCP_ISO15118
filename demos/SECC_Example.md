@@ -44,7 +44,7 @@ Console.WriteLine("SECC listening on [::1]:15118");
 using var client = await listener.AcceptTcpClientAsync();
 using var stream = client.GetStream();
 
-var frame      = new byte[V2GTP.HeaderSize + 8192];   // one whole frame, header included
+var frame      = new byte[V2GTPCodec.HeaderSize + 8192];   // one whole frame, header included
 var payloadOut = new byte[8192];                      // the EXI payload we are about to send
 var sessionId  = new byte[8];
 Random.Shared.NextBytes(sessionId);
@@ -54,16 +54,16 @@ var negotiated = false;
 while (true)
 {
     // ---- one V2GTP frame: eight header bytes, then exactly what they declare ----------------
-    try { await stream.ReadExactlyAsync(frame.AsMemory(0, V2GTP.HeaderSize)); }
+    try { await stream.ReadExactlyAsync(frame.AsMemory(0, V2GTPCodec.HeaderSize)); }
     catch (EndOfStreamException) { break; }                       // the EV hung up
 
-    if (!V2GTP.TryReadHeader(frame, out var payloadType, out var payloadLength))
+    if (!V2GTPCodec.TryReadHeader(frame, out var payloadType, out var payloadLength))
         throw new InvalidDataException("not a V2GTP frame");
 
-    await stream.ReadExactlyAsync(frame.AsMemory(V2GTP.HeaderSize, (int) payloadLength));
+    await stream.ReadExactlyAsync(frame.AsMemory(V2GTPCodec.HeaderSize, (int) payloadLength));
 
-    var whole   = frame.AsMemory(0, V2GTP.HeaderSize + (int) payloadLength);
-    var payload = whole[V2GTP.HeaderSize..];
+    var whole   = frame.AsMemory(0, V2GTPCodec.HeaderSize + (int) payloadLength);
+    var payload = whole[V2GTPCodec.HeaderSize..];
 
     int written;
     MessageSet set;
@@ -112,7 +112,7 @@ while (true)
     }
 
     // ---- put the header back on and send -----------------------------------------------------
-    var outgoing = new byte[V2GTP.HeaderSize + written];
+    var outgoing = new byte[V2GTPCodec.HeaderSize + written];
     V2GTPDispatcher.TryEncode(set, payloadOut.AsSpan(0, written), outgoing, out var total);
     await stream.WriteAsync(outgoing.AsMemory(0, total));
 }
@@ -145,7 +145,7 @@ you know where the next one ends. `ReadExactlyAsync` is doing the real work in t
 **Everything is `Span` and `Try`.** Nothing allocates a buffer for you and nothing throws on a
 malformed *frame* — you get `false` and a reason. Malformed EXI *inside* a recognised set does
 throw `InvalidDataException`, because at that point the peer has claimed a schema and then not
-followed it. `V2GTP.MaximumPayloadBytes` is the ceiling worth sizing a buffer against.
+followed it. `V2GTPCodec.MaximumPayloadBytes` is the ceiling worth sizing a buffer against.
 
 **Plug & Charge signatures need `WWCP_ISO15118_XMLDSig`, not the message set's own.** A
 `SignedInfo` that Josev or EXIficient produced is encoded against `xmldsig-core-schema.xsd`

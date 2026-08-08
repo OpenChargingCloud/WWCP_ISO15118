@@ -27,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Interop
     /// Josev's ISO 15118-20 <c>CertificateInstallationReq</c> (contract provisioning), reproduced byte-exactly
     /// with Josev's own EXIficient codec from the values captured in the 2026-07-22 live probe (a Josev EVCC
     /// with <c>isCertInstallNeeded=true</c> against our SECC; see
-    /// <c>docs/interop-runs/</c> and <c>tools/interop-josev/certinstall-probe.py</c>). The ~1.8 KB frame
+    /// <c>ISO15118ConformanceTests/docs/interop-runs/</c> and <c>tools/interop-josev/certinstall-probe.py</c>). The ~1.8 KB frame
     /// carries the signed OEM provisioning certificate chain (leaf + 2 sub-CAs, signature over "#id1" in
     /// Josev's ecdsa-sha256 form) — the largest and only cert-install message an independent stack produces.
     /// Live, our SECC failed to decode this frame ("Unknown document index 14"); this test pins the frame so

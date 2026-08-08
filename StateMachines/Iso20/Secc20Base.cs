@@ -203,9 +203,9 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         }
 
         /// <summary>Where this station reports to, when it reports anywhere. See <c>Secc2.Backend</c>.</summary>
-        public Func<string, Ocpp.OcppTransactionRecorder>? Backend { get; init; }
+        public Func<string, ISessionBackend>? Backend { get; init; }
 
-        private Ocpp.OcppTransactionRecorder? _backend;
+        private ISessionBackend? _backend;
         private ulong _deliveredWh;
         private (string Id, ulong Wh, ulong Timestamp, byte[] Signature)? _lastReading;
 

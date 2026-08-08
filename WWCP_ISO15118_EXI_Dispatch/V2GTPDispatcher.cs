@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
@@ -49,13 +49,13 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
             message = null;
             error = null;
 
-            if (!V2GTP.TryReadHeader(frame, out ushort payloadType, out uint payloadLength))
+            if (!V2GTPCodec.TryReadHeader(frame, out ushort payloadType, out uint payloadLength))
             {
                 error = "not a valid V2GTP frame (bad version bytes, or too short for the 8-byte header).";
                 return false;
             }
 
-            var payload = frame[V2GTP.HeaderSize..];
+            var payload = frame[V2GTPCodec.HeaderSize..];
             if (payloadLength != (uint)payload.Length)
             {
                 error = $"payload length mismatch: header declares {payloadLength} byte(s), " +
@@ -66,35 +66,35 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
             switch (payloadType)
             {
                 // NB: the SupportedAppProtocol handshake shares payload id 0x8001 with the DIN/-2 messages
-                // (see V2GTP.PayloadType_AppProtocol) and is disambiguated by session phase, not payload type —
+                // (see V2GTPCodec.PayloadType_AppProtocol) and is disambiguated by session phase, not payload type —
                 // so it is decoded explicitly by the SAP handshake, never through this payload-type dispatcher.
                 // 0x8001 here therefore resolves to the -2 message set.
-                case V2GTP.PayloadType_DinIso2Main:
+                case V2GTPCodec.PayloadType_DinIso2Main:
                     set = MessageSet.Iso15118_2;
                     message = Iso2Codec.DecodeAny(payload, out _);
                     return true;
 
-                case V2GTP.PayloadType_Iso20Main:
+                case V2GTPCodec.PayloadType_Iso20Main:
                     set = MessageSet.Iso20CommonMessages;
                     message = CommonMessagesCodec.DecodeAny(payload, out _);
                     return true;
 
-                case V2GTP.PayloadType_Iso20AC:
+                case V2GTPCodec.PayloadType_Iso20AC:
                     set = MessageSet.Iso20AC;
                     message = AcCodec.DecodeAny(payload, out _);
                     return true;
 
-                case V2GTP.PayloadType_Iso20DC:
+                case V2GTPCodec.PayloadType_Iso20DC:
                     set = MessageSet.Iso20DC;
                     message = DcCodec.DecodeAny(payload, out _);
                     return true;
 
-                case V2GTP.PayloadType_Iso20WPT:
+                case V2GTPCodec.PayloadType_Iso20WPT:
                     set = MessageSet.Iso20WPT;
                     message = WptCodec.DecodeAny(payload, out _);
                     return true;
 
-                case V2GTP.PayloadType_Iso20ACDP:
+                case V2GTPCodec.PayloadType_Iso20ACDP:
                     set = MessageSet.Iso20ACDP;
                     message = AcdpCodec.DecodeAny(payload, out _);
                     return true;
@@ -112,23 +112,23 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
             MessageSet set, ReadOnlySpan<byte> exiPayload, Span<byte> dest, out int bytesWritten)
         {
             bytesWritten = 0;
-            if (dest.Length < V2GTP.HeaderSize + exiPayload.Length) return false;
+            if (dest.Length < V2GTPCodec.HeaderSize + exiPayload.Length) return false;
 
             ushort payloadType = set switch
             {
-                MessageSet.AppProtocol         => V2GTP.PayloadType_AppProtocol,
-                MessageSet.Iso15118_2          => V2GTP.PayloadType_DinIso2Main,
-                MessageSet.Iso20CommonMessages => V2GTP.PayloadType_Iso20Main,
-                MessageSet.Iso20AC             => V2GTP.PayloadType_Iso20AC,
-                MessageSet.Iso20DC             => V2GTP.PayloadType_Iso20DC,
-                MessageSet.Iso20WPT            => V2GTP.PayloadType_Iso20WPT,
-                MessageSet.Iso20ACDP           => V2GTP.PayloadType_Iso20ACDP,
+                MessageSet.AppProtocol         => V2GTPCodec.PayloadType_AppProtocol,
+                MessageSet.Iso15118_2          => V2GTPCodec.PayloadType_DinIso2Main,
+                MessageSet.Iso20CommonMessages => V2GTPCodec.PayloadType_Iso20Main,
+                MessageSet.Iso20AC             => V2GTPCodec.PayloadType_Iso20AC,
+                MessageSet.Iso20DC             => V2GTPCodec.PayloadType_Iso20DC,
+                MessageSet.Iso20WPT            => V2GTPCodec.PayloadType_Iso20WPT,
+                MessageSet.Iso20ACDP           => V2GTPCodec.PayloadType_Iso20ACDP,
                 _ => throw new ArgumentOutOfRangeException(nameof(set), set, "unknown message set"),
             };
 
-            V2GTP.WriteHeader(dest, payloadType, (uint)exiPayload.Length);
-            exiPayload.CopyTo(dest[V2GTP.HeaderSize..]);
-            bytesWritten = V2GTP.HeaderSize + exiPayload.Length;
+            V2GTPCodec.WriteHeader(dest, payloadType, (uint)exiPayload.Length);
+            exiPayload.CopyTo(dest[V2GTPCodec.HeaderSize..]);
+            bytesWritten = V2GTPCodec.HeaderSize + exiPayload.Length;
             return true;
         }
     }

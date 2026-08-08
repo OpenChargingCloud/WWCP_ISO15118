@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2014-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
@@ -17,7 +17,7 @@
 
 using NUnit.Framework;
 
-namespace Vanaheimr.V2G.V2GTP.Tests;
+namespace Vanaheimr.V2G.V2GTPCodec.Tests;
 
 [TestFixture]
 public class V2GTPFrameTests

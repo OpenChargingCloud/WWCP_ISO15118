@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2014-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
@@ -37,7 +37,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Dispatch
     /// <see cref="V2GTP_PayloadType"/> and nowhere else, so they cannot drift apart again.
     /// </para>
     /// </remarks>
-    public static class V2GTP
+    public static class V2GTPCodec
     {
         public const byte ProtocolVersion        = V2GTP_ProtocolVersion.Current;
         public const byte InverseProtocolVersion = V2GTP_ProtocolVersion.Inverse;

@@ -1075,8 +1075,10 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
             var src = r.GeneratedSource;
 
             Assert.That(src, Does.Contain("w.WriteBits(0, 1);   // SE(Items) first"));
-            // Loop state offers 3 productions (loop=0, Tail=1, EE=2) -> 2 bits.
-            Assert.That(src, Does.Contain("w.WriteBits(0, 2);   // Items (loop)"));
+            // Loop state offers 3 productions (loop=0, Tail=1, EE=2) -> 2 bits — but only once the
+            // schema's minOccurs=2 is satisfied. The second occurrence is still forced, so nothing is
+            // being chosen there and its code is one bit (see CodecEmitter.ForcedOccurrences).
+            Assert.That(src, Does.Contain("w.WriteBits(0, ci < 2 ? 1 : 2);   // Items (1-bit while forced by minOccurs, then loop)"));
             Assert.That(src, Does.Contain("w.WriteBits(1, 2);   // Tail"));
             Assert.That(src, Does.Contain("w.WriteBits(2, 2);   // element EE"));
             // Choosing the tail still needs the outer element's own closing EE afterwards.

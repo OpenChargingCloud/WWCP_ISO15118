@@ -25,11 +25,28 @@ namespace cloud.charging.open.protocols.ISO15118.SharedCC
     /// Turning <c>--trust-roots</c> into a <see cref="V2GChainValidator"/>.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Both forms exist because both happen. A single root is the common case — one V2G root for one test
     /// hierarchy. A <b>directory</b> is what a run against several counterparties needs: EVerest, Josev and
     /// eVDriveFlow each generate their own root, and a station that should accept cars from all three has to
     /// hold all three anchors at once. That is also how a real CPO's trust store looks, so the directory form
     /// is not merely a convenience.
+    /// </para>
+    /// <para>
+    /// <b>Put the intermediates in here too when the peer does not send them.</b> Nothing in the name
+    /// suggests it, and it is the first thing that surprises: EVerest's station sends only its leaf, so a
+    /// chain to its V2G root cannot be built from what arrives on the wire and a root-only bundle is
+    /// correctly refused. Add the CPO Sub-CAs and it passes. Measured live on 2026-08-08 —
+    /// <c>ISO15118ConformanceTests/docs/interop-runs/2026-08-08-everest-chain-validation/</c>.
+    /// </para>
+    /// <para>
+    /// That is safe rather than sloppy, and the same run proved it. A non-self-signed certificate handed in
+    /// here can only ever act as an <i>intermediate</i>: <see cref="X509ChainTrustMode.CustomRootTrust"/>
+    /// requires the chain to terminate in a self-signed certificate that is in the store, so passing a
+    /// Sub-CA does not promote it to a trust anchor. With EVerest's two Sub-CAs and no root, the chain is
+    /// refused with "terminated in a root certificate which is not trusted"; with the root added, the
+    /// reported anchor is the root and not the Sub-CA the chain passed through.
+    /// </para>
     /// </remarks>
     public static class TrustRoots
     {

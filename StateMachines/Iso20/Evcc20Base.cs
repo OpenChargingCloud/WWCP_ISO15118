@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -135,9 +135,63 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         /// rejoins the old session instead of assigning a new one.</summary>
         public byte[]? ResumeSessionId { get; set; }
 
+        /// <summary>
+        /// The paused session's binding to the <em>station</em> — the car's half of the same mechanism the
+        /// SECC applies to the car, and its obligation rather than a courtesy: an EV that resumes has to
+        /// establish it is still talking to the SECC it paused with.
+        /// </summary>
+        /// <remarks>
+        /// Asymmetric with <c>Secc20Base.ResumeBinding</c> on purpose. Where the station cannot verify a
+        /// resume it must refuse it, because failing open there hands one EV's authorization to another.
+        /// Here failing open only risks the car continuing at a station it cannot confirm, a risk it bears
+        /// itself — so an unverifiable resume proceeds and is recorded in
+        /// <see cref="ResumedStationVerified"/>, while an actual <em>mismatch</em> terminates the session.
+        /// The distinction matters to this harness, which deliberately speaks plain TCP to peers that offer
+        /// nothing else, and where no binding can exist on either side.
+        /// </remarks>
+        public byte[]? ResumeBinding { get; set; }
+
+        /// <summary>The energy-transfer service the paused session settled on; a resumed session does not
+        /// repeat service negotiation and would otherwise forget it.</summary>
+        public ushort ResumeEnergyServiceId { get; set; }
+
+        /// <summary>The binding of the session in effect — keep it with <see cref="SessionId"/> for a resume.</summary>
+        public byte[]? SessionBinding { get; private set; }
+
+        /// <summary>The station's TLS leaf certificate (DER); resolved from the stream when it is an
+        /// authenticated <c>SslStream</c>, settable for callers that drive the machine over something else.</summary>
+        public byte[]? SeccLeafCertificate { get; set; }
+
+        /// <summary>
+        /// Whether a resumed session was confirmed to be with the same station: <c>true</c> on a match,
+        /// <c>null</c> when it could not be checked (no binding on either side), and never <c>false</c> —
+        /// a mismatch ends the session rather than reporting one.
+        /// </summary>
+        public bool? ResumedStationVerified { get; private set; }
+
+        /// <summary>
+        /// Set when this EVCC asked to resume and the station answered with a <em>new</em> session instead.
+        /// Everything the paused session carried, authorization included, has been dropped and the opening
+        /// sequence run from scratch — which is what the standard requires and not an error to raise.
+        /// </summary>
+        public bool ResumeRefused { get; private set; }
+
         /// <summary>The SECC's SessionSetup verdict: <c>OK_NewSessionEstablished</c>, or on a successful
         /// resume <c>OK_OldSessionJoined</c>.</summary>
         public ResponseCode SessionSetupCode { get; private set; }
+
+        /// <summary>What to carry into the next connection after ending with <c>ChargingSession.Pause</c>.</summary>
+        public ResumableSession PausedSession
+
+            => new (SessionId, SessionBinding, SelectedEnergyServiceId);
+
+        /// <summary>Resume a paused predecessor — all three values at once; see <see cref="ResumeBinding"/>.</summary>
+        public void ResumeFrom(ResumableSession? paused)
+        {
+            ResumeSessionId       = paused?.SessionId;
+            ResumeBinding         = paused?.Binding;
+            ResumeEnergyServiceId = paused?.EnergyServiceId ?? 0;
+        }
 
         /// <summary>The session id in effect — keep it for a resume after a paused session.</summary>
         public byte[] SessionId => SessionCtx.SessionId;
@@ -237,19 +291,73 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
         /// SECC's advertised catalog during service discovery.</summary>
         protected abstract PowerMode EnergyMode { get; }
 
-        public async Task RunAsync(CancellationToken ct = default)
+        /// <summary>
+        /// Picks up a resumed session: confirm the station, restore what the pause carried, and send nothing.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The next message a resumed `-20` session may send is the charge-parameter one. Authorization is
+        /// not repeated — the paused session's remains valid for the whole service session — and neither is
+        /// service negotiation, because the standard names exactly one permitted next message and none of
+        /// ServiceDiscovery/Detail/Selection is it.
+        /// </para>
+        /// <para>
+        /// <b>This is the fix for a real defect.</b> Until 2026-08-08 this EVCC replayed its entire opening
+        /// sequence regardless of the response code it had just been given, so against a station that
+        /// implements the rule it sent <c>AuthorizationSetupReq</c> into a session already past that point
+        /// and was answered <c>FAILED_SequenceError</c> — meaning our car could not resume against EVerest,
+        /// or against anything else conformant. `-2` requires the opposite, replaying the values rather than
+        /// skipping them, and this code was written from `-2`.
+        /// </para>
+        /// </remarks>
+        private void JoinOldSession()
         {
+
+            // The car's own obligation, mirroring what the station does to it: a resume has to be with the
+            // same SECC. A mismatch is not a warning -- the paused session is purged and terminated, because
+            // if this is a different station then something is wrong that continuing cannot improve.
+            var presented = SessionBinding20.Compute(SessionCtx.SessionId, SeccLeafCertificate);
+
+            if (ResumeBinding is { Length: > 0 } && presented is { Length: > 0 })
+            {
+                if (!SessionBinding20.Matches(ResumeBinding, presented))
+                {
+                    ResumeSessionId       = null;
+                    ResumeEnergyServiceId = 0;
+                    throw new SessionAborted(
+                        "Resumed session is with a different SECC than the one that paused it — " +
+                        "session purged and terminated.");
+                }
+                ResumedStationVerified = true;
+            }
+            // else: nothing to check against on one side or the other. See ResumeBinding for why the car
+            // proceeds where the station would refuse.
+
+            SessionBinding          = ResumeBinding;
+            SelectedEnergyServiceId = ResumeEnergyServiceId;
+
+        }
+
+        /// <summary>
+        /// Opens a fresh session: authorization setup, authorization, then the service negotiation that
+        /// settles which energy-transfer service and parameter set this session runs.
+        /// </summary>
+        /// <remarks>
+        /// Reached either because this is a new session, or because a resume was refused — in which case
+        /// everything the paused session carried, authorization included, is dropped first and the sequence
+        /// below runs from scratch, which is exactly what the standard prescribes.
+        /// </remarks>
+        private async Task OpenNewSessionAsync(CancellationToken ct)
+        {
+
             if (ResumeSessionId is not null)
-                SessionCtx.SessionId = ResumeSessionId;   // rejoin: the SessionSetupReq header carries the paused id
-
-            var setupRes = await Exchange<SessionSetupRes>(MessageSet.Iso20CommonMessages,
-                dest => new SessionSetupReq(SessionCtx.ToCommonHeader(), "EVCC01").TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
-            SessionSetupCode = setupRes.ResponseCode;
-
-            // Adopt the SECC-assigned SessionID: every subsequent request header must carry it, not the
-            // all-zero id the EVCC opens SessionSetup with (ISO 15118-20 §7.9.2.4). A live Josev interop run
-            // caught this — Josev's SECC strictly rejects a mismatched session id (our loopback SECC did not).
-            SessionCtx.SessionId = setupRes.Header.SessionID;
+            {
+                ResumeRefused          = true;
+                ResumeSessionId        = null;
+                ResumeBinding          = null;
+                ResumeEnergyServiceId  = 0;
+                ResumedStationVerified = null;
+            }
 
             var authSetup = await Exchange<AuthorizationSetupRes>(MessageSet.Iso20CommonMessages,
                 dest => new AuthorizationSetupReq(SessionCtx.ToCommonHeader()).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
@@ -282,6 +390,34 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso20
             await Exchange<ServiceSelectionRes>(MessageSet.Iso20CommonMessages,
                 dest => new ServiceSelectionReq(SessionCtx.ToCommonHeader(),
                     new SelectedServiceType(serviceId, parameterSetId), null).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+
+            SessionBinding = SessionBinding20.Compute(SessionCtx.SessionId, SeccLeafCertificate);
+
+        }
+
+        public async Task RunAsync(CancellationToken ct = default)
+        {
+            // The station's certificate comes from the handshake that already happened. `-20` permits only
+            // full-handshake TLS, so in a conformant session this is present; over plain TCP it stays null
+            // and a resume simply cannot be confirmed either way.
+            SeccLeafCertificate ??= SessionBinding20.PeerLeafOf(stream);
+
+            if (ResumeSessionId is not null)
+                SessionCtx.SessionId = ResumeSessionId;   // rejoin: the SessionSetupReq header carries the paused id
+
+            var setupRes = await Exchange<SessionSetupRes>(MessageSet.Iso20CommonMessages,
+                dest => new SessionSetupReq(SessionCtx.ToCommonHeader(), "EVCC01").TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+            SessionSetupCode = setupRes.ResponseCode;
+
+            // Adopt the SECC-assigned SessionID: every subsequent request header must carry it, not the
+            // all-zero id the EVCC opens SessionSetup with (ISO 15118-20 §7.9.2.4). A live Josev interop run
+            // caught this — Josev's SECC strictly rejects a mismatched session id (our loopback SECC did not).
+            SessionCtx.SessionId = setupRes.Header.SessionID;
+
+            if (SessionSetupCode == ResponseCode.OK_OldSessionJoined)
+                JoinOldSession();
+            else
+                await OpenNewSessionAsync(ct);
 
             await RunChargeParameterDiscoveryAsync(ct);
 

@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -22,7 +22,6 @@ using cloud.charging.open.protocols.ISO15118_2;
 using cloud.charging.open.protocols.ISO15118_2.Generated;
 using Vanaheimr.V2G.Simulation.Framing;
 using Vanaheimr.V2G.Simulation.Metering;
-using Vanaheimr.V2G.Simulation.Ocpp;
 using Vanaheimr.V2G.Simulation.Session;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
@@ -736,9 +735,9 @@ namespace Vanaheimr.V2G.Simulation.StateMachines.Iso2
         /// all the same, and a record that only kept what was displayed would hide precisely that.
         /// </para>
         /// </remarks>
-        public Func<string, OcppTransactionRecorder>? Backend { get; init; }
+        public Func<string, ISessionBackend>? Backend { get; init; }
 
-        private OcppTransactionRecorder? _backend;
+        private ISessionBackend? _backend;
 
         /// <summary>What this session has delivered, counted whether or not a meter is fitted.</summary>
         /// <remarks>

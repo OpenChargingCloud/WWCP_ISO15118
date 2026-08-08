@@ -15,15 +15,16 @@
  * limitations under the License.
  */
 
-namespace cloud.charging.open.protocols.ISO15118.Cli
+namespace cloud.charging.open.protocols.ISO15118.SECC
 {
-    /// <summary>Which TLS stack to use: .NET's <c>SslStream</c> (Schannel/OpenSSL) or BouncyCastle.</summary>
+    /// <summary>Which TLS stack to use: none, .NET's <c>SslStream</c> (Schannel/OpenSSL), or BouncyCastle.</summary>
     /// <remarks>
-    /// Not <see cref="Transport.TlsBackend"/>, which it shadows inside this namespace. This one is the CLI's
-    /// <i>setup</i> choice and includes <see cref="None"/>; picking <see cref="BouncyCastle"/> here means
-    /// configuring <c>BcTlsOptions</c> straight from <c>--pki-dir</c>, bypassing <c>TlsOptions</c>. The
-    /// transport enum answers a narrower question — which implementation carries an already-configured
-    /// <c>TlsOptions</c> session — and is how a <see cref="Dotnet"/> session reaches the managed stack.
+    /// Not <see cref="Transport.TlsBackend"/>, which it shadows inside this namespace. This one is the
+    /// program's <i>setup</i> choice and includes <see cref="None"/>; picking <see cref="BouncyCastle"/>
+    /// here means configuring <c>BcTlsOptions</c> straight from <c>--pki-dir</c>, bypassing
+    /// <c>TlsOptions</c>. The transport enum answers a narrower question — which implementation carries an
+    /// already-configured <c>TlsOptions</c> session — and is how a <see cref="Dotnet"/> session reaches
+    /// the managed stack.
     /// </remarks>
     public enum TlsBackend
     {

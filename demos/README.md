@@ -28,8 +28,10 @@ what a state machine is actually for. This is the runnable companion to `SECC_Ex
 > each, written to be read in one sitting: ISO 15118-2 only, EIM only, a `Wire` that hands the bytes
 > straight to an in-process object, and three charge-loop cycles. The real session layer is
 > `WWCP_ISO15118_Session` — both protocols, Plug & Charge, TLS, SLAC and SDP in front of it — and
-> `WWCP_ISO15118_CLI` runs *that* over a socket. If you want a peer to point at another
-> implementation, you want the CLI; if you want to see what the messages are, you want this.
+> [`WWCP_ISO15118_SECC`](../WWCP_ISO15118_SECC/README.md) and
+> [`WWCP_ISO15118_EVCC`](../WWCP_ISO15118_EVCC/README.md) run *that* over a socket, one program per
+> role. If you want a peer to point at another implementation, you want those two; if you want to
+> see what the messages are, you want this.
 
 ## SECC discovery: SDP
 

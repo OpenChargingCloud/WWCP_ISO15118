@@ -132,12 +132,20 @@ message:
 
 `Secc2.Handle` and its -20 equivalent are pure synchronous transitions — a request in, a response
 and the next phase out — so a session is testable without a socket; `RunAsync` is the thin loop that
-drives one from a real stream. `WWCP_ISO15118_CLI` is that, wired to command-line flags:
+drives one from a real stream. Two programs are exactly that, one per role, each with its own
+solution you can open in Visual Studio and its own README:
+[`WWCP_ISO15118_SECC`](WWCP_ISO15118_SECC/README.md) and
+[`WWCP_ISO15118_EVCC`](WWCP_ISO15118_EVCC/README.md).
 
 ```bash
-dotnet run --project WWCP_ISO15118_CLI -- secc --listen 15118 --protocol 20 --mode dc
-dotnet run --project WWCP_ISO15118_CLI -- evcc --connect '[::1]:15118' --protocol 20 --mode dc
+dotnet run --project WWCP_ISO15118_SECC -- --mode dc
+dotnet run --project WWCP_ISO15118_EVCC -- --connect '[::1]:15118' --mode dc
 ```
+
+Bare like that, the station accepts both protocols and the car offers both with `-20` first, so the
+handshake settles on `-20` and says so on both sides. `--protocol 2` or `--protocol 20` pins one when
+that is the point of the run. Splitting the roles apart is what makes `--help` useful: each program
+documents and accepts only its own flags, and refuses the other's by name instead of ignoring them.
 
 **This half does not build from a standalone clone**, and that is why `WWCP_ISO15118.EXI.slnx` holds
 the codec projects only. `WWCP_ISO15118_SLAC` references `..\..\Hermod\Hermod\Hermod.csproj` — a
@@ -171,7 +179,8 @@ by counterparty.
 | You need | Where it is |
 |---|---|
 | **A charging session** — the EVCC and SECC state machines, -2 and -20 | `WWCP_ISO15118_Session` |
-| A session from the command line, either role | `WWCP_ISO15118_CLI` |
+| A station you can run | [`WWCP_ISO15118_SECC`](WWCP_ISO15118_SECC/README.md) — own solution, own README |
+| A car you can run | [`WWCP_ISO15118_EVCC`](WWCP_ISO15118_EVCC/README.md) — own solution, own README |
 | SECC discovery | `WWCP_ISO15118_SDP` |
 | SLAC / HomePlug Green PHY | `WWCP_ISO15118_SLAC`, and `WWCP_ISO15118_SLAC_Pentests` |
 | V2G PKI, certificate chains, CSRs | `WWCP_ISO15118_PKI` |

@@ -143,9 +143,21 @@ practical gain of splitting the two roles apart.
 valid address in its own right (`::0.1.128.128`), so splitting it at the last colon would connect
 somewhere else entirely — `--connect` refuses the ambiguous form rather than guessing.
 
-**`--tls` accepts any server certificate.** There is no out-of-band way here to learn a dev
-station's thumbprint, so the check is disabled and the program says so on every run. Never point
-that at a real SECC. `--tls-backend bc` does pin the station's leaf, because the station minted it.
+**This car mostly does not check who the station is.** Presenting a certificate and *verifying the
+other side's* are two different halves, and only the first one is properly wired here. A real EVCC
+would validate the station's chain up to a V2G root it was provisioned with at the factory. This one
+never does that — there is no trust store, and nothing walks a chain. What it does instead depends on
+how you started it:
+
+| | Does it check the station? |
+|---|---|
+| `--tls` / `--tls-backend dotnet` | **No.** Any server certificate is accepted. A dev station mints a fresh self-signed one at startup and there is no channel to tell the car its fingerprint beforehand, so the callback returns true and the run prints a warning. |
+| `--tls-backend bc --pki-dir <dir>` | **Yes, by pinning** — byte-for-byte against the `secc.leaf.der` the station wrote into that directory. Which works only because both processes share a filesystem: it is one dev process recognising another, not trust in any PKI sense. |
+| `--tls-backend bc --vehicle-cert <pfx>` (no `--pki-dir`) | **No.** The car presents its own chain, but a station whose PKI we did not mint leaves nothing to pin against, so any peer is accepted and the run says so. |
+
+So: never point any of these at a station you do not control, and do not read a successful mutual-TLS
+handshake here as evidence that the station was authenticated. It is evidence that the *car* was —
+which is the half the interop runs in this project actually depend on.
 
 ## What it is not
 

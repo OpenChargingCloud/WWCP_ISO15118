@@ -48,7 +48,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             int listenPort = DefaultListenPort, slacListenPort = 0;
             var protocol = ProtocolVariant.Iso15118_20;
             var offerBoth = true;
-            var mode = PowerMode.Ac;
+            var mode = PowerMode.Dc;
             var mcs = false;
             var backend = TlsBackend.None;
             bool tls = false, useSdp = false, useSlac = false;

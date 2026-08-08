@@ -13,7 +13,7 @@ set a breakpoint in `Secc20Base.SessionSetup` and watch a real car walk into it.
 dotnet run --project WWCP_ISO15118_SECC
 ```
 
-That is a complete station on port 15118 accepting **both** ISO 15118-2 and -20, AC, no TLS. It stays
+That is a complete station on port 15118 accepting **both** ISO 15118-2 and -20, DC, no TLS. It stays
 up for as long as a session is paused and waiting to be rejoined.
 
 ## What it does
@@ -44,17 +44,24 @@ nothing.
 
 **`--listen 15118`**, the IANA-registered V2G port, so a bare run needs no flag.
 
-**`--mode ac`**, because the connector decides the mode and AC is the common one. Nothing negotiates
-this — pass `--mode dc` for a DC session and make sure the car agrees.
+**`--mode dc`.** Unlike the protocol, this is *not* negotiated — the connector decides it, and both
+sides must be told the same thing or the session fails on a message set the other did not expect. DC
+is the default because it is what this station is usually pointed at: every `-20` counterparty run
+in this project is DC, and DC is where the interesting parts live (CableCheck, PreCharge,
+WeldingDetection, the bidirectional envelopes). `--mode ac` for the other one.
 
 ## Worth trying
 
 ```bash
-# a plain DC session, and watch the car negotiate its way to -20
-dotnet run --project WWCP_ISO15118_SECC -- --listen 15118 --mode dc
+# everything at its default: port 15118, both protocols, DC — and watch the car
+# negotiate its way to -20
+dotnet run --project WWCP_ISO15118_SECC
 
 # offer Dynamic first: a car that takes the first parameter set runs Dynamic
-dotnet run --project WWCP_ISO15118_SECC -- --mode dc --dynamic
+dotnet run --project WWCP_ISO15118_SECC -- --dynamic
+
+# the other connector
+dotnet run --project WWCP_ISO15118_SECC -- --mode ac
 
 # EIM only — some cars cannot cope with a service list containing one they do not support
 dotnet run --project WWCP_ISO15118_SECC -- --no-pnc
@@ -99,4 +106,4 @@ the interesting part is unit-testable without a socket, and this program is the 
 it from a real stream.
 
 Whether any of it conforms is a separate question, answered counterparty by counterparty in the
-[conformance repository](../../../../README.md) two levels up.
+[conformance repository](../../../../../README.md) two repositories up.

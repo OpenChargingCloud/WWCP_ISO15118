@@ -138,13 +138,14 @@ solution you can open in Visual Studio and its own README:
 [`WWCP_ISO15118_EVCC`](WWCP_ISO15118_EVCC/README.md).
 
 ```bash
-dotnet run --project WWCP_ISO15118_SECC -- --mode dc
-dotnet run --project WWCP_ISO15118_EVCC -- --connect '[::1]:15118' --mode dc
+dotnet run --project WWCP_ISO15118_SECC
+dotnet run --project WWCP_ISO15118_EVCC -- --connect '[::1]:15118'
 ```
 
 Bare like that, the station accepts both protocols and the car offers both with `-20` first, so the
-handshake settles on `-20` and says so on both sides. `--protocol 2` or `--protocol 20` pins one when
-that is the point of the run. Splitting the roles apart is what makes `--help` useful: each program
+handshake settles on `-20` and says so on both sides; both default to DC on port 15118.
+`--protocol 2` or `--protocol 20` pins one when that is the point of the run, and `--mode ac` picks
+the other connector — that one is not negotiated, so both sides need telling. Splitting the roles apart is what makes `--help` useful: each program
 documents and accepts only its own flags, and refuses the other's by name instead of ignoring them.
 
 **This half does not build from a standalone clone**, and that is why `WWCP_ISO15118.EXI.slnx` holds

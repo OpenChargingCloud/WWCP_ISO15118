@@ -32,6 +32,7 @@ using cloud.charging.open.protocols.ISO15118.SLAC.Transport;
 
 using cloud.charging.open.protocols.ISO15118.Discovery;
 using cloud.charging.open.protocols.ISO15118.Sap;
+using cloud.charging.open.protocols.ISO15118.Security;
 using cloud.charging.open.protocols.ISO15118.Session;
 using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Slac;
@@ -108,7 +109,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         private static async Task<ResumableSession> RunOneConnectionAsync(EvccOptions args, bool pause, ResumableSession? resume)
         {
             var (host, port) = await ResolveEndpointAsync(args);
-            using var stream = await ConnectAsync(args, host, port);
+            var trust = args.TrustRootsPath is null ? null : TrustRoots.Load(args.TrustRootsPath);
+            if (trust is not null)
+                Console.WriteLine($"Trust roots: {string.Join(", ", trust.RootSubjects)}");
+            using var stream = await ConnectAsync(args, host, port, trust);
 
             if (args.OfferBoth)
             {
@@ -124,15 +128,28 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             return await RunSessionAsync(stream, args, pause, resume);
         }
 
+        /// <summary>
+        /// Turns a chain verdict into the boolean a TLS callback needs, and says what it decided — a
+        /// refused handshake is otherwise a bare connection reset with the reason known only in here.
+        /// </summary>
+        private static bool Report(string what, ChainResult result)
+        {
+            Console.WriteLine(result.Ok
+                                  ? $"{what}: chain valid, anchored at {result.Anchor}."
+                                  : $"{what}: chain REJECTED — {result.Reason}");
+            return result.Ok;
+        }
+
         /// <summary>-20 first, -2 second: what a dual-stack car offers, and the order the station reads.</summary>
         private static SapOffer[] BothOffers(PowerMode mode) =>
             [new(ProtocolVariant.Iso15118_20, mode), new(ProtocolVariant.Iso15118_2, mode)];
 
-        private static async Task<Stream> ConnectAsync(EvccOptions args, string host, int port)
+        private static async Task<Stream> ConnectAsync(EvccOptions args, string host, int port, V2GChainValidator? trust)
         {
             switch (args.TlsStack)
             {
                 case TlsStack.BouncyCastle:
+                {
                     // Two ways in, and the difference matters: --pki-dir is the dev loopback, where the
                     // station minted this car's Vehicle chain and we read it back; --vehicle-cert is a run
                     // against a station whose PKI is not ours, where the car brings its own identity and
@@ -140,15 +157,24 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     var bc = args.VehicleCertPath is not null
                                  ? EvccPki.WithVehicleCertificate(args.VehicleCertPath, args.VehicleCertPass, args.PkiDir)
                                  : EvccPki.Load(args.PkiDir!);
+                    // Trust roots and pinning are not alternatives: pinning says "this exact station",
+                    // chaining says "a station some V2G root vouches for". Whichever is configured runs,
+                    // and both do when both are.
+                    if (trust is not null)
+                        bc = bc with { ValidatePeerChain = c => Report("TLS station", trust.Validate(c[0], c[1..])) };
                     return await TcpV2GClient.ConnectAsync(host, port, bc);
+                }
 
                 case TlsStack.Dotnet:
-                    // Dev tool only: no out-of-band way to learn the SECC dev-cert thumbprint, so accept any.
-                    Console.WriteLine("WARNING: accepting any TLS server certificate — dev tool only, never against a real SECC.");
+                {
+                    if (trust is null)
+                        Console.WriteLine("WARNING: accepting any TLS server certificate — no --trust-roots given. Dev tool only.");
                     var (vehicleLeaf, vehicleChain) = Credentials.LoadForTls(args.VehicleCertPath, args.VehicleCertPass, "--vehicle-cert");
                     var tlsOptions = new TlsOptions
                     {
-                        ServerCertificateValidation = (_, _, _, _) => true,
+                        ServerCertificateValidation = trust is null
+                            ? (_, _, _, _) => true
+                            : (_, cert, _, _) => cert is not null && Report("TLS station", trust.Validate(new X509Certificate2(cert))),
                         // Negotiate TLS 1.2 or 1.3 so this interoperates with a peer in either mode (Josev's
                         // SECC serves TLS 1.2 unilateral by default, TLS 1.3 mutual with ENABLE_TLS_1_3=True).
                         EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
@@ -158,6 +184,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     if (vehicleLeaf is not null)
                         Console.WriteLine($"Presenting Vehicle certificate for mutual TLS: {vehicleLeaf.Subject} (+{vehicleChain?.Count ?? 0} intermediate(s))");
                     return await TcpV2GClient.ConnectAsync(host, port, tlsOptions);
+                }
 
                 default:
                     return await TcpV2GClient.ConnectAsync(host, port);

@@ -58,6 +58,6 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
                    : null!;
 
         public override void NotifyClientCertificate(Certificate clientCertificate)
-            => BcV2GTls.ValidatePeer(clientCertificate, _options.ValidatePeerLeaf, AlertDescription.certificate_required);
+            => BcV2GTls.ValidatePeer(clientCertificate, _options.ValidatePeerLeaf, AlertDescription.certificate_required, _options.ValidatePeerChain);
     }
 }

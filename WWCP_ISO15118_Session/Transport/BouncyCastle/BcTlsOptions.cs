@@ -33,6 +33,18 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
         /// <summary>Validate the peer's leaf certificate (DER). Return false to abort the handshake. Null = accept any.</summary>
         public Func<byte[], bool>? ValidatePeerLeaf { get; init; }
 
+        /// <summary>
+        /// Validates the peer's whole certificate chain (leaf first, DER-encoded) rather than pinning one
+        /// certificate. Runs after <see cref="ValidatePeerLeaf"/>, and both must pass when both are set.
+        /// </summary>
+        /// <remarks>
+        /// Pinning and chaining answer different questions. <see cref="ValidatePeerLeaf"/> asks "is this the
+        /// exact certificate I was told to expect", which is what a dev loopback can check and a stranger
+        /// cannot satisfy. This asks "does this reach a root I trust", which is the question a real V2G
+        /// deployment asks and the only one that works against a peer whose material we did not mint.
+        /// </remarks>
+        public Func<byte[][], bool>? ValidatePeerChain { get; init; }
+
         /// <summary>SECC side only: require a client certificate from the EVCC (mutual TLS). Ignored on the client.</summary>
         public bool RequireClientCertificate { get; init; }
 

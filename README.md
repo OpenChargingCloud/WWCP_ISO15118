@@ -159,10 +159,14 @@ solution two levels up; the codec solution here needs nothing outside this repos
 not do are the reason it should not be put in front of a real car or a real charger as anything but
 a test instrument:
 
-- **No certificate chain is validated.** Signatures are verified against the leaf the peer presented;
-  nothing walks `SubCertificates` to a V2G root, checks validity dates, or consults revocation, and
-  the CLI's TLS callbacks accept any peer certificate. Good enough to prove a signature is
-  well-formed and byte-exact, nowhere near enough to decide that a contract is *good*.
+- **Chains are validated only when asked, and revocation never.** `V2GChainValidator` builds a peer's
+  chain against the V2G roots a run supplies with `--trust-roots` — the TLS chain on either backend,
+  and on the station side the contract and OEM provisioning chains that arrive inside messages.
+  Without roots, signatures are verified against the presented leaf and nothing decides who issued
+  it. Revocation is never consulted: a test hierarchy has no OCSP responder, so asking would fail
+  every chain for the wrong reason. Good enough to prove a signature is well-formed and byte-exact,
+  and — with roots — that it chains somewhere expected; still not enough to decide a contract is
+  *good*.
 - **The timeouts are not the standard's.** `MessageTimeoutOptions` says so itself: a flat 2 s per
   message and 60 s per sequence, not the per-message performance tables of -2 and -20.
 - **The charge loop is a fixed three iterations**, not a battery filling up.

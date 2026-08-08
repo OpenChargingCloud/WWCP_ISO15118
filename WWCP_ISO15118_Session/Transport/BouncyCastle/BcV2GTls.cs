@@ -72,16 +72,26 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
                        SignatureScheme.GetSignatureAndHashAlgorithm(creds.SignatureScheme));
         }
 
-        internal static void ValidatePeer(Certificate? peer, Func<byte[], bool>? validate, short missingAlert)
+        internal static void ValidatePeer(Certificate? peer, Func<byte[], bool>? validateLeaf,
+                                          short missingAlert, Func<byte[][], bool>? validateChain = null)
         {
             if (peer is null || peer.IsEmpty)
                 throw new TlsFatalAlert(missingAlert);
 
-            if (validate is null)
-                return;
-
-            if (!validate(peer.GetCertificateAt(0).GetEncoded()))
+            if (validateLeaf is not null && !validateLeaf(peer.GetCertificateAt(0).GetEncoded()))
                 throw new TlsFatalAlert(AlertDescription.bad_certificate);
+
+            // The whole chain as the peer sent it, leaf first. The handshake already carries it; until now
+            // only the leaf was handed on, which is why a chain check was not expressible on this backend.
+            if (validateChain is not null)
+            {
+                var chain = new byte[peer.Length][];
+                for (int i = 0; i < peer.Length; i++)
+                    chain[i] = peer.GetCertificateAt(i).GetEncoded();
+
+                if (!validateChain(chain))
+                    throw new TlsFatalAlert(AlertDescription.bad_certificate);
+            }
         }
     }
 }

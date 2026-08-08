@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -19,7 +19,7 @@ using CommonHeader = cloud.charging.open.protocols.ISO15118_20.CommonMessages.Ge
 using DcHeader = cloud.charging.open.protocols.ISO15118_20.DC.Generated.MessageHeaderType;
 using AcHeader = cloud.charging.open.protocols.ISO15118_20.AC.Generated.MessageHeaderType;
 
-namespace Vanaheimr.V2G.Simulation.Session
+namespace cloud.charging.open.protocols.ISO15118.Session
 {
     /// <summary>
     /// ISO 15118-20's per-schema-set assemblies are self-contained (no cross-references between

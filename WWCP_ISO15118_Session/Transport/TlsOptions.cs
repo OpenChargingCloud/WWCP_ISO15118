@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -19,7 +19,7 @@ using System.Net.Security;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Vanaheimr.V2G.Simulation.Transport
+namespace cloud.charging.open.protocols.ISO15118.Transport
 {
     /// <summary>
     /// TLS knobs for <see cref="TcpV2GListener"/>/<see cref="TcpV2GClient"/>. Supports both server-side TLS

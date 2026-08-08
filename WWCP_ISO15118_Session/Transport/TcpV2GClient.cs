@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -19,9 +19,9 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
-using Vanaheimr.V2G.Simulation.Transport.BouncyCastle;
+using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
 
-namespace Vanaheimr.V2G.Simulation.Transport
+namespace cloud.charging.open.protocols.ISO15118.Transport
 {
     /// <summary>
     /// EVCC-side TCP connect to a fixed host:port (no SDP discovery — out of scope for this slice).

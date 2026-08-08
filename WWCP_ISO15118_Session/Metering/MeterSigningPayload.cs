@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of EVSimulatorApp
  *
@@ -18,7 +18,7 @@
 using System.Buffers.Binary;
 using System.Text;
 
-namespace Vanaheimr.V2G.Simulation.Metering;
+namespace cloud.charging.open.protocols.ISO15118.Metering;
 
 /// <summary>
 /// The octets a simulated meter signs into <c>MeterInfo.SigMeterReading</c> (-2) or

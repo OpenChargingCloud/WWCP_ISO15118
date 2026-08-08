@@ -7,22 +7,28 @@
     "commit": "03350be048b35b179905129005a97144a4bdcf93",
     "note": "Wire-conformant ISO 15118-20 WPT reference. Each vector is a fixed message emitted by tools/cbv2g-ref/main_iso20.c (run: cbv2g_iso20 WPT_<name>). Header SessionID is 8x0x00, TimeStamp=1700000000, no Signature. Baseline coverage only: VendorSpecificDataContainer/ManufacturerSpecificDataContainer empty, WPT_LF_DataPackageList and LF_SystemSetupData absent -- those two fields exercise a grammar shape this repo's generator designed independently (no working cbV2G reference exists for it, see docs/xsd-inventory-15118-20.md) and are covered by self-consistency roundtrip tests instead. The C# test builds the matching message via Iso15118_20WptFixtures and diffs its bytes."
   },
+  "deviatesFromReferenceEncoder": {
+    "since": "2026-08-08",
+    "vectors": ["WPT_FinePositioningSetupReq", "WPT_FinePositioningSetupRes", "WPT_FinePositioningReq", "WPT_FinePositioningRes"],
+    "verifiedBy": "EXIficient 1.0.4 against ISO's own V2G_CI_WPT.xsd (decode -> re-encode -> identical octets)",
+    "why": "These four types are the only place in ISO 15118 with an optional repeating element followed by an optional one: VendorSpecificDataContainer (minOccurs=0 maxOccurs=16) then an optional WPT_LF_DataPackageList. cbexigen's grammar for that position contradicts its own input schema -- it unrolls only two list positions and hides the following particle from the zero-item state, so two perfectly valid documents cannot be encoded at all. With both absent its end-element is code 1 where the schema grammar has 2, which is the single bit that changed here (last byte 0x20->0x40, 0x02->0x04) and the reason a schema-following codec reported Premature EOS. Decided 2026-08-08 to follow the schema; ExiParticleGrammar=CbV2GCompatible restores cbexigen's bytes. cbV2G's bytes for these four are in git history at 31144ed."
+  },
   "vectors": [
     {
       "name": "WPT_FinePositioningSetupReq",
-      "expectedHex": "80 84 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 08 24 04 00 20"
+      "expectedHex": "80 84 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 08 24 04 00 40"
     },
     {
       "name": "WPT_FinePositioningSetupRes",
-      "expectedHex": "80 88 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 82 40 40 02"
+      "expectedHex": "80 88 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 00 82 40 40 04"
     },
     {
       "name": "WPT_FinePositioningReq",
-      "expectedHex": "80 7c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 01 20"
+      "expectedHex": "80 7c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 01 40"
     },
     {
       "name": "WPT_FinePositioningRes",
-      "expectedHex": "80 80 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 02"
+      "expectedHex": "80 80 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 04"
     },
     {
       "name": "WPT_PairingReq",

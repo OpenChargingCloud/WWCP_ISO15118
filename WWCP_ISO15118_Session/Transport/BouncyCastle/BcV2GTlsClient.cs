@@ -68,7 +68,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
             }
 
             public void NotifyServerCertificate(TlsServerCertificate serverCertificate)
-                => BcV2GTls.ValidatePeer(serverCertificate?.Certificate, _options.ValidatePeerLeaf, AlertDescription.bad_certificate);
+                => BcV2GTls.ValidatePeer(serverCertificate?.Certificate, _options.ValidatePeerLeaf, AlertDescription.bad_certificate, _options.ValidatePeerChain);
 
             // Null credentials decline client authentication — the unilateral-TLS case. BouncyCastle then
             // sends an empty Certificate message, which a SECC requiring one rejects.

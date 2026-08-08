@@ -33,7 +33,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
         int ListenPort, ProtocolVariant Protocol, bool OfferBoth, PowerMode Mode, bool Mcs,
         TlsStack TlsStack, bool UseSdp, string? Interface, bool PreferDynamic, bool NoPnc,
         bool UseSlac, int SlacListenPort, string? PkiDir,
-        string? ServerCertPath, string? ServerCertPass, bool RequireClientCert,
+        string? ServerCertPath, string? ServerCertPass, bool RequireClientCert, string? TrustRootsPath,
         bool Renegotiate, string? TariffCertPath, string? TariffCertPass)
     {
 
@@ -53,7 +53,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             var backend = TlsStack.None;
             bool tls = false, useSdp = false, useSlac = false;
             bool preferDynamic = false, noPnc = false, requireClientCert = false, renegotiate = false;
-            string? iface = null, pkiDir = null, serverCertPath = null, serverCertPass = null;
+            string? iface = null, pkiDir = null, serverCertPath = null, serverCertPass = null, trustRootsPath = null;
             string? tariffCertPath = null, tariffCertPass = null;
 
             for (int i = 0; i < args.Length; i++)
@@ -130,6 +130,11 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     case "--require-client-cert":
                         requireClientCert = true;
                         break;
+                    // The V2G root(s) a car's certificates must chain to — its TLS chain, its contract
+                    // chain and its OEM provisioning chain. One file, or a directory of them.
+                    case "--trust-roots":
+                        trustRootsPath = args[++i];
+                        break;
                     case "--renegotiate":
                         renegotiate = true;
                         break;
@@ -150,17 +155,17 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             if (backend == TlsStack.None && tls)
                 backend = TlsStack.Dotnet;
 
-            Validate(listenPort, backend, useSdp, iface, useSlac, slacListenPort, pkiDir, mcs, protocol, offerBoth);
+            Validate(listenPort, backend, useSdp, iface, useSlac, slacListenPort, pkiDir, mcs, protocol, offerBoth, trustRootsPath);
 
             return new SeccOptions(listenPort, protocol, offerBoth, mode, mcs, backend,
                                    useSdp, iface, preferDynamic, noPnc, useSlac, slacListenPort, pkiDir,
-                                   serverCertPath, serverCertPass, requireClientCert,
+                                   serverCertPath, serverCertPass, requireClientCert, trustRootsPath,
                                    renegotiate, tariffCertPath, tariffCertPass);
         }
 
         private static void Validate(int listenPort, TlsStack backend, bool useSdp, string? iface,
                                      bool useSlac, int slacListenPort, string? pkiDir,
-                                     bool mcs, ProtocolVariant protocol, bool offerBoth)
+                                     bool mcs, ProtocolVariant protocol, bool offerBoth, string? trustRootsPath)
         {
             if (listenPort is <= 0 or > 65535)
                 throw new ArgumentException($"--listen expects a port between 1 and 65535, got {listenPort}.");
@@ -173,6 +178,10 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
 
             if (useSlac && slacListenPort == 0)
                 throw new ArgumentException("--slac requires --slac-listen <port>.");
+
+            // A file or a directory, so this only asks that it is one of them.
+            if (trustRootsPath is not null && !File.Exists(trustRootsPath) && !Directory.Exists(trustRootsPath))
+                throw new ArgumentException($"--trust-roots: no such file or directory '{trustRootsPath}'.");
 
             // Energy-transfer services 8 / 9 exist in no other catalogue, so --mode mcs against -2 is a
             // request that cannot be met. Refused here rather than quietly running plain DC, because a

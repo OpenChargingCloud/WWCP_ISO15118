@@ -143,29 +143,31 @@ practical gain of splitting the two roles apart.
 valid address in its own right (`::0.1.128.128`), so splitting it at the last colon would connect
 somewhere else entirely — `--connect` refuses the ambiguous form rather than guessing.
 
-**This car mostly does not check who the station is.** Presenting a certificate and *verifying the
-other side's* are two different halves, and only the first one is properly wired here. A real EVCC
-would validate the station's chain up to a V2G root it was provisioned with at the factory. This one
-never does that — there is no trust store, and nothing walks a chain. What it does instead depends on
-how you started it:
+**Whether this car checks who the station is depends on what you gave it.** Presenting a certificate
+and *verifying the other side's* are two different halves, and the second one is off unless asked
+for. A real EVCC validates the station's chain up to a V2G root it was provisioned with at the
+factory; `--trust-roots` is how you give this one that root — or a directory of them, when several
+counterparties' hierarchies have to be accepted at once.
 
 | | Does it check the station? |
 |---|---|
-| `--tls` / `--tls-backend dotnet` | **No.** Any server certificate is accepted. A dev station mints a fresh self-signed one at startup and there is no channel to tell the car its fingerprint beforehand, so the callback returns true and the run prints a warning. |
-| `--tls-backend bc --pki-dir <dir>` | **Yes, by pinning** — byte-for-byte against the `secc.leaf.der` the station wrote into that directory. Which works only because both processes share a filesystem: it is one dev process recognising another, not trust in any PKI sense. |
-| `--tls-backend bc --vehicle-cert <pfx>` (no `--pki-dir`) | **No.** The car presents its own chain, but a station whose PKI we did not mint leaves nothing to pin against, so any peer is accepted and the run says so. |
+| `--trust-roots <file-or-dir>` | **Yes, by chain** — the station's certificate is built to one of those roots, on either backend, and a failure aborts the handshake with the reason printed. This is the one that resembles what a real car does. |
+| `--tls-backend bc --pki-dir <dir>` | **Yes, by pinning** — byte-for-byte against the `secc.leaf.der` the station wrote there. Only works because both processes share a filesystem: one dev process recognising another, not trust in any PKI sense. |
+| `--tls` / `--tls-backend dotnet`, no roots | **No.** Any server certificate is accepted; a dev station mints a fresh self-signed one at startup and there is no channel to learn its fingerprint. The run prints a warning. |
+| `--tls-backend bc --vehicle-cert <pfx>`, no roots and no `--pki-dir` | **No.** Nothing to pin against and nothing to chain to, so any peer is accepted and the run says so. |
 
-So: never point any of these at a station you do not control, and do not read a successful mutual-TLS
-handshake here as evidence that the station was authenticated. It is evidence that the *car* was —
-which is the half the interop runs in this project actually depend on.
+Pinning and chaining are not alternatives and can both be on: one says "this exact station", the
+other "a station some V2G root vouches for". What has not changed is the warning worth repeating —
+without `--trust-roots`, a successful mutual-TLS handshake here is evidence that the *car* was
+authenticated, not the station.
 
 ## What it is not
 
-A conformance and research peer, not a car. It validates no certificate chain (signatures verify
-against the presented leaf; nothing walks `SubCertificates` to a V2G root), its timeouts are a flat
-2 s / 60 s rather than the standard's performance tables, its charge loop is a fixed three
-iterations rather than a battery filling up, and it has no electrical layer at all. The station's
-README lists the same limits from the other side, where they matter more.
+A conformance and research peer, not a car. Chains are validated only when `--trust-roots` says so
+and revocation never is; its timeouts are a flat 2 s / 60 s rather than the standard's performance
+tables; its charge loop is a fixed three iterations rather than a battery filling up; and it has no
+electrical layer at all. The station's README lists the same limits from the other side, where they
+matter more.
 
 ## Where the actual implementation is
 

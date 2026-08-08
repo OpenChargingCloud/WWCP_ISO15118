@@ -7,6 +7,12 @@
     "commit": "03350be048b35b179905129005a97144a4bdcf93",
     "note": "Wire-conformant ISO 15118-20 ACDP reference. Each vector is a fixed message emitted by tools/cbv2g-ref/main_iso20.c (run: cbv2g_iso20 ACDP_<name>). Header SessionID is 8x0x00, TimeStamp=1700000000, no Signature. The C# test builds the matching message via Iso15118_20AcdpFixtures and diffs its bytes."
   },
+  "deviatesFromReferenceEncoder": {
+    "since": "2026-08-08",
+    "vectors": ["ACDP_ConnectRes", "ACDP_DisconnectReq"],
+    "verifiedBy": "EXIficient 1.0.4 against ISO's own V2G_CI_ACDP.xsd (decode -> re-encode -> identical octets)",
+    "why": "ACDP is the only ISO 15118 set with two global elements sharing a named type -- ACDP_DisconnectReq/Res have none of their own and reuse ACDP_ConnectReqType/ResType. cbexigen numbers the document grammar so the type-sharing pair lands adjacent; EXI 1.0 Second Edition 8.5.1 numbers global elements 'sorted lexicographically, first by local-name, then by uri' with no exception for a shared type. The two indices are swapped, which is exactly these two frames: one was unreadable to a schema-following codec and the other decoded cleanly AS THE OTHER MESSAGE. Decided 2026-08-08 to follow the specification; the generator keeps ExiDocumentElementOrder=CbV2GCompatible available and Directory.Build.props records the reasoning. cbV2G's bytes for these two are in git history at 31144ed."
+  },
   "vectors": [
     {
       "name": "ACDP_VehiclePositioningReq",
@@ -22,11 +28,11 @@
     },
     {
       "name": "ACDP_ConnectRes",
-      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 01 08"
+      "expectedHex": "80 04 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 01 08"
     },
     {
       "name": "ACDP_DisconnectReq",
-      "expectedHex": "80 04 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00"
+      "expectedHex": "80 08 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00"
     },
     {
       "name": "ACDP_DisconnectRes",

@@ -257,6 +257,18 @@ Deciding which one is *right* needs the EXI 1.0 text on the document grammar's g
 not this file. What is settled is the consequence of the disagreement, and that producing either
 encoding is now a build property rather than a rewrite.
 
+> **Decided 2026-08-08 — and the paragraph above is superseded.** The EXI 1.0 text does settle it.
+> Second Edition §8.5.1 gives the `DocContent` grammar one `SE` production per global element, over the
+> qnames "sorted lexicographically, first by local-name, then by uri", with nothing said about shared
+> types. Checked against an implementation too, on a synthetic three-element schema in the ACDP shape
+> (two sharing a type, a third sorting between them): EXIficient assigns 0/1/2 where the grouping gives
+> 0/2/1.
+>
+> So `Directory.Build.props` now sets `ExiSorted` for these codecs. The property still accepts
+> `CbV2GCompatible` and the generator's own default is still `CbV2GCompatible` — this is the ISO
+> codecs' decision, not the generator's. Two vectors moved, both ACDP, both recorded in
+> `Iso15118_20.ACDP.vectors.json` under `deviatesFromReferenceEncoder`.
+
 ## …and the WPT particle grammar, the same day
 
 The other four frames EXIficient could not read are a different construct: an optional repeating
@@ -299,6 +311,13 @@ Same treatment as ACDP, same default:
 reachable from the empty state, and `w.WriteBits(2, 2)` for the empty case — which turns the tail of
 our `WPT_FinePositioningReq` from `…0120` into `…0140`, the bytes EXIficient writes for that message.
 Unset, every byte is as before.
+
+> **Decided 2026-08-08: set.** `Directory.Build.props` selects `SchemaConformant`. The deciding point
+> was not readability but capability — reproducing cbexigen's grammar meant our encoder *refused
+> messages ISO permits* (a third container item; the suffix without a preceding item), which is a worse
+> thing for a conformance codec to do than to differ by a byte from one implementation. A test that
+> asserted the refusal is now a round-trip test of the message it used to reject. Four vectors moved,
+> all WPT, recorded in `Iso15118_20.WPT.vectors.json` under `deviatesFromReferenceEncoder`.
 
 ## And the third frame, which was simply a bug (2026-08-07)
 

@@ -5,18 +5,19 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
-    <RootNamespace>cloud.charging.open.protocols.ISO15118.Cli</RootNamespace>
-    <AssemblyName>WWCP_ISO15118_CLI</AssemblyName>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118.SECC</RootNamespace>
+    <AssemblyName>WWCP_ISO15118_SECC</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- SeccSdpOptionsTests covers BuildSdpOptions, the one mapping here with a rule of its own. -->
     <InternalsVisibleTo Include="ISO15118ConformanceTests.Simulation" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\WWCP_ISO15118_Session\WWCP_ISO15118_Session.csproj" />
-    <!-- The BouncyCastle TLS backend option generates a strict-20 V2G PKI at runtime and shares it
-         via a pki-dir between the two dev processes. -->
+    <!-- The BouncyCastle TLS backend generates a strict-20 V2G PKI at runtime and shares it with the
+         EVCC program through a pki-dir. Only this side builds the hierarchy; the car reads it back. -->
     <ProjectReference Include="..\WWCP_ISO15118_PKI\WWCP_ISO15118_PKIBuilder\WWCP_ISO15118_PKIBuilder.csproj" />
   </ItemGroup>
 </Project>

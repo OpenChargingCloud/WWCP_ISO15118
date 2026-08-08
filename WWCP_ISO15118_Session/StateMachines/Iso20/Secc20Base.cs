@@ -28,9 +28,6 @@ using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 // all three — the same reason Evcc20Base.RefuseOnFailure aliases them.
 using Ac20 = cloud.charging.open.protocols.ISO15118_20.AC.Generated;
 using Dc20 = cloud.charging.open.protocols.ISO15118_20.DC.Generated;
-// `V2GTP` is a namespace here as well as the header codec class, and the namespace wins
-// on a bare identifier -- see docs/wwcp-iso15118-split.md, "V2GTP exists twice".
-using V2GTPCodec = cloud.charging.open.protocols.ISO15118.EXI.Dispatch.V2GTP;
 
 
 namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20

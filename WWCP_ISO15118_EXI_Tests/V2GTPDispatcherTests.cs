@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
@@ -23,11 +23,6 @@ using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
 namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
 {
-    // Inside the namespace declaration on purpose. The merged V2GTP project puts a namespace
-    // cloud.charging.open.protocols.ISO15118.V2GTP in scope here, and name lookup walks the
-    // enclosing namespace declarations outward before it ever reaches a file-level using-alias —
-    // so an alias at the top of the file loses to it, and one declared in here wins.
-    using V2GTP = cloud.charging.open.protocols.ISO15118.EXI.Dispatch.V2GTP;
 
     /// <summary>
     /// The V2GTP payload-type dispatcher: given a frame, resolve the right message set and decode it
@@ -40,7 +35,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
     {
         private static byte[] Frame(MessageSet set, byte[] exiPayload)
         {
-            var dest = new byte[V2GTP.HeaderSize + exiPayload.Length];
+            var dest = new byte[V2GTPCodec.HeaderSize + exiPayload.Length];
             Assert.That(V2GTPDispatcher.TryEncode(set, exiPayload, dest, out int n), Is.True);
             Assert.That(n, Is.EqualTo(dest.Length));
             return dest;
@@ -54,8 +49,8 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
             // by session phase, not payload type, so the payload-type dispatcher does NOT resolve SAP (a live
             // interop run against Josev caught the earlier distinct 0x8000 here as a wire-conformance bug — the
             // SAP handshake now frames/decodes 0x8001 explicitly). This asserts the shared-id fact.
-            Assert.That(V2GTP.PayloadType_AppProtocol, Is.EqualTo((ushort) 0x8001));
-            Assert.That(V2GTP.PayloadType_AppProtocol, Is.EqualTo(V2GTP.PayloadType_DinIso2Main));
+            Assert.That(V2GTPCodec.PayloadType_AppProtocol, Is.EqualTo((ushort) 0x8001));
+            Assert.That(V2GTPCodec.PayloadType_AppProtocol, Is.EqualTo(V2GTPCodec.PayloadType_DinIso2Main));
         }
 
         [Test]
@@ -120,8 +115,8 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
         [Test]
         public void TryDecode_RejectsLengthFieldMismatch()
         {
-            var dest = new byte[V2GTP.HeaderSize + 3];
-            V2GTP.WriteHeader(dest, V2GTP.PayloadType_AppProtocol, payloadLength: 99); // lies about the length
+            var dest = new byte[V2GTPCodec.HeaderSize + 3];
+            V2GTPCodec.WriteHeader(dest, V2GTPCodec.PayloadType_AppProtocol, payloadLength: 99); // lies about the length
             Assert.That(V2GTPDispatcher.TryDecode(dest, out _, out var message, out var error), Is.False);
             Assert.That(message, Is.Null);
             Assert.That(error, Does.Contain("length mismatch"));
@@ -130,8 +125,8 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
         [Test]
         public void TryDecode_RejectsUnknownPayloadType()
         {
-            var dest = new byte[V2GTP.HeaderSize + 1];
-            V2GTP.WriteHeader(dest, payloadType: 0x8101, payloadLength: 1); // ScheduleRenegotiation — not modelled
+            var dest = new byte[V2GTPCodec.HeaderSize + 1];
+            V2GTPCodec.WriteHeader(dest, payloadType: 0x8101, payloadLength: 1); // ScheduleRenegotiation — not modelled
             Assert.That(V2GTPDispatcher.TryDecode(dest, out _, out var message, out var error), Is.False);
             Assert.That(message, Is.Null);
             Assert.That(error, Does.Contain("unknown V2GTP payload type"));
@@ -140,7 +135,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
         [Test]
         public void TryEncode_FailsWhenDestinationTooSmall()
         {
-            var dest = new byte[V2GTP.HeaderSize]; // no room for the payload itself
+            var dest = new byte[V2GTPCodec.HeaderSize]; // no room for the payload itself
             Assert.That(V2GTPDispatcher.TryEncode(MessageSet.AppProtocol, new byte[] { 0x80 }, dest, out int n), Is.False);
             Assert.That(n, Is.EqualTo(0));
         }

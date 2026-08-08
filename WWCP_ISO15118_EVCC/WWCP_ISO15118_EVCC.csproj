@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118.EVCC</RootNamespace>
+    <AssemblyName>WWCP_ISO15118_EVCC</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ISO15118ConformanceTests.Simulation" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WWCP_ISO15118_Session\WWCP_ISO15118_Session.csproj" />
+    <!-- The BouncyCastle TLS backend reads the Vehicle chain and key the station minted into a
+         shared pki-dir. This side only loads; the hierarchy is built by WWCP_ISO15118_SECC. -->
+    <ProjectReference Include="..\WWCP_ISO15118_PKI\WWCP_ISO15118_PKIBuilder\WWCP_ISO15118_PKIBuilder.csproj" />
+  </ItemGroup>
+</Project>

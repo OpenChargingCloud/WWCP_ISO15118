@@ -20,23 +20,32 @@ using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Tls;
 
 using cloud.charging.open.protocols.ISO15118.PKI;
-
 using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
 
-namespace cloud.charging.open.protocols.ISO15118.Cli
+namespace cloud.charging.open.protocols.ISO15118.SECC
 {
     /// <summary>
-    /// Dev-only glue for the <c>--tls-backend bc</c> path: the SECC generates a strict-20 V2G PKI
-    /// (ECDSA P-521) and writes the EVCC's material into a shared <c>--pki-dir</c>; the EVCC loads it back.
-    /// Peer validation pins the exact expected leaf certificate. Not for production — a real deployment
-    /// provisions Vehicle/SECC certificates out of band from the CharIN V2G PKI (see EVSimulatorApp/docs/pki-model.md).
+    /// Dev-only glue for <c>--tls-backend bc</c>: build a strict-20 V2G hierarchy (ECDSA P-521), keep the
+    /// SECC's own credentials, and write the car's material into the shared <c>--pki-dir</c> for the EVCC
+    /// program to read back. Peer validation pins the exact expected leaf.
     /// </summary>
-    public static class CliPki
+    /// <remarks>
+    /// <para>
+    /// The station is the side that builds the hierarchy, which is why generating lives here and loading
+    /// lives in the EVCC program. That asymmetry is real, not an artefact of the split: somebody has to
+    /// mint the material, and in a dev loopback it may as well be the side that is already long-running.
+    /// </para>
+    /// <para>
+    /// Not for production. A real deployment provisions Vehicle and SECC certificates out of band from
+    /// the CharIN V2G PKI — see <c>EVSimulatorApp/docs/pki-model.md</c>.
+    /// </para>
+    /// </remarks>
+    public static class SeccPki
     {
         private const int SigScheme = SignatureScheme.ecdsa_secp521r1_sha512;
 
-        /// <summary>SECC side: build the hierarchy, write the EVCC's files, return the SECC's mutual-TLS options.</summary>
-        public static BcTlsOptions GenerateSeccOptions(string pkiDir)
+        /// <summary>Build the hierarchy, write the EVCC's files, return the SECC's mutual-TLS options.</summary>
+        public static BcTlsOptions Generate(string pkiDir)
         {
             Directory.CreateDirectory(pkiDir);
 
@@ -58,26 +67,8 @@ namespace cloud.charging.open.protocols.ISO15118.Cli
                                                [h.SeccLeaf.Certificate.GetEncoded(), h.CpoSubCa2.Certificate.GetEncoded(), h.CpoSubCa1.Certificate.GetEncoded()],
                                                h.SeccLeaf.KeyPair.Private, SigScheme),
                 RequireClientCertificate = true,
-                ValidatePeerLeaf         = Pin(h.VehicleLeaf.Certificate.GetEncoded()),
+                ValidatePeerLeaf         = expected => h.VehicleLeaf.Certificate.GetEncoded().AsSpan().SequenceEqual(expected),
             };
         }
-
-        /// <summary>EVCC side: load the Vehicle chain + key and the SECC leaf to pin, from the shared dir.</summary>
-        public static BcTlsOptions LoadEvccOptions(string pkiDir)
-        {
-            byte[] Read(string name) => File.ReadAllBytes(Path.Combine(pkiDir, name));
-
-            var vehicleKey = PrivateKeyFactory.CreateKey(Read("vehicle.key"));
-
-            return new BcTlsOptions
-            {
-                OwnCredentials   = new BcTlsCredentials(
-                                       [Read("vehicle.0.der"), Read("vehicle.1.der"), Read("vehicle.2.der")],
-                                       vehicleKey, SigScheme),
-                ValidatePeerLeaf = Pin(Read("secc.leaf.der")),
-            };
-        }
-
-        private static Func<byte[], bool> Pin(byte[] expected) => actual => expected.AsSpan().SequenceEqual(actual);
     }
 }

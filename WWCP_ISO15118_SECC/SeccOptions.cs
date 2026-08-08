@@ -212,6 +212,12 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             "                                      mutual); needs --pki-dir <dir>\n" +
             "          --server-cert <pfx> [--server-cert-pass <pw>]   present this chain instead\n" +
             "          --require-client-cert       demand the car's certificate (mutual TLS)\n" +
+            "          --trust-roots <file|dir>    validate the car's chains against these V2G root(s) —\n" +
+            "                                      its TLS chain, its contract chain and its OEM\n" +
+            "                                      provisioning chain. Without it none of them is checked.\n" +
+            "                                      A directory holds several roots. Put any intermediates\n" +
+            "                                      the car does not send itself in here too; they can only\n" +
+            "                                      act as intermediates, never as trust anchors.\n" +
             "  SDP:    --sdp --interface <name>    advertise the endpoint instead of a fixed one\n" +
             "  Auth:   --no-pnc                    -20: advertise EIM only, not EIM + Plug & Charge\n" +
             "  Mode:   --dynamic                   -20: offer the Dynamic control-mode set first\n" +

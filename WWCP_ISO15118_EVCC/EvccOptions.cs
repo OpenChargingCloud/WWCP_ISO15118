@@ -270,6 +270,13 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "                                      mutual). Required on Windows and macOS for a real -20\n" +
             "                                      session; see the README.\n" +
             "          --pki-dir <dir>             the dev hierarchy the station minted\n" +
+            "          --trust-roots <file|dir>    validate the station's chain against these V2G root(s).\n" +
+            "                                      Without it no station certificate is checked at all.\n" +
+            "                                      A directory holds several, for a run that must accept\n" +
+            "                                      more than one hierarchy. Put any intermediates the\n" +
+            "                                      station does not send itself in here too — EVerest's\n" +
+            "                                      sends only its leaf, so root-alone is refused. They can\n" +
+            "                                      only ever act as intermediates, never as trust anchors.\n" +
             "\n" +
             "  The car carries up to three different certificates. They are not interchangeable:\n" +
             "          --vehicle-cert <pfx> [--vehicle-cert-pass <pw>]\n" +

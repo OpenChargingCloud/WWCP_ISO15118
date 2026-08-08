@@ -111,16 +111,18 @@ splitting the two roles apart.
 A conformance and research peer, not a charging station. Four things it does not do, and they are
 the reason not to put it in front of a real car as anything but a test instrument:
 
-- **No certificate chain is validated.** Signatures verify against the leaf the car presented;
-  nothing walks `SubCertificates` to a V2G root, checks validity dates or consults revocation. It
-  proves a signature is well-formed, not that a contract is good.
+- **Chains are validated only if you ask.** Without `--trust-roots` nothing walks `SubCertificates`
+  to a V2G root: signatures verify against the leaf the car presented, which proves a message is
+  well-formed and says nothing about who issued the certificate. With `--trust-roots` the car's TLS
+  chain, its contract chain and its OEM provisioning chain are each built against those roots, and
+  every verdict is printed. Revocation is never checked either way — a test hierarchy has no OCSP
+  responder, so asking would fail every chain for the wrong reason.
 
-  The TLS half is worth stating separately, because "mutual TLS succeeded" reads like an identity
-  check and here it mostly is not: `--require-client-cert` on the .NET backend **requires** a client
-  certificate and then accepts **any** — the car has to present something, and nothing decides what.
-  Only `--tls-backend bc` checks, and it checks by pinning the exact Vehicle leaf this station just
-  minted into `--pki-dir`, which is one dev process recognising another rather than trust in a PKI.
-  The car's README has the same table from its side.
+  Two things about how a failed chain behaves. At **TLS** level it is fatal, because refusing is what
+  a validation callback does. At **message** level it is recorded and reported, and the session
+  continues — the same choice the signature check already makes, for the reason its comment gives:
+  a live interop session should run to the end so every verdict is observable, rather than dying at
+  the first divergence. So `chain REJECTED` in the output is a finding, not an abort.
 - **The timeouts are not the standard's** — a flat 2 s per message and 60 s per sequence, not the
   per-message performance tables.
 - **The charge loop is a fixed three iterations**, not a battery filling up.

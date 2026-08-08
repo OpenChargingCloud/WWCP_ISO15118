@@ -22,6 +22,7 @@ using cloud.charging.open.protocols.ISO15118_2;
 using cloud.charging.open.protocols.ISO15118_2.Generated;
 using cloud.charging.open.protocols.ISO15118.Framing;
 using cloud.charging.open.protocols.ISO15118.Metering;
+using cloud.charging.open.protocols.ISO15118.Security;
 using cloud.charging.open.protocols.ISO15118.Session;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
@@ -31,8 +32,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
     /// reference digest over the body-element fragment, and the ECDSA signature against the contract leaf
     /// stored at PaymentDetails — with the <c>SignedInfo</c> grammar it verified under
     /// (<c>iso2-msgdef</c> = our/cbV2G combined form, <c>xmldsig-standalone</c> = the Josev form).</summary>
+    /// <param name="Chain">How the contract chain fared against the configured V2G roots, or
+    /// <c>ChainResult.NotConfigured</c> when no roots were given — which is not the same as a pass and must
+    /// never be reported as one.</param>
     public sealed record Iso2PnCResult(bool ChallengeOk, bool DigestOk, bool SignatureOk,
-                                       string SignatureGrammar, string ContractSubject);
+                                       string SignatureGrammar, string ContractSubject,
+                                       ChainResult Chain);
 
     /// <summary>Outcome of validating one signed -2 <c>MeteringReceiptReq</c> (same dual-grammar dance).</summary>
     public sealed record Iso2ReceiptResult(bool DigestOk, bool SignatureOk, string SignatureGrammar);
@@ -70,6 +75,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         private DateTimeOffset _lastSeen = clock.GetUtcNow();
 
         // ── Plug & Charge session state (set by PaymentServiceSelection/PaymentDetails) ─
+        /// <summary>When set, the EV's contract chain is validated against these roots at PaymentDetails
+        /// and the verdict is carried in <see cref="PnCAuth"/>. Unset (default) means no chain check — the
+        /// signature still verifies against the presented leaf, which proves the message is well-formed and
+        /// nothing about who issued the certificate.</summary>
+        public V2GChainValidator? ContractChainValidator { get; set; }
+
+        private ChainResult _contractChain = ChainResult.NotConfigured;
         private bool _contract;
         private bool _receiptRequested;   // demand exactly ONE receipt per session (see ChargingStatus)
         private byte[]? _genChallenge;
@@ -614,6 +626,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 using var contract = X509CertificateLoader.LoadCertificate(req.ContractSignatureCertChain.Certificate);
                 _contractSubject = contract.Subject;
                 _contractKey = contract.GetECDsaPublicKey();
+
+                // The chain the EV actually sent: leaf plus the MO sub-CAs it put in SubCertificates. Until
+                // there was a validator, those sub-certificates were parsed by nobody.
+                if (ContractChainValidator is not null)
+                    _contractChain = ContractChainValidator.Validate(
+                                         contract,
+                                         req.ContractSignatureCertChain.SubCertificates?.Certificate);
             }
             catch (Exception ex) { _contractSubject = $"cert-error: {ex.Message}"; }
 
@@ -633,7 +652,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 var buf = new byte[1024];
                 bool fragOk = Iso2Codec.EncodeFragment_AuthorizationReq(req, buf, out int n);
                 var (digestOk, signatureOk, grammar) = VerifyBodySignature(fragOk ? buf.AsSpan(0, n) : default);
-                PnCAuth = new Iso2PnCResult(challengeOk, digestOk, signatureOk, grammar, _contractSubject);
+                PnCAuth = new Iso2PnCResult(challengeOk, digestOk, signatureOk, grammar, _contractSubject, _contractChain);
             }
             return new AuthorizationResType(ResponseCode.OK, EVSEProcessing.Finished);
         }

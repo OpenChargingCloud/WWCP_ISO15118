@@ -1,0 +1,48 @@
+<Project>
+
+  <!--
+    Where cbexigen and the schema disagree, follow the schema.
+
+    Two constructs in ISO 15118 are encoded differently by cbexigen (and therefore by cbV2G, EVerest
+    and tux-evse) than a schema-informed EXI processor built from the specification encodes them. Both
+    were found on 2026-08-07, when EXIficient became the first codec other than ours to read our -20
+    corpus and six frames did not read at all:
+
+      * the document grammar's numbering of global elements, when two of them share a named type
+        (Grammar/DocumentElementOrder.cs) — in ISO 15118 that is ACDP and nothing else;
+      * an optional repeating element followed by an optional one
+        (Grammar/ParticleGrammar.cs) — in ISO 15118 that is WPT FinePositioning and nothing else.
+
+    This codec used to reproduce cbexigen in both places, because matching the reference encoder
+    byte-for-byte is how the vector corpus earns its keep. Decided on 2026-08-08 to stop doing so:
+
+      * The specification is not ambiguous about either. For the numbering, asking EXIficient to encode
+        a three-element schema in the ACDP shape — two elements sharing a type, a third sorting between
+        them — gives plain lexicographic indices 0/1/2; cbexigen groups the pair and yields 0/2/1. For
+        the particle grammar, cbexigen contradicts its *own input schema*: it caps a maxOccurs="16"
+        list at two and hides the following particle from the empty state, so two perfectly valid
+        documents cannot be encoded at all.
+      * The failure mode is bad. Our ACDP_ConnectRes decodes cleanly, as ACDP_DisconnectReq — the
+        wrong message, with nothing to report it.
+      * Nothing is on the wire. ACDP and WPT are exactly the message sets for which no independent
+        stack implements a session state machine, cbexigen-derived ones included. The byte
+        compatibility being given up here is compatibility with an encoder nobody runs for these
+        messages.
+      * The evidence improves. The affected vectors were cbV2G's output checked against cbV2G; they
+        are now verified through EXIficient, which shares no line with cbexigen.
+
+    Both remain switches, not one-way doors: set either property back to CbV2GCompatible to get the
+    cbexigen bytes. The generator's own defaults are still CbV2GCompatible — this file is the ISO
+    codecs' decision, not the generator's.
+
+    Byte-neutral outside ACDP and WPT by construction (the orders coincide unless a type is shared;
+    the particle rule applies to one construct), and the vector corpus is what proves it: every other
+    expected byte in the solution is unchanged.
+  -->
+
+  <PropertyGroup>
+    <ExiDocumentElementOrder>ExiSorted</ExiDocumentElementOrder>
+    <ExiParticleGrammar>SchemaConformant</ExiParticleGrammar>
+  </PropertyGroup>
+
+</Project>

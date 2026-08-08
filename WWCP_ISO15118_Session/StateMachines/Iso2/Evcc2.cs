@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
         /// <summary>
         /// The vehicle's own energy counter — what this EV thinks it took, kept independently of what
-        /// the station reports (<c>docs/CONCEPT.md</c> §4.2/§4.3).
+        /// the station reports (<c>EVSimulatorApp/docs/CONCEPT.md</c> §4.2/§4.3).
         /// </summary>
         /// <remarks>
         /// Settable so a caller can shorten or lengthen what one charge-loop iteration stands for; see
@@ -433,7 +433,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// The -2 half of the gap a live peer found in the -20 EVCC on 2026-08-01: nothing here read a
         /// response code either, beyond recording <see cref="SessionSetupCode"/> for the caller's
         /// information. A station could answer <c>FAILED</c> to every message and this car would charge
-        /// through it (<c>docs/interop-runs/2026-08-01-edf-iso20-dc-notls/</c>, finding 3).
+        /// through it (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-01-edf-iso20-dc-notls/</c>, finding 3).
         /// </para>
         /// <para>
         /// <b>Why reflection rather than a switch.</b> ISO 15118-2 has no common response base — every
@@ -493,7 +493,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// worked against every station this project had met, because every one of them offered exactly what
         /// we happened to name. EVerest's AC SIL configuration does not: it advertises a single-phase mode,
         /// answers our three-phase request with <c>FAILED_WrongEnergyTransferMode</c>, and is right to
-        /// (<c>docs/interop-runs/2026-08-03-everest-iso2-ac/</c>).
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-03-everest-iso2-ac/</c>).
         /// </para>
         /// <para>
         /// The list is there to be read; picking without looking is the same mistake as the unread response

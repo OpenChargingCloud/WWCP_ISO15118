@@ -27,7 +27,8 @@ Needs a C compiler, CMake ≥ 3.14, and network access (for the first fetch). On
 Windows machine the path of least resistance is **WSL** (Debian, gcc + cmake):
 
 ```sh
-wsl -d Debian -- bash /mnt/d/Coding/OpenChargingCloud/Vanaheimr.V2G.Exi/tools/cbv2g-ref/build.sh
+# from this repository's root
+wsl -d Debian -- bash tools/cbv2g-ref/build.sh
 ```
 
 The binary lands at `~/cbv2g-ref-build/cbv2g_ref` (override with `CBV2G_REF_BUILD`).
@@ -57,10 +58,12 @@ round-trip can be asserted.
 
 ## Regenerate the vectors
 
-After building, run the driver (Python 3, under WSL so it can call the Linux binary):
+After building, run the driver (Python 3, under WSL so it can call the Linux binary). It lives with
+the rest of the rig, in the **conformance** repository this one is a submodule of — so run it from
+*that* root, not this one:
 
 ```sh
-wsl -d Debian -- python3 /mnt/d/Coding/OpenChargingCloud/Vanaheimr.V2G.Exi/tools/regenerate-appprotocol-vectors.py
+wsl -d Debian -- python3 tools/regenerate-appprotocol-vectors.py
 ```
 
 It pipes every vector's `input` through `encode`, verifies each round-trips through

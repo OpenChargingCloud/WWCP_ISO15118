@@ -47,7 +47,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
     /// cbV2G's own bytes. The other four shift (see
     /// <see cref="PlainAcMessage_IsByteIdenticalUnderBothGrammars"/>), and everything DER is this
     /// project's own output. EXIficient is schema-generic and remains the candidate spec oracle for
-    /// the rest; see <c>docs/roadmap.md</c>.
+    /// the rest; see <c>EVSimulatorApp/docs/roadmap.md</c>.
     /// </para>
     /// </summary>
     [TestFixture]

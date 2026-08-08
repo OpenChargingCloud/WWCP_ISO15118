@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Linq;
+
 using cloud.charging.open.protocols.ISO15118_20.WPT.Generated;
 
 namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
@@ -29,6 +31,63 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
     {
         private static MessageHeaderType Header() => new(SessionID: new byte[8], TimeStamp: 1_700_000_000UL, Signature: null);
         private static RationalNumberType Rational(sbyte exponent, short value) => new(exponent, value);
+
+        /// <summary>
+        /// <paramref name="items"/> coils at distinct positions, so the list is distinguishable in the
+        /// stream rather than the same tuple repeated — a run of identical values would still encode,
+        /// but a misread offset would be far harder to see in a byte diff.
+        /// </summary>
+        private static WPT_TxRxSpecDataType[] SpecData(int items)
+            => Enumerable.Range(0, items)
+                         .Select(i => new WPT_TxRxSpecDataType(
+                                          TxRxIdentifier:  (uint) (i + 1),
+                                          TxRxPosition:    new WPT_CoordinateXYZType((short) (i * 10), 0, 0),
+                                          TxRxOrientation: new WPT_CoordinateXYZType(0, (short) (i * 5), 0)))
+                         .ToArray();
+
+        /// <summary><c>PulseSequenceOrder</c>, the third minOccurs="2" particle, one level further down.</summary>
+        private static WPT_TxRxPackageSpecDataType PackageSpec(int items)
+            => new(PulseSequenceOrder: Enumerable.Range(0, items)
+                                                 .Select(i => new WPT_TxRxPulseOrderType(
+                                                                  IndexNumber:    (ushort) (i + 1),
+                                                                  TxRxIdentifier: (uint)   (i + 1)))
+                                                 .ToArray(),
+                   PulseSeparationTime:   10,
+                   PulseDuration:         20,
+                   PackageSeparationTime: 30);
+
+        /// <summary>The transmitter branch: <c>TxSpecData</c> and, under it, <c>PulseSequenceOrder</c> —
+        /// two of the three particles in one message, at the same list length.</summary>
+        private static WPT_FinePositioningSetupReq LfTransmitterSetup(int items)
+            => new(Header(),
+                   Processing.Finished,
+                   new WPT_FinePositioningMethodListType(new[] { WPT_FinePositioningMethod.Manual }),
+                   new WPT_PairingMethodListType(new[] { WPT_PairingMethod.LPE }),
+                   new WPT_AlignmentCheckMethodListType(new[] { WPT_AlignmentCheckMethod.PowerCheck }),
+                   NaturalOffset: 0,
+                   VendorSpecificDataContainer: System.Array.Empty<byte[]>(),
+                   LF_SystemSetupData: new WPT_LF_SystemSetupDataType(
+                       LF_TransmitterSetupData: new WPT_LF_TransmitterDataType(
+                           NumberOfTransmitters: (byte) items,
+                           SignalFrequency:      Rational(0, 100),
+                           TxSpecData:           SpecData(items),
+                           TxPackageSpecData:    PackageSpec(items)),
+                       LF_ReceiverSetupData: null));
+
+        /// <summary>The receiver branch, which carries <c>RxSpecData</c> and nothing else repeating.</summary>
+        private static WPT_FinePositioningSetupRes LfReceiverSetup(int items)
+            => new(Header(), ResponseCode.OK,
+                   new WPT_FinePositioningMethodListType(new[] { WPT_FinePositioningMethod.Manual }),
+                   new WPT_PairingMethodListType(new[] { WPT_PairingMethod.LPE }),
+                   new WPT_AlignmentCheckMethodListType(new[] { WPT_AlignmentCheckMethod.PowerCheck }),
+                   NaturalOffset: 0,
+                   VendorSpecificDataContainer: System.Array.Empty<byte[]>(),
+                   LF_SystemSetupData: new WPT_LF_SystemSetupDataType(
+                       LF_TransmitterSetupData: null,
+                       LF_ReceiverSetupData: new WPT_LF_ReceiverDataType(
+                           NumberOfReceivers: (byte) items,
+                           RxSpecData:        SpecData(items))));
+
 
         public static bool TryEncode(string vectorName, byte[] dest, out int bytesWritten)
         {
@@ -119,6 +178,37 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
                             SPCOperatingFrequency: null, SPCPowerControlParameter: null,
                             ManufacturerSpecificDataContainer: System.Array.Empty<byte[]>())
                         .TryEncode(dest, out bytesWritten);
+
+                // ---- LF_SystemSetupData: the only place WPT's three minOccurs="2" particles live ----
+                //
+                // TxSpecData, RxSpecData and PulseSequenceOrder are all `minOccurs="2" maxOccurs="255"`,
+                // and all three are reachable only behind LF_SystemSetupData — which the cbV2G corpus
+                // deliberately leaves absent, because cbexigen's own encoder for WPT_LF_TransmitterDataType
+                // fails at runtime with EXI_ERROR__UNKNOWN_EVENT_CODE. So no reference encoder has ever
+                // written these bytes, and until 2026-08-08 nothing but our own decoder had ever read
+                // them: they were covered by self-consistency round trips, which cannot catch an encoder
+                // and decoder that are wrong in the same way. That is exactly how the forced-occurrence
+                // defect survived in the DER curves (cause C of the 2026-08-07 EXIficient run).
+                //
+                // These vectors close that. Their expected bytes are ours, but EXIficient reads them and
+                // writes back the same octets — see the vector file's `verifiedBy`.
+                //
+                // Two lengths each, and the pair is the point: at exactly minOccurs every occurrence is
+                // forced and takes a 1-bit start-element code, while the first occurrence *past* minOccurs
+                // is the first real choice and widens to 2 bits. A 2-item list alone would not exercise
+                // the transition that was wrong.
+
+                case "WPT_FinePositioningSetupReq_LFTransmitter2":
+                    return LfTransmitterSetup(items: 2).TryEncode(dest, out bytesWritten);
+
+                case "WPT_FinePositioningSetupReq_LFTransmitter3":
+                    return LfTransmitterSetup(items: 3).TryEncode(dest, out bytesWritten);
+
+                case "WPT_FinePositioningSetupRes_LFReceiver2":
+                    return LfReceiverSetup(items: 2).TryEncode(dest, out bytesWritten);
+
+                case "WPT_FinePositioningSetupRes_LFReceiver3":
+                    return LfReceiverSetup(items: 3).TryEncode(dest, out bytesWritten);
 
                 default:
                     throw new ArgumentException($"no WPT fixture for vector '{vectorName}'");

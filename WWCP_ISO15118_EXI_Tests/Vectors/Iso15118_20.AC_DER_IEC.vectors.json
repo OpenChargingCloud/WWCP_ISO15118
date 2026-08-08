@@ -95,6 +95,18 @@
       "source": "Vanaheimr.V2G.Exi (C#)",
       "note": "Uses a DER substitution member. cbexigen does not generate the amendment schemas, so there is no reference encoder for this message at all.",
       "expectedHex": "80 0c 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 78 40 07 a0 e1 04 00 78 55 80 91 00 1b 06 c3 80"
+    },
+    {
+      "name": "AC_ChargeParameterDiscoveryRes_DER_Curve2",
+      "source": "Vanaheimr.V2G.Exi (C#), verified through EXIficient",
+      "note": "A volt-var curve with two CurveDataPoints — IEC's only minOccurs=2 particle, at exactly the minimum, where both occurrences are forced and take a 1-bit start-element code. The plain DER response above leaves DERControl empty, so nothing in this corpus reached this path until 2026-08-08.",
+      "expectedHex": "80 14 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 84 00 78 55 80 91 00 0c 84 40 01 91 48 00 f8 55 22 00 22 09 c8 80 0d 83 62 00 60 04 02 00 37 00 40 80 00 01 04 00 70 80 81 00 0c 82 60 10 00 0a 28"
+    },
+    {
+      "name": "AC_ChargeParameterDiscoveryRes_DER_Curve3",
+      "source": "Vanaheimr.V2G.Exi (C#), verified through EXIficient",
+      "note": "Three points: the third is the first occurrence past minOccurs and widens to 2 bits. The SAE sibling of this construct is what EXIficient could not read on 2026-08-07 (cause C).",
+      "expectedHex": "80 14 04 00 00 00 00 00 00 00 00 08 0e 2c fa a0 62 00 84 00 78 55 80 91 00 0c 84 40 01 91 48 00 f8 55 22 00 22 09 c8 80 0d 83 62 00 60 04 02 00 37 00 40 80 00 01 04 00 70 80 81 00 0c 82 04 00 73 00 81 00 19 00 22 60 10 00 0a 28"
     }
   ]
 }

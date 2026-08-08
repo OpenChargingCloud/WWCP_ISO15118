@@ -33,6 +33,7 @@ using cloud.charging.open.protocols.ISO15118.SLAC.Transport;
 
 using Vanaheimr.V2G.Simulation.Discovery;
 using Vanaheimr.V2G.Simulation.Sap;
+using Vanaheimr.V2G.Simulation.Session;
 using Vanaheimr.V2G.Simulation.Slac;
 using Vanaheimr.V2G.Simulation.StateMachines;
 using Vanaheimr.V2G.Simulation.StateMachines.Iso2;
@@ -106,9 +107,11 @@ namespace Vanaheimr.V2G.Simulation.Cli
 
             await using var sdp = args.UseSdp ? await StartSeccSdpAsync(args, listener.LocalEndpoint.Port) : null;
 
-            // Pause/resume: a session that ends with ChargingSession.Pause hands back its session id — keep
-            // accepting connections and offer it, so the EV can rejoin (OK_OldSessionJoined) after reconnecting.
-            byte[]? resumeId = null;
+            // Pause/resume: a session that ends with ChargingSession.Pause hands back what the next connection
+            // needs to rejoin it — keep accepting connections and offer that, so the EV can come back
+            // (OK_OldSessionJoined). For -20 "the EV" is meant literally: the offer includes a binding to the
+            // vehicle certificate, and a different car naming this session id gets a new session instead.
+            ResumableSession? paused = null;
             do
             {
                 using var stream = await listener.AcceptAsync();
@@ -126,11 +129,13 @@ namespace Vanaheimr.V2G.Simulation.Cli
                     await SapHandshake.RunSeccSideAsync(stream, args.Protocol, mode: args.Mode);
                     sessionArgs = args;
                 }
-                resumeId = await RunSeccSessionAsync(stream, sessionArgs, resumeId);
-                if (resumeId is not null)
-                    Console.WriteLine($"Session paused (id {Convert.ToHexString(resumeId)}) — awaiting resume...");
+                paused = await RunSeccSessionAsync(stream, sessionArgs, paused);
+                if (paused is not null)
+                    Console.WriteLine($"Session paused (id {Convert.ToHexString(paused.SessionId)}" +
+                                      $"{(paused.Binding is null ? ", unbound — no peer certificate, so a resume cannot be verified" : "")})" +
+                                      " — awaiting resume...");
             }
-            while (resumeId is not null);
+            while (paused is not null);
         }
 
         /// <summary>-20 first, -2 second: a real car's preference order, and the SECC list a
@@ -140,13 +145,13 @@ namespace Vanaheimr.V2G.Simulation.Cli
 
         /// <summary>Runs one session; returns the session id when it ended <b>paused</b> (offer it to the
         /// next session as the resume id), else <c>null</c>.</summary>
-        private static async Task<byte[]?> RunSeccSessionAsync(Stream stream, CliArgs args, byte[]? resumeId = null)
+        private static async Task<ResumableSession?> RunSeccSessionAsync(Stream stream, CliArgs args, ResumableSession? resume = null)
         {
             if (args.Protocol == ProtocolVariant.Iso15118_2)
             {
                 var secc2 = new Secc2(args.Mode, TimeSpan.FromSeconds(60), TimeProvider.System)
                 {
-                    ResumeSessionId = resumeId,
+                    ResumeSessionId = resume?.SessionId,
                     RequestRenegotiation = args.Renegotiate,
                     TariffSignKey = args.TariffCertPath is not null
                         ? LoadTariffKey(args.TariffCertPath, args.TariffCertPass, signing: true) : null,
@@ -168,7 +173,7 @@ namespace Vanaheimr.V2G.Simulation.Cli
                 }
                 if (secc2.Renegotiations > 0)
                     Console.WriteLine($"-2 Renegotiation cycles: {secc2.Renegotiations}.");
-                return secc2.Paused ? secc2.SessionId : null;
+                return secc2.Paused ? new ResumableSession(secc2.SessionId, null, 0) : null;
             }
             else
             {
@@ -180,7 +185,7 @@ namespace Vanaheimr.V2G.Simulation.Cli
                 };
                 secc.PreferDynamicControlMode = args.PreferDynamic;
                 secc.OfferPlugAndCharge       = !args.NoPnc;
-                secc.ResumeSessionId = resumeId;
+                secc.OfferResume(resume);
                 secc.RequestRenegotiation = args.Renegotiate;
                 if (args.TariffCertPath is not null)
                     secc.TariffSignKey = LoadTariffKey(args.TariffCertPath, args.TariffCertPass, signing: true);
@@ -197,8 +202,14 @@ namespace Vanaheimr.V2G.Simulation.Cli
                                           $"({EnergyServiceName(secc.SelectedEnergyServiceId)}).");
                     if (secc.Renegotiations > 0)
                         Console.WriteLine($"-20 ServiceRenegotiation cycles: {secc.Renegotiations}.");
+                    // A resume that was offered but not taken means the car naming the session id could not
+                    // prove it was the car that paused it — worth saying out loud in a reverse run.
+                    if (resume is not null && secc.SessionSetupCode !=
+                            cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ResponseCode.OK_OldSessionJoined)
+                        Console.WriteLine("Resume refused: the requester did not match the paused session's " +
+                                          "binding — a new session was established instead.");
                 }
-                return secc.Paused ? secc.SessionId : null;
+                return secc.PausedSession;
             }
         }
 
@@ -279,23 +290,28 @@ namespace Vanaheimr.V2G.Simulation.Cli
             {
                 // --pause / --resume <hex>: the two pause/resume halves as separate invocations, for
                 // orchestration by an outer script (e.g. when the SECC moves ports between sessions).
-                var oneShotResume = args.ResumeSessionIdHex is null ? null : Convert.FromHexString(args.ResumeSessionIdHex);
-                var sid = await RunOneEvccConnectionAsync(args, pause: args.EndPaused, resumeId: oneShotResume);
+                // Two invocations cannot hand a station binding between them, so a --resume here carries the
+                // session id alone and the EVCC's own same-station check has nothing to compare against.
+                // Deliberate: see Evcc20Base.ResumeBinding for why the car may proceed where a station may not.
+                var oneShotResume = args.ResumeSessionIdHex is null
+                                        ? null
+                                        : new ResumableSession(Convert.FromHexString(args.ResumeSessionIdHex), null, 0);
+                var oneShot = await RunOneEvccConnectionAsync(args, pause: args.EndPaused, resume: oneShotResume);
                 if (args.EndPaused)
-                    Console.WriteLine($"Paused session id: {Convert.ToHexString(sid)}");
+                    Console.WriteLine($"Paused session id: {Convert.ToHexString(oneShot.SessionId)}");
                 return;
             }
 
             // Pause/resume: session 1 ends with ChargingSession.Pause; then a completely fresh connection
-            // (incl. SDP re-discovery when --sdp) rejoins the paused session by its id — the SECC must
-            // answer SessionSetup with OK_OldSessionJoined.
-            var sessionId = await RunOneEvccConnectionAsync(args, pause: true, resumeId: null);
-            Console.WriteLine($"\n— Paused (session {Convert.ToHexString(sessionId)}); reconnecting to resume —\n");
+            // (incl. SDP re-discovery when --sdp) rejoins the paused session — the SECC must answer
+            // SessionSetup with OK_OldSessionJoined, which for -20 also means proving we are the same car.
+            var paused = await RunOneEvccConnectionAsync(args, pause: true, resume: null);
+            Console.WriteLine($"\n— Paused (session {Convert.ToHexString(paused.SessionId)}); reconnecting to resume —\n");
             await Task.Delay(TimeSpan.FromSeconds(2));
-            await RunOneEvccConnectionAsync(args, pause: false, resumeId: sessionId);
+            await RunOneEvccConnectionAsync(args, pause: false, resume: paused);
         }
 
-        private static async Task<byte[]> RunOneEvccConnectionAsync(CliArgs args, bool pause, byte[]? resumeId)
+        private static async Task<ResumableSession> RunOneEvccConnectionAsync(CliArgs args, bool pause, ResumableSession? resume)
         {
             var (host, port) = await ResolveEvccEndpointAsync(args);
             using var stream = await ConnectEvccAsync(args, host, port);
@@ -307,11 +323,11 @@ namespace Vanaheimr.V2G.Simulation.Cli
                 var accepted = await SapHandshake.RunEvccSideAsync(stream, BothOffers(args.Mode));
                 Console.WriteLine($"SAP: offered -20 (priority 1) and -2 (priority 2); " +
                                   $"the station picked {ProtocolName(accepted.Protocol)}.");
-                return await RunEvccSessionAsync(stream, args with { Protocol = accepted.Protocol }, pause, resumeId);
+                return await RunEvccSessionAsync(stream, args with { Protocol = accepted.Protocol }, pause, resume);
             }
 
             await SapHandshake.RunEvccSideAsync(stream, args.Protocol, mode: args.Mode);
-            return await RunEvccSessionAsync(stream, args, pause, resumeId);
+            return await RunEvccSessionAsync(stream, args, pause, resume);
         }
 
         private static async Task<Stream> ConnectEvccAsync(CliArgs args, string host, int port)
@@ -343,7 +359,7 @@ namespace Vanaheimr.V2G.Simulation.Cli
             }
         }
 
-        private static async Task<byte[]> RunEvccSessionAsync(Stream stream, CliArgs args, bool pause = false, byte[]? resumeId = null)
+        private static async Task<ResumableSession> RunEvccSessionAsync(Stream stream, CliArgs args, bool pause = false, ResumableSession? resume = null)
         {
             if (args.Protocol == ProtocolVariant.Iso15118_2)
             {
@@ -351,7 +367,7 @@ namespace Vanaheimr.V2G.Simulation.Cli
                 {
                     StopMode = pause ? cloud.charging.open.protocols.ISO15118_2.Generated.ChargingSession.Pause
                                      : cloud.charging.open.protocols.ISO15118_2.Generated.ChargingSession.Terminate,
-                    ResumeSessionId = resumeId,
+                    ResumeSessionId = resume?.SessionId,
                     Renegotiate = args.Renegotiate,
                 };
                 if (args.ContractCertPath is not null)
@@ -367,7 +383,9 @@ namespace Vanaheimr.V2G.Simulation.Cli
                                       $"{(t2.SignaturePresent ? $"present, digests {(t2.DigestOk ? "OK" : "FAIL")}, " +
                                         $"ECDSA {(t2.SignatureOk ? $"OK (grammar={t2.SignatureGrammar})" : "FAIL/unverified")}" : "absent")}; " +
                                       $"chose tuple {t2.ChosenTupleId}, profile {t2.ProfileEntries} entr{(t2.ProfileEntries == 1 ? "y" : "ies")}.");
-                return evcc.SessionId;
+                // -2 binds nothing to the session and renegotiates the service on resume — both by design
+                // there, and both changed in -20. See Session/ResumableSession.
+                return new ResumableSession(evcc.SessionId, null, 0);
             }
             else
             {
@@ -379,7 +397,7 @@ namespace Vanaheimr.V2G.Simulation.Cli
                 };
                 evcc.StopMode = pause ? cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Pause
                                       : cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Terminate;
-                evcc.ResumeSessionId = resumeId;
+                evcc.ResumeFrom(resume);
                 if (args.ContractCertPath is not null)
                     evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
                 if (args.TariffCertPath is not null)
@@ -390,7 +408,12 @@ namespace Vanaheimr.V2G.Simulation.Cli
                 if (evcc.Tariff is { } t20)
                     Console.WriteLine($"-20 AbsolutePriceSchedule: signature {(t20.SignaturePresent ? "present" : "absent")}, " +
                                       $"digest {(t20.DigestOk ? "OK" : "FAIL")}, ECDSA-P521/SHA-512 {(t20.SignatureOk ? "OK" : "FAIL/unverified")}.");
-                return evcc.SessionId;
+                if (evcc.ResumeRefused)
+                    Console.WriteLine("  the station refused the resume and opened a new session — " +
+                                      "everything the paused session carried, authorization included, was dropped.");
+                else if (evcc.ResumedStationVerified == true)
+                    Console.WriteLine("  resumed session confirmed to be with the same station (certificate binding).");
+                return evcc.PausedSession;
             }
         }
 

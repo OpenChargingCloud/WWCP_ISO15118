@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
     /// <summary>
     /// Configuration for the BouncyCastle TLS backend (<see cref="BcTlsTransport"/>) — the managed,
     /// platform-independent alternative to .NET's <c>SslStream</c>, used for the ISO 15118-20-faithful
-    /// TLS profile (TLS 1.3, secp521r1 / Ed448) that Windows Schannel cannot do. See <c>docs/pki-model.md</c>.
+    /// TLS profile (TLS 1.3, secp521r1 / Ed448) that Windows Schannel cannot do. See <c>EVSimulatorApp/docs/pki-model.md</c>.
     /// </summary>
     public sealed record BcTlsOptions
     {
@@ -42,7 +42,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
         /// <para>
         /// Setting this <b>deviates from the -20 TLS profile</b> and exists for the macOS TLS 1.3 fallback
         /// (<see cref="TlsPlatform"/>), which carries the .NET backend's deliberately off-profile P-256 test
-        /// certificates (see <c>docs/pki-model.md</c>). Never set it on a -20 conformance path.
+        /// certificates (see <c>EVSimulatorApp/docs/pki-model.md</c>). Never set it on a -20 conformance path.
         /// </para></summary>
         public int[]? AcceptedClientSignatureSchemes { get; init; }
 

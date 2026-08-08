@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
     /// been created, or a run from inside a container that does not have it, all produce the same thing:
     /// a scope-0 link-local connect that fails with a generic socket error pointing at the <i>peer</i>.
     /// The one fact that would have explained it — that the zone was dropped — is the fact the parser
-    /// threw away. This is the recurring lesson in <c>docs/CONCEPT.md</c> §5 in yet another place: a
+    /// threw away. This is the recurring lesson in <c>EVSimulatorApp/docs/CONCEPT.md</c> §5 in yet another place: a
     /// check made tolerant of a legitimate variation stops seeing what that variation was hiding.
     /// </para>
     /// <para>

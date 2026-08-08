@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ namespace cloud.charging.open.protocols.ISO15118.Metering;
 /// <para>
 /// <b>Why the EV needs one at all.</b> Without it every number the app can show about energy is the
 /// station's, and the EV's signed <c>MeteringReceiptReq</c> is a countersignature on somebody else's
-/// figure — the EV attesting to a reading it has no way to dispute. <c>docs/CONCEPT.md</c> §4.2 asks
+/// figure — the EV attesting to a reading it has no way to dispute. <c>EVSimulatorApp/docs/CONCEPT.md</c> §4.2 asks
 /// for exactly this: a local model *"so the signature covers the EV's own view, not only an echo of
 /// the station's"*. It is also the first of §4.3's three legs, and the only one that needs no
 /// cryptography whatsoever — which is worth noticing, because a disagreement it finds is the kind no

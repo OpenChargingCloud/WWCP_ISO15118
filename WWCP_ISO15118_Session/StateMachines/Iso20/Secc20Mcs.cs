@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
     /// <para>
     /// Service ids and the connector enum are taken from EVerest's <c>libiso15118</c>
     /// (<c>ServiceCategory::MCS = 8</c>, <c>MCS_BPT = 9</c>; <c>McsConnector</c> 1 = MCS, 4 = rMCS, 5 = xMCS),
-    /// whose surrounding values (AC=1, DC=2, DC_BPT=6) match ours exactly — see <c>docs/roadmap.md</c>.
+    /// whose surrounding values (AC=1, DC=2, DC_BPT=6) match ours exactly — see <c>EVSimulatorApp/docs/roadmap.md</c>.
     /// <b>The ids are validated, the envelope is not.</b> On 2026-08-05 three complete sessions ran against
     /// everest-core 2026.02.1's MCS SIL config: their <c>Evse15118D20</c> read service id 8 back as MCS and
     /// carried the session through on the DC message set, which settles the catalogue. The physical limits

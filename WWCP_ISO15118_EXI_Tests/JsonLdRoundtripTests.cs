@@ -24,7 +24,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
 {
 
     /// <summary>
-    /// The JSON-LD serializer's oracle (docs/CONCEPT.md §4.4): for every vector in the corpus,
+    /// The JSON-LD serializer's oracle (EVSimulatorApp/docs/CONCEPT.md §4.4): for every vector in the corpus,
     /// <c>EXI → JSON → EXI</c> must reproduce the original bytes.
     /// </summary>
     /// <remarks>

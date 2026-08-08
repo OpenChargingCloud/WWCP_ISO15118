@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ namespace cloud.charging.open.protocols.ISO15118.Metering;
 /// <para>
 /// What the full transparency record needs — meter public key, serial, OCMF envelope, tariff — does
 /// not fit in 64 bytes and never will. That needs a side channel, and -20's VAS is the right one
-/// (<c>docs/CONCEPT.md</c> §4.3). This covers the part that fits.
+/// (<c>EVSimulatorApp/docs/CONCEPT.md</c> §4.3). This covers the part that fits.
 /// </para>
 ///
 /// ## Layout

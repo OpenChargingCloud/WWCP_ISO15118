@@ -24,7 +24,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Interop
 {
     /// <summary>
     /// ISO 15118-<b>20</b> DC frames captured from a live Josev session (SwitchEV/iso15118 @ <c>d645255</c>,
-    /// rebuilt on Debian trixie, EXI codec 1.55 - see <c>docs/interop-runs/2026-07-21-iso20-dc-pnc-notls/</c>).
+    /// rebuilt on Debian trixie, EXI codec 1.55 - see <c>ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso20-dc-pnc-notls/</c>).
     /// The session negotiated <c>ISO_15118_20_DC</c> over SAP and ran a full <b>Plug &amp; Charge</b> DC loop
     /// (SessionSetup, AuthorizationSetup, signed Authorization, ServiceDiscovery/Detail/Selection,
     /// DC_ChargeParameterDiscovery, ScheduleExchange, CableCheck, PreCharge, PowerDelivery, DC_ChargeLoop,
@@ -146,7 +146,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Interop
         // (our vector oracle) never emits Transforms inside a Reference, so the path was never validated. The
         // generator now models the optional/repeatable direct choice as an EE-terminated optional run (matching
         // cbexigen's TransformType/TransformsType grammar), so this signed frame round-trips byte-for-byte like
-        // the rest. See docs/interop-runs/2026-07-21-iso20-dc-pnc-notls/.
+        // the rest. See ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso20-dc-pnc-notls/.
         [Test]
         public void Josev20_SignedAuthorizationReq_WithTransforms_RoundTripsIdentically()
         {

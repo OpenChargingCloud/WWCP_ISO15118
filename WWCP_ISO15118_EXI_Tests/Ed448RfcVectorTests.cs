@@ -39,7 +39,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
     /// every one of them and is rejected by every conforming peer. Nothing else in the repository
     /// would have caught it either: unlike ECDSA-P521 there is no live-interop evidence, because
     /// the -20 secp521r1/Ed448 profile is one Josev cannot exercise
-    /// (<c>docs/interop-runs/2026-07-21-iso20-dc-tls-forward/notes.md</c>).
+    /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-07-21-iso20-dc-tls-forward/notes.md</c>).
     /// </para>
     /// <para>
     /// These vectors are a stronger oracle than the rest of the corpus. The cbV2G vectors are one
@@ -141,7 +141,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
         /// nothing in common. So "empty context" is a *choice* our implementation makes, not a
         /// property of Ed448, and an API that hides the parameter is making that choice silently.
         /// That matters for the Swift back end: the libraries under consideration expose no context
-        /// argument at all (docs/CONCEPT.md §8 #10).
+        /// argument at all (EVSimulatorApp/docs/CONCEPT.md §8 #10).
         /// </remarks>
         [Test]
         public void TheContextChangesTheSignatureEntirely()

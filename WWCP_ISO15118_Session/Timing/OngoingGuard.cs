@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ namespace cloud.charging.open.protocols.ISO15118.Timing
     /// 2026-08-02 that meant 1 170 <c>AuthorizationReq</c> in three minutes: their station answered
     /// <c>OK</c> with <c>Ongoing</c> every time, correctly — nothing had authorized the session — and our
     /// car had nothing that would ever make it stop
-    /// (<c>docs/interop-runs/2026-08-02-everest-iso2-dc-notls/</c>).
+    /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-02-everest-iso2-dc-notls/</c>).
     /// </para>
     /// <para>
     /// The gap was between two timeouts that both looked like they covered it. The per-message timeout

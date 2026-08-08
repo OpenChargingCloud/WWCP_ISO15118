@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
     /// empty OtherInfo) is schema-valid and round-trips, but no external reference stack implements -20
     /// provisioning to diff against (Josev raises <c>NotImplementedError</c> on both sides), so unlike the
     /// message codecs these *crypto payload* octets are self-consistent only — flagged in
-    /// <c>docs/phase5-report.md</c>. The wire *messages* around them stay byte-exact per the usual oracles.
+    /// <c>EVSimulatorApp/docs/phase5-report.md</c>. The wire *messages* around them stay byte-exact per the usual oracles.
     /// </para>
     /// </summary>
     public static class ContractProvisioning

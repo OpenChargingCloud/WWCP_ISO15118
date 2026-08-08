@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ namespace cloud.charging.open.protocols.ISO15118.Cli
     /// Dev-only glue for the <c>--tls-backend bc</c> path: the SECC generates a strict-20 V2G PKI
     /// (ECDSA P-521) and writes the EVCC's material into a shared <c>--pki-dir</c>; the EVCC loads it back.
     /// Peer validation pins the exact expected leaf certificate. Not for production — a real deployment
-    /// provisions Vehicle/SECC certificates out of band from the CharIN V2G PKI (see docs/pki-model.md).
+    /// provisions Vehicle/SECC certificates out of band from the CharIN V2G PKI (see EVSimulatorApp/docs/pki-model.md).
     /// </summary>
     public static class CliPki
     {

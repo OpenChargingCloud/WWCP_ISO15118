@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -577,7 +577,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// and ignore the rest. Not all of them do: eVDriveFlow's EVCC raises on the first entry it does
         /// not support — <c>NotImplementedError</c> — even when the EIM it does support is the next entry
         /// in the same list, which ends the session at authorization
-        /// (<c>docs/interop-runs/2026-08-01-edf-iso20-dc-dynamic-reverse/</c>). Offering less is how a
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-01-edf-iso20-dc-dynamic-reverse/</c>). Offering less is how a
         /// station gets past a car like that, and it is the only way to reach anything behind
         /// authorization with such a peer.
         /// </para>

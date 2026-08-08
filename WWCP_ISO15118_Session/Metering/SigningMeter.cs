@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ namespace cloud.charging.open.protocols.ISO15118.Metering;
 /// populated at all: they exist so the <b>meter</b> — not the SECC, not the backend — can sign what
 /// it measured, which is the Eichrecht trust model transported over stock ISO 15118, and they are
 /// almost never used. A phone that displays and verifies one would be novel on its own
-/// (<c>docs/CONCEPT.md</c> §4.3).
+/// (<c>EVSimulatorApp/docs/CONCEPT.md</c> §4.3).
 /// </para>
 /// <para>
 /// So the key here is deliberately <b>not</b> the SECC's TLS key or its contract key. A meter that

@@ -1,6 +1,6 @@
 ﻿/*
  * Copyright (c) 2021-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
- * This file is part of EVSimulatorApp
+ * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
  * Licensed under the Affero GPL license, Version 3.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
     /// station honours that ranking among what it supports. (Deliberately not cited to a requirement
     /// id: this project does not hold the ISO 15118-2 requirement text, and an unchecked
     /// <c>[V2G2-nnn]</c> would read as verified. EVerest's <c>IsoMux</c> does <b>not</b> honour it —
-    /// see <c>docs/interop-runs/2026-08-03-everest-isomux-both/</c>.)
+    /// see <c>ISO15118ConformanceTests/docs/interop-runs/2026-08-03-everest-isomux-both/</c>.)
     /// </remarks>
     public sealed record SapOffer(ProtocolVariant Protocol, PowerMode Mode = PowerMode.Dc);
 
@@ -58,7 +58,7 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
 
         // The SupportedAppProtocol ProtocolNamespace for -20 is the mode-specific application namespace
         // (…-20:DC / …-20:AC), NOT …-20:CommonMessages — a live Josev interop run rejected the CommonMessages
-        // offer (Failed_NoNegotiation); Josev's own -20 DC EVCC offers …-20:DC (see docs/interop-runs/).
+        // offer (Failed_NoNegotiation); Josev's own -20 DC EVCC offers …-20:DC (see ISO15118ConformanceTests/docs/interop-runs/).
         private static string NamespaceFor(ProtocolVariant variant, PowerMode mode) => variant switch
         {
             ProtocolVariant.Iso15118_2  => Iso2Namespace,

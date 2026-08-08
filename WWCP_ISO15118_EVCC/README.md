@@ -47,9 +47,16 @@ They are not interchangeable, and mixing them up produces failures that read lik
 
 | Flag | Which certificate | What it is for |
 |---|---|---|
-| `--vehicle-cert` | the CharIN **Vehicle** certificate | **who this car is.** Presented in the TLS handshake, on either backend. For `-20` it is also what the station's resume binding is computed over — `SHA-512(session-id ‖ SHA-512(vehicle leaf))` — so a resume only works if the car comes back with the same one. `--client-cert` is the older spelling, still accepted. |
+| `--vehicle-cert` | the **Vehicle** certificate | **who this car is.** Presented in the TLS handshake, on either backend. For `-20` it is also what the station's resume binding is computed over — `SHA-512(session-id ‖ SHA-512(vehicle leaf))` — so a resume only works if the car comes back with the same one. |
 | `--contract-cert` | the **contract** certificate | **who pays.** Plug & Charge in `-2` and `-20`: signs the authorization instead of paying externally. |
 | `--oem-cert` | the **OEM provisioning** certificate | **what the car was born with** — the only identity it has before it holds a contract. `-20`: sends a signed `CertificateInstallationReq` and ECDH-unwraps the contract key the station issues. |
+
+The names come from the **CharIN V2G second-generation PKI Certificate Policy**, not from ISO 15118
+directly — and that is deliberate rather than sloppy. The certificates themselves are ISO 15118's;
+the Policy realises the standard's structure as five named branches (CSO, Vehicle, e-MSP, OEM Prov,
+CPS) and is explicit that ISO 15118-20's own naming is not fully consistent, so this project uses the
+Policy's names throughout. `EVSimulatorApp/docs/pki-model.md` records that decision and both source
+documents.
 
 Two things about `--oem-cert` worth knowing before you use it. Its key must be **P-521**: the unwrap
 is an ECDH against the station's ephemeral secp521r1 key, so a `-2`-era P-256 OEM certificate gets a

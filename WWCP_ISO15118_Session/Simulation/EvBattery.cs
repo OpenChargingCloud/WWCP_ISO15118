@@ -146,6 +146,49 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
         /// <summary>The power the car asks for, in watts. Zero means "whatever the station offers".</summary>
         public double RequestedPowerW { get; init; }
 
+        /// <summary>
+        /// Where constant-current charging ends and the taper begins, in percent. 100 disables it.
+        /// </summary>
+        /// <remarks>
+        /// A lithium pack takes full current only to roughly four fifths, then the charger holds the
+        /// voltage and the current falls away — which is why the last fifth takes as long as the first
+        /// three. 80 % is the conventional knee and the value <c>DC_ChargeParameterDiscovery</c> declared
+        /// as <c>TargetSOC</c> here before any of this existed.
+        /// </remarks>
+        public double TaperFromSoC { get; init; } = 80.0;
+
+        /// <summary>
+        /// The smallest fraction of the requested power the taper will still ask for.
+        /// </summary>
+        /// <remarks>
+        /// Not cosmetic: a taper that reaches zero at exactly 100 % never fills the pack, and with the
+        /// meter's whole-watt-hour rounding the session would grind to a halt short of full and only end
+        /// at the iteration ceiling. Real chargers stop at a termination current for the same reason, so
+        /// the floor is the physical behaviour as much as it is the guard.
+        /// </remarks>
+        public double TaperFloor { get; init; } = 0.05;
+
+        /// <summary>
+        /// What fraction of <see cref="RequestedPowerW"/> the car asks for at the current state of charge:
+        /// 1 below the knee, falling linearly to <see cref="TaperFloor"/> at 100 %.
+        /// </summary>
+        /// <remarks>
+        /// Linear, and that is a simplification worth naming — a real constant-voltage phase decays roughly
+        /// exponentially. What this reproduces is the shape that matters for a charging session: full power
+        /// to the knee, then progressively less, so time-to-100 % is no longer time-to-80 % scaled up.
+        /// </remarks>
+        public double PowerFactor
+        {
+            get
+            {
+                if (TaperFromSoC >= 100 || SoC <= TaperFromSoC)
+                    return 1.0;
+
+                var through = (100.0 - SoC) / (100.0 - TaperFromSoC);   // 1 at the knee, 0 at full
+                return Math.Clamp(through, TaperFloor, 1.0);
+            }
+        }
+
         /// <summary>The iteration ceiling; see <see cref="DefaultMaxIterations"/>.</summary>
         public int MaxIterations { get; init; } = DefaultMaxIterations;
 

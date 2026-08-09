@@ -29,13 +29,29 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
     /// -20 the power mode that picks the application namespace (…-20:DC / …-20:AC).
     /// </summary>
     /// <remarks>
+    /// <para>
     /// The EVCC's list order is its preference: entry 0 is offered at Priority 1 (the highest) with
     /// SchemaID 1, entry 1 at Priority 2 with SchemaID 2, and so on. The SECC's list order carries no
     /// priority of its own — the <c>Priority</c> field exists so the <i>EV</i> can rank, and our
-    /// station honours that ranking among what it supports. (Deliberately not cited to a requirement
-    /// id: this project does not hold the ISO 15118-2 requirement text, and an unchecked
-    /// <c>[V2G2-nnn]</c> would read as verified. EVerest's <c>IsoMux</c> does <b>not</b> honour it —
-    /// see <c>ISO15118ConformanceTests/docs/interop-runs/2026-08-03-everest-isomux-both/</c>.)
+    /// station honours that ranking among what it supports.
+    /// </para>
+    /// <para>
+    /// That is a <i>shall</i>, and both standards carry it under the same number in their own series:
+    /// <c>[V2G2-169]</c> and <c>[V2G20-169]</c> have the SECC select, out of the protocols it supports
+    /// itself, the entry the EVCC ranked highest; <c>[V2G2-167]</c> and <c>[V2G20-167]</c> define the
+    /// field (1 highest, 20 lowest, at most 20 entries). So the station's capability is a filter and
+    /// <c>Priority</c> is the ranking applied inside it.
+    /// </para>
+    /// <para>
+    /// This used to say the ids were deliberately omitted because the requirement text was not held
+    /// here. It has been since 2026-08-08 — see <c>ISO15118ConformanceTests/docs/normative-basis.md</c>
+    /// for what may be cited from which document and for the caveat that the <c>-2</c> text to hand is
+    /// the 2022 DIS revision (answered here by <c>[V2G20-169]</c>, which needs none).
+    /// EVerest's <c>IsoMux</c> does <b>not</b> honour the ranking — the router picks its backend on the
+    /// first <c>-20</c> entry it sees, while both modules behind it read <c>Priority</c> correctly.
+    /// Reproduced three times and filed as
+    /// <c>ISO15118ConformanceTests/docs/reports/everest-isomux-sap-priority.md</c>.
+    /// </para>
     /// </remarks>
     public sealed record SapOffer(ProtocolVariant Protocol, PowerMode Mode = PowerMode.Dc);
 

@@ -100,6 +100,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 value /= 10;
                 exponent++;
             }
+
+            if (Math.Abs(value) > short.MaxValue)
+                value = Math.Sign(value) * short.MaxValue;
+
             return Rat((short) Math.Round(value), exponent);
         }
 

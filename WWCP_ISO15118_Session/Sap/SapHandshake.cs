@@ -72,6 +72,12 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
         private const string Iso20DcNamespace = "urn:iso:std:iso:15118:-20:DC";
         private const string Iso20AcNamespace = "urn:iso:std:iso:15118:-20:AC";
 
+        /// <summary>What every -20 application namespace begins with, for reading an offer we did not build.
+        /// The same prefix EVerest's <c>IsoMux</c> matches on — see
+        /// <c>ISO15118ConformanceTests/docs/reports/everest-isomux-sap-priority.md</c>, where matching on it
+        /// and stopping there is the defect.</summary>
+        private const string Iso20NamespacePrefix = "urn:iso:std:iso:15118:-20";
+
         // The SupportedAppProtocol ProtocolNamespace for -20 is the mode-specific application namespace
         // (…-20:DC / …-20:AC), NOT …-20:CommonMessages — a live Josev interop run rejected the CommonMessages
         // offer (Failed_NoNegotiation); Josev's own -20 DC EVCC offers …-20:DC (see ISO15118ConformanceTests/docs/interop-runs/).
@@ -91,20 +97,41 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
         /// <summary>EVCC side, one fixed protocol: offers exactly <paramref name="wanted"/> (for -20, the
         /// <paramref name="mode"/>-specific namespace), throws <see cref="SessionAborted"/> if the SECC
         /// rejects it.</summary>
-        public static async Task RunEvccSideAsync(Stream stream, ProtocolVariant wanted, CancellationToken ct = default, PowerMode mode = PowerMode.Dc)
-            => await RunEvccSideAsync(stream, new[] { new SapOffer(wanted, mode) }, ct).ConfigureAwait(false);
+        public static async Task RunEvccSideAsync(Stream stream, ProtocolVariant wanted, CancellationToken ct = default, PowerMode mode = PowerMode.Dc,
+                                                  TransportSecurity transport = TransportSecurity.Unknown)
+            => await RunEvccSideAsync(stream, new[] { new SapOffer(wanted, mode) }, ct, transport).ConfigureAwait(false);
 
         /// <summary>
         /// EVCC side, the multi-protocol offer: every entry in one request, best first, and the state
         /// machine is chosen <b>after</b> the handshake — the caller runs whichever came back.
         /// </summary>
+        /// <param name="transport">What the connection turned out to be. Given anything but
+        /// <see cref="TransportSecurity.Unknown"/>, <c>[V2G20-1237]</c> is applied: a <c>-20</c> entry is
+        /// dropped from the offer on a connection that may not carry it, and an offer left with nothing
+        /// aborts rather than going out empty. See <see cref="Iso20Transport"/> for why the default states
+        /// nothing.</param>
         /// <returns>The offer the SECC accepted, mapped back through the answered SchemaID.</returns>
-        public static async Task<SapOffer> RunEvccSideAsync(Stream stream, IReadOnlyList<SapOffer> offers, CancellationToken ct = default)
+        public static async Task<SapOffer> RunEvccSideAsync(Stream stream, IReadOnlyList<SapOffer> offers, CancellationToken ct = default,
+                                                            TransportSecurity transport = TransportSecurity.Unknown)
         {
             if (offers.Count is < 1 or > 20)
                 throw new ArgumentException("a SupportedAppProtocol offer carries 1..20 entries.", nameof(offers));
 
-            var req = new SupportedAppProtocolReq(offers.Select((offer, i) =>
+            // [V2G20-1237]: what goes out is not necessarily what was asked for. The SchemaIDs and priorities
+            // below are assigned over what survives, so dropping an entry renumbers the rest — which is
+            // correct, both being the EVCC's to assign, and why the answered SchemaID is mapped back through
+            // this list and not through the caller's.
+            var wanted = Iso20Transport.MayCarryIso20(transport)
+                             ? offers
+                             : offers.Where(offer => offer.Protocol != ProtocolVariant.Iso15118_20).ToArray();
+
+            if (wanted.Count == 0)
+                throw new SessionAborted(
+                    $"SAP: ISO 15118-20 must not be offered on {Iso20Transport.Describe(transport)} ([V2G20-1237], "
+                  + "Table 5), and nothing else was offered. Run this over TLS 1.3, offer -2 as well, or — if "
+                  + "the point of the run is the plain-TCP session — say so by leaving the transport unstated.");
+
+            var req = new SupportedAppProtocolReq(wanted.Select((offer, i) =>
             {
                 var (major, minor) = VersionFor(offer.Protocol);
                 return new AppProtocolEntry(NamespaceFor(offer.Protocol, offer.Mode),
@@ -128,18 +155,19 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
             // until the sweep of 2026-08-03: harmless while the offer was a single entry, and a silent
             // protocol mismatch now that it is not — the whole point of a multi-protocol offer is that the
             // answer decides which state machine runs next.
-            if (res.SchemaID is not { } schemaId || schemaId < 1 || schemaId > offers.Count)
+            if (res.SchemaID is not { } schemaId || schemaId < 1 || schemaId > wanted.Count)
                 throw new SessionAborted(
                     $"SAP: the SECC accepted SchemaID {res.SchemaID?.ToString() ?? "<none>"}, which is not "
                   + $"among the offered ({String.Join(", ", req.AppProtocols.Select(e => e.SchemaID))}).");
 
-            return offers[schemaId - 1];
+            return wanted[schemaId - 1];
         }
 
         /// <summary>SECC side, one fixed protocol: accepts if the EVCC offered <paramref name="accepted"/>,
         /// otherwise replies Failed and throws.</summary>
-        public static async Task RunSeccSideAsync(Stream stream, ProtocolVariant accepted, CancellationToken ct = default, PowerMode mode = PowerMode.Dc)
-            => await RunSeccSideAsync(stream, new[] { new SapOffer(accepted, mode) }, ct).ConfigureAwait(false);
+        public static async Task RunSeccSideAsync(Stream stream, ProtocolVariant accepted, CancellationToken ct = default, PowerMode mode = PowerMode.Dc,
+                                                  TransportSecurity transport = TransportSecurity.Unknown)
+            => await RunSeccSideAsync(stream, new[] { new SapOffer(accepted, mode) }, ct, transport).ConfigureAwait(false);
 
         /// <summary>
         /// SECC side: picks the highest-priority entry of the EVCC's offer that this station supports
@@ -151,16 +179,28 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
         /// the assumed-value shape the 2026-08-03 sweep hunted: our own EVCC supplies what our own SECC
         /// assumes. A two-entry offer whose second entry wins is what makes it visible.
         /// </remarks>
+        /// <param name="transport">What the connection turned out to be. Given anything but
+        /// <see cref="TransportSecurity.Unknown"/>, <c>[V2G20-2356]</c> is applied: <c>-20</c> is not
+        /// selectable on a connection that may not carry it, however the EVCC ranked it. This is the
+        /// obligation EVerest's <c>IsoMux</c> is on the wrong side of, and the reason it binds the station
+        /// separately from the car is exactly the case where the car got it wrong — as ours did.</param>
         /// <returns>The supported offer the station settled on.</returns>
-        public static async Task<SapOffer> RunSeccSideAsync(Stream stream, IReadOnlyList<SapOffer> supported, CancellationToken ct = default)
+        public static async Task<SapOffer> RunSeccSideAsync(Stream stream, IReadOnlyList<SapOffer> supported, CancellationToken ct = default,
+                                                            TransportSecurity transport = TransportSecurity.Unknown)
         {
             if (await ReadSapAsync(stream, ct).ConfigureAwait(false) is not SupportedAppProtocolReq req)
                 throw new SessionAborted("SAP: expected a SupportedAppProtocolReq.");
 
+            // [V2G20-2356]: on a connection that cannot carry -20, this station does not support -20 for the
+            // length of that connection — which is the same thing as it not being in the catalogue here.
+            var selectable = Iso20Transport.MayCarryIso20(transport)
+                                 ? supported
+                                 : supported.Where(offer => offer.Protocol != ProtocolVariant.Iso15118_20).ToArray();
+
             (AppProtocolEntry Entry, SapOffer Offer)? match = null;
             foreach (var entry in req.AppProtocols.OrderBy(e => e.Priority))   // stable: ties keep offer order
             {
-                var offer = supported.FirstOrDefault(o => NamespaceFor(o.Protocol, o.Mode) == entry.ProtocolNamespace);
+                var offer = selectable.FirstOrDefault(o => NamespaceFor(o.Protocol, o.Mode) == entry.ProtocolNamespace);
                 if (offer is not null)
                 {
                     match = (entry, offer);
@@ -178,8 +218,13 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
             await V2GTPStream.WriteRawFrameAsync(stream, V2GTPCodec.PayloadType_AppProtocol, buf.AsMemory(0, n), ct).ConfigureAwait(false);
 
             if (match is not { } settled)
+                // Two different refusals, and saying "the EVCC offered none of ours" for the second would be
+                // a lie: -20 *is* in this station's catalogue, and the connection is what took it out.
                 throw new SessionAborted(
-                    $"SAP: the EVCC offered none of {String.Join(", ", supported.Select(o => NamespaceFor(o.Protocol, o.Mode)))}.");
+                    selectable.Count < supported.Count && req.AppProtocols.Any(e => e.ProtocolNamespace.StartsWith(Iso20NamespacePrefix, StringComparison.Ordinal))
+                        ? $"SAP: the EVCC offered ISO 15118-20 on {Iso20Transport.Describe(transport)}, which may not "
+                        + "carry it ([V2G20-2356], Table 5), and nothing this station also supports."
+                        : $"SAP: the EVCC offered none of {String.Join(", ", selectable.Select(o => NamespaceFor(o.Protocol, o.Mode)))}.");
 
             return settled.Offer;
         }

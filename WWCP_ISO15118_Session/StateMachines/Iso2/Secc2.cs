@@ -489,12 +489,19 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     SalesTariff: null),
             });
 
-        /// <summary>The smart-charging offer: tuple 1 is the flat <see cref="ThreePhase16A"/> at price
-        /// levels 2→3, tuple 2 starts capped at <see cref="SinglePhase32A"/> on level 1 and opens to
-        /// <see cref="ThreePhase32A"/> on level 2 after
-        /// 30 min — a price-aware EV picks tuple 2 (average level 1.5 vs 2.5) and shapes its
-        /// ChargingProfile to the 7.4/22 kW steps. Tuple 1 carries the same figure as the plain offer for
-        /// the same reason: a car that is not price-aware picks it, and it would meet the same wall.</summary>
+        /// <summary>
+        /// The smart-charging offer: tuple 1 is the flat <see cref="ThreePhase16A"/> at price levels 2→3;
+        /// tuple 2 starts capped at <see cref="SinglePhase32A"/> on level 1 and opens to
+        /// <see cref="ThreePhase32A"/> on level 2 after 30 min — a price-aware EV picks tuple 2 (average
+        /// level 1.5 vs 2.5) and shapes its ChargingProfile to those two steps. Tuple 1 carries the same
+        /// figure as the plain offer for the same reason: a car that is not price-aware picks it, and it
+        /// would meet the same wall.
+        /// <para>
+        /// This said "the 7.4/22 kW steps" until the constants were named, and kept saying it for one
+        /// commit after — the round numbers are what the whole change is about, so a summary still
+        /// reaching for them is how the drift starts again. Named, not spelled out, for the same reason.
+        /// </para>
+        /// </summary>
         private static SAScheduleListType TariffSchedules() =>
             new(new[]
             {

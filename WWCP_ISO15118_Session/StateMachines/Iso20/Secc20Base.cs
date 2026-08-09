@@ -803,11 +803,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// </para>
         /// <para>
         /// The phase these return is not the one that takes effect: <see cref="Handle"/> ends the session on
-        /// any failure response, whatever the handler asked for, and that blanket rule is older than this
-        /// check. So a refusal here is terminal, unlike its <c>-2</c> counterpart in <c>Secc2.PowerOn</c>,
-        /// which stays put and lets a corrected request through. Both are defensible and the difference is
-        /// not deliberate; it is recorded rather than tidied because changing it would change how every
-        /// other <c>-20</c> refusal behaves.
+        /// any failure response, whatever the handler asked for. So a refusal here is terminal, unlike its
+        /// <c>-2</c> counterpart, which stays put and lets a corrected request through — and that
+        /// difference is the two standards', not an accident. <c>Secc2.Dispatch</c> carries the citations;
+        /// the short of it is that <c>-20</c> §8.6 calls a <c>FAILED</c> response a fatal error and has both
+        /// sides terminate the session, while <c>-2</c> §8.8.2 obliges only that the EVCC ignore the other
+        /// parameters (`[V2G2-735]`).
         /// </para>
         /// </remarks>
         private (MessageSet, object, Phase20) SvcDetailStep(ServiceDetailReq req)

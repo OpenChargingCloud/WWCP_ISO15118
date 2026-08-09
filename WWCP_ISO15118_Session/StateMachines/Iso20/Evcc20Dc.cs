@@ -80,6 +80,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <summary>The declared current envelope as a plain number, for deriving a request from a power.</summary>
         protected virtual short MaxCurrentAmps => 200;
 
+        /// <summary>
+        /// The state of charge the car tells the station it is heading for, at DC_ChargeParameterDiscovery.
+        /// Follows <c>--target-soc</c> when a battery names one; 80 % otherwise, which is what this stood
+        /// at unconditionally and is the conventional DC knee.
+        /// </summary>
+        /// <remarks>The schema's percentage is a signed byte, which 0..100 fits into.</remarks>
+        protected sbyte DeclaredTargetSoC
+            => Battery?.TargetSoC is { } t ? (sbyte) Math.Clamp(Math.Round(t), 0, 100) : (sbyte) 80;
+
         /// <summary>Watts as a -20 rational, keeping three significant figures without overflowing the
         /// 16-bit value: 9 kW becomes 9×10³, 9.5 kW becomes 950×10¹.</summary>
         private static Dc20.RationalNumberType Watts(double watts)
@@ -106,13 +115,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 ? new Dc20.BPT_DC_CPDReqEnergyTransferModeType(
                       EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
                       EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
-                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: 80,
+                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: DeclaredTargetSoC,
                       EVMaximumDischargePower: MaxPower, EVMinimumDischargePower: Rat(0),
                       EVMaximumDischargeCurrent: MaxCurrent, EVMinimumDischargeCurrent: Rat(0))
                 : new Dc20.DC_CPDReqEnergyTransferModeType(
                       EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
                       EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
-                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: 80);
+                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: DeclaredTargetSoC);
 
             var req = new Dc20.DC_ChargeParameterDiscoveryReq(SessionCtx.ToDcHeader(), transferMode);
 

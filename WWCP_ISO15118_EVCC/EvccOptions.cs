@@ -41,7 +41,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         bool PauseResume, bool EndPaused, string? ResumeSessionIdHex,
         bool Renegotiate, string? TariffCertPath, string? TariffCertPass,
         double? BatteryKWh, double? StartSoC, double? TargetSoC, double? TargetEnergyKWh,
-        TimeSpan? MaxChargingTime, double? PowerKW)
+        TimeSpan? MaxChargingTime, double? PowerKW,
+        TimeSpan? DepartureIn, double? MinimumSoC)
     {
 
         /// <summary>
@@ -49,7 +50,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         /// Any of the battery flags turns it on; none of them keeps every recorded interop run's shape.
         /// </summary>
         public bool HasBattery => BatteryKWh is not null || StartSoC is not null || TargetSoC is not null
-                               || TargetEnergyKWh is not null || MaxChargingTime is not null || PowerKW is not null;
+                               || TargetEnergyKWh is not null || MaxChargingTime is not null || PowerKW is not null
+                               || DepartureIn is not null || MinimumSoC is not null;
 
         public static EvccOptions Parse(string[] args)
         {
@@ -71,7 +73,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             string? oemCertPath = null, oemCertPass = null;
             string? resumeSessionIdHex = null, tariffCertPath = null, tariffCertPass = null;
             double? batteryKWh = null, startSoC = null, targetSoC = null, targetEnergyKWh = null, powerKW = null;
-            TimeSpan? maxChargingTime = null;
+            TimeSpan? maxChargingTime = null, departureIn = null;
+            double? minimumSoC = null;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -188,6 +191,15 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     case "--max-charging-time":
                         maxChargingTime = ParseDuration(args[++i], "--max-charging-time");
                         break;
+                    // When the car leaves. Relative, because that is what the wire carries: -20's
+                    // DepartureTime is seconds from the session's own time anchor.
+                    case "--departure-time":
+                        departureIn = ParseDuration(args[++i], "--departure-time");
+                        break;
+                    // What the driver needs to have by then. A floor, not a goal — see EvBattery.
+                    case "--min-soc":
+                        minimumSoC = ParsePercent(args[++i], "--min-soc");
+                        break;
                     case "--power":
                         powerKW = ParsePositive(args[++i], "--power", "kW");
                         break;
@@ -218,7 +230,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                    oemCertPath, oemCertPass,
                                    pauseResume, endPaused, resumeSessionIdHex,
                                    renegotiate, tariffCertPath, tariffCertPass,
-                                   batteryKWh, startSoC, targetSoC, targetEnergyKWh, maxChargingTime, powerKW);
+                                   batteryKWh, startSoC, targetSoC, targetEnergyKWh, maxChargingTime, powerKW,
+                                   departureIn, minimumSoC);
         }
 
         private static double ParsePositive(string value, string flag, string unit)
@@ -383,6 +396,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "          --target-energy <kWh>       charge until this much has been delivered\n" +
             "                                      (EAmount in -2, EVTargetEnergyRequest in -20)\n" +
             "          --max-charging-time <dur>   stop after this much simulated time: 90, 90m, 2h, 1h30m\n" +
+            "          --departure-time <dur>      when the car leaves. Goes on the wire as -20's\n" +
+            "                                      DepartureTime, and ends the session when it arrives.\n" +
+            "          --min-soc <percent>         what the driver needs by then. A floor, not a goal: it\n" +
+            "                                      cannot prolong a session, and the run reports whether\n" +
+            "                                      the car left with enough.\n" +
             "          --power <kW>                what the car asks for. -20 DC: its EVMaximum* limits.\n" +
             "                                      The station decides what it actually delivers, and the\n" +
             "                                      battery fills with what the meter counted.\n" +

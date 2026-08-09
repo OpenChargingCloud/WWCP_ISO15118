@@ -17,6 +17,10 @@ TestResults
 *.suo
 *.user
 *.sln.docstates
+# Visual Studio writes this when a runnable project is opened or launched, and it holds one
+# developer's command line -- the EVCC's appeared as `--connect "[::1]:15118"`. Nothing here has ever
+# tracked one.
+**/Properties/launchSettings.json
 
 # Build results
 [Dd]ebug/

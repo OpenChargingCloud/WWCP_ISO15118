@@ -230,11 +230,14 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 battery.TargetEnergyWh is { } e   ? $"{e / 1000:F1} kWh delivered" : null,
                 battery.MaxDuration    is { } d   ? $"{d.TotalMinutes:F0} min" : null,
                 battery.DepartureIn    is { } dep ? $"departure in {dep.TotalMinutes:F0} min" : null,
-            }.Where(x => x is not null);
+            }.Where(x => x is not null).ToArray();
 
             Console.WriteLine($"Battery: {capacity:F1} kWh at {soc:F0} %" +
                               (args.PowerKW is { } p ? $", asking for {p:F1} kW" : "") +
-                              $" — charging until {string.Join(", ", goals)} (whichever comes first)." +
+                              // "whichever comes first" only when there is a choice — the same thing that
+                              // read as nonsense in EvBattery.Describe until review caught it there.
+                              $" — charging until {string.Join(", ", goals)}" +
+                              (goals.Length > 1 ? " (whichever comes first)." : ".") +
                               (battery.MinimumSoC is { } min ? $" The driver needs {min:F0} % by then." : ""));
 
             return battery;

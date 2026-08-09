@@ -221,7 +221,7 @@ namespace cloud.charging.open.protocols.ISO15118.Sap
                 // Two different refusals, and saying "the EVCC offered none of ours" for the second would be
                 // a lie: -20 *is* in this station's catalogue, and the connection is what took it out.
                 throw new SessionAborted(
-                    selectable.Count < supported.Count && req.AppProtocols.Any(e => e.ProtocolNamespace.StartsWith(Iso20NamespacePrefix))
+                    selectable.Count < supported.Count && req.AppProtocols.Any(e => e.ProtocolNamespace.StartsWith(Iso20NamespacePrefix, StringComparison.Ordinal))
                         ? $"SAP: the EVCC offered ISO 15118-20 on {Iso20Transport.Describe(transport)}, which may not "
                         + "carry it ([V2G20-2356], Table 5), and nothing this station also supports."
                         : $"SAP: the EVCC offered none of {String.Join(", ", selectable.Select(o => NamespaceFor(o.Protocol, o.Mode)))}.");

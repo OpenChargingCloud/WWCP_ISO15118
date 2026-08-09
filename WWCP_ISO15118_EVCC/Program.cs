@@ -223,16 +223,18 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 RequestedPowerW = (args.PowerKW ?? 0) * 1000.0,
             };
 
+            var goals = new[]
+            {
+                battery.TargetSoC      is { } t   ? $"{t:F0} %" : null,
+                battery.TargetEnergyWh is { } e   ? $"{e / 1000:F1} kWh delivered" : null,
+                battery.MaxDuration    is { } d   ? $"{d.TotalMinutes:F0} min" : null,
+                battery.DepartureIn    is { } dep ? $"departure in {dep.TotalMinutes:F0} min" : null,
+            }.Where(x => x is not null);
+
             Console.WriteLine($"Battery: {capacity:F1} kWh at {soc:F0} %" +
-                              (args.PowerKW is { } p ? $", asking for {p:F1} kW" : "") + " — charging until " +
-                              string.Join(", whichever comes first: ", new[]
-                              {
-                                  battery.TargetSoC      is { } t ? $"{t:F0} %" : null,
-                                  battery.TargetEnergyWh is { } e ? $"{e / 1000:F1} kWh delivered" : null,
-                                  battery.MaxDuration    is { } d ? $"{d.TotalMinutes:F0} min" : null,
-                                  battery.DepartureIn    is { } dep ? $"departure in {dep.TotalMinutes:F0} min" : null,
-                              }.Where(x => x is not null)) + "."
-                            + (battery.MinimumSoC is { } min ? $" The driver needs {min:F0} % by then." : ""));
+                              (args.PowerKW is { } p ? $", asking for {p:F1} kW" : "") +
+                              $" — charging until {string.Join(", ", goals)} (whichever comes first)." +
+                              (battery.MinimumSoC is { } min ? $" The driver needs {min:F0} % by then." : ""));
 
             return battery;
         }

@@ -798,8 +798,24 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// from that day on and did not check our own.
         /// </para>
         /// <para>
-        /// The response codes are the schema's own — no requirement text is quoted, because none about
-        /// service selection is available here (see <c>docs/normative-basis.md</c> for the rule).
+        /// <b>Both refusals are required, and the standard names these two codes for exactly these two
+        /// cases.</b> <c>[V2G20-425]</c> and <c>[V2G20-464]</c>: <c>FAILED_ServiceIDInvalid</c> when the
+        /// <c>ServiceDetailReq</c> carries a ServiceID that was not in the offered
+        /// <c>EnergyTransferServiceList</c> or <c>VASList</c>. <c>[V2G20-433]</c> and <c>[V2G20-467]</c>:
+        /// <c>FAILED_ServiceSelectionInvalid</c> for the same in <c>ServiceSelectionReq</c>.
+        /// <c>[V2G20-1216]</c> is the EVCC's mirror — it may only use ids the SECC gave it this session.
+        /// This comment said until 2026-08-09 that no requirement text about service selection was
+        /// available here; it is (see <c>ISO15118ConformanceTests/docs/normative-basis.md</c> for what may
+        /// be cited from where), and it turns out the behaviour written here on the grounds that echoing
+        /// an unadvertised id is *surprising* is the behaviour the standard obliges.
+        /// </para>
+        /// <para>
+        /// Two gaps this check knowingly leaves, both narrower than what the requirements ask:
+        /// <c>[V2G20-433]</c> refuses an unadvertised <i>ServiceID, ParameterSetID pair</i> and
+        /// <see cref="Advertised"/> looks only at the id, so an advertised service with a parameter set
+        /// this station never offered is still accepted; and <c>[V2G20-1618]</c> wants
+        /// <c>FAILED_NoEnergyTransferServiceSelected</c> where the selection names no energy transfer
+        /// service at all, which is not distinguished here.
         /// </para>
         /// <para>
         /// The phase these return is not the one that takes effect: <see cref="Handle"/> ends the session on

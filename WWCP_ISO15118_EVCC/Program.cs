@@ -221,6 +221,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 DepartureIn     = args.DepartureIn,
                 MinimumSoC      = args.MinimumSoC,
                 RequestedPowerW = (args.PowerKW ?? 0) * 1000.0,
+                TaperFromSoC    = args.TaperFromSoC ?? 80.0,
             };
 
             var goals = new[]

@@ -95,6 +95,24 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         private Ac20.RationalNumberType? ScheduledMaxChargePower
             => Battery is { RequestedPowerW: > 0 } ? LoopMaxChargePower : null;
 
+        /// <summary>
+        /// What the car asks for as energy: how much it wants, how much it can still take, how much it
+        /// needs. All three shrink as the pack fills, because they are what is left; the 30 / 60 / 10 kWh
+        /// is what every recorded run carries and what a car without a pack still sends.
+        /// </summary>
+        private Ac20.RationalNumberType LoopTargetEnergy
+            => EnergyRequestWh is { } e ? WattHours(e.Target)  : Rat(30, 3);
+        private Ac20.RationalNumberType LoopMaximumEnergy
+            => EnergyRequestWh is { } e ? WattHours(e.Maximum) : Rat(60, 3);
+        private Ac20.RationalNumberType LoopMinimumEnergy
+            => EnergyRequestWh is { } e ? WattHours(e.Minimum) : Rat(10, 3);
+
+        /// <summary>The same three where Scheduled leaves them optional: absent unless a pack has
+        /// something to say, which is where they stood before there were packs.</summary>
+        private Ac20.RationalNumberType? ScheduledTargetEnergy  => Battery is null ? null : LoopTargetEnergy;
+        private Ac20.RationalNumberType? ScheduledMaximumEnergy => Battery is null ? null : LoopMaximumEnergy;
+        private Ac20.RationalNumberType? ScheduledMinimumEnergy => Battery is null ? null : LoopMinimumEnergy;
+
         protected override async Task RunChargeLoopIterationAsync(CancellationToken ct)
         {
             // Asking in kind, the mirror of [V2G20-1600], on both axes — see Evcc20Dc for the same split
@@ -105,9 +123,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 // bidirectional session needs to know how far either way.
                 (true, true) => new Ac20.BPT_Dynamic_AC_CLReqControlModeType(
                       DepartureTime:            DepartureTime,
-                      EVTargetEnergyRequest:    Rat(30, 3),   // 30 kWh
-                      EVMaximumEnergyRequest:   Rat(60, 3),   // 60 kWh
-                      EVMinimumEnergyRequest:   Rat(10, 3),   // 10 kWh
+                      EVTargetEnergyRequest:    LoopTargetEnergy,
+                      EVMaximumEnergyRequest:   LoopMaximumEnergy,
+                      EVMinimumEnergyRequest:   LoopMinimumEnergy,
                       EVMaximumChargePower:     LoopMaxChargePower,
                       EVMaximumChargePower_L2:  null, EVMaximumChargePower_L3: null,
                       EVMinimumChargePower:     Rat(1,  3),
@@ -124,9 +142,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
                 (true, false) => new Ac20.Dynamic_AC_CLReqControlModeType(
                       DepartureTime:            DepartureTime,
-                      EVTargetEnergyRequest:    Rat(30, 3),   // 30 kWh
-                      EVMaximumEnergyRequest:   Rat(60, 3),   // 60 kWh
-                      EVMinimumEnergyRequest:   Rat(10, 3),   // 10 kWh
+                      EVTargetEnergyRequest:    LoopTargetEnergy,
+                      EVMaximumEnergyRequest:   LoopMaximumEnergy,
+                      EVMinimumEnergyRequest:   LoopMinimumEnergy,
                       EVMaximumChargePower:     LoopMaxChargePower,
                       EVMaximumChargePower_L2:  null, EVMaximumChargePower_L3: null,
                       EVMinimumChargePower:     Rat(1,  3),
@@ -140,7 +158,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 // envelope — which is the whole of what makes the request bidirectional, hence stated
                 // rather than left null.
                 (false, true) => new Ac20.BPT_Scheduled_AC_CLReqControlModeType(
-                      null, null, null, EVMaximumChargePower: ScheduledMaxChargePower, null, null, null, null, null,
+                      EVTargetEnergyRequest:  ScheduledTargetEnergy,
+                      EVMaximumEnergyRequest: ScheduledMaximumEnergy,
+                      EVMinimumEnergyRequest: ScheduledMinimumEnergy,
+                      EVMaximumChargePower: ScheduledMaxChargePower, null, null, null, null, null,
                       EVPresentActivePower: PresentActivePower, null, null, null, null, null,
                       EVMaximumDischargePower: Rat(2_200, 1),   // 22 kW: what the car can give back, hardware
                       EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
@@ -148,7 +169,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null),
 
                 _ => new Ac20.Scheduled_AC_CLReqControlModeType(
-                      null, null, null, EVMaximumChargePower: ScheduledMaxChargePower, null, null, null, null, null,
+                      EVTargetEnergyRequest:  ScheduledTargetEnergy,
+                      EVMaximumEnergyRequest: ScheduledMaximumEnergy,
+                      EVMinimumEnergyRequest: ScheduledMinimumEnergy,
+                      EVMaximumChargePower: ScheduledMaxChargePower, null, null, null, null, null,
                       EVPresentActivePower: PresentActivePower, null, null, null, null, null),
             };
 
@@ -178,10 +202,18 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         private static Ac20.RationalNumberType Rat(short value, sbyte exponent = 0) => new(exponent, value);
 
         /// <summary>Watts as an AC rational; the arithmetic (and its saturation) is
-        /// <see cref="Evcc20Base.WattsRational"/>, shared with the DC side.</summary>
+        /// <see cref="Evcc20Base.ScaledRational"/>, shared with the DC side.</summary>
         private static Ac20.RationalNumberType Watts(double watts)
         {
-            var (value, exponent) = WattsRational(watts);
+            var (value, exponent) = ScaledRational(watts);
+            return Rat(value, exponent);
+        }
+
+        /// <summary>And watt-hours. Same arithmetic — the rational carries no unit, the field does — and
+        /// named apart so a call site says which of the two it is sending.</summary>
+        private static Ac20.RationalNumberType WattHours(double wattHours)
+        {
+            var (value, exponent) = ScaledRational(wattHours);
             return Rat(value, exponent);
         }
 

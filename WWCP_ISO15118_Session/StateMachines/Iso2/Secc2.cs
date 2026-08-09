@@ -61,8 +61,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
     /// MeteringReceiptReq (verified the same way).
     /// <see cref="Handle"/> is a pure, synchronous state transition — directly unit-testable without a
     /// socket; <see cref="RunAsync"/> is the thin loop that drives it from a real <see cref="Stream"/>.
+    /// <para>
+    /// Unsealed for the same reason <see cref="Iso20.Secc20Dc"/> and <see cref="Iso20.Secc20Ac"/> are: a
+    /// test that has to assert on what the car <em>sent</em> — rather than on the session completing —
+    /// needs a station that keeps its requests, and the -20 side has had one since 2026-08-03.
+    /// </para>
     /// </summary>
-    public sealed class Secc2(PowerMode mode, TimeSpan sequenceTimeout, TimeProvider clock)
+    public class Secc2(PowerMode mode, TimeSpan sequenceTimeout, TimeProvider clock)
     {
         private enum Phase
         {
@@ -155,7 +160,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// against PMax); null until the EV sends one.</summary>
         public Iso2ProfileResult? ChargingProfileCheck { get; private set; }
 
-        public V2G_Message Handle(V2G_Message request)
+        /// <summary>Virtual for the same reason <see cref="Iso20.Secc20Base.Handle"/> is: a test that has to
+        /// assert on what the car <em>sent</em>, rather than on the session merely completing, needs a
+        /// station that keeps its requests. The -20 side has had one since 2026-08-03; -2 had no way to
+        /// build one.</summary>
+        public virtual V2G_Message Handle(V2G_Message request)
         {
             var now = clock.GetUtcNow();
             if (_phase is not Phase.SessionSetup && now - _lastSeen > sequenceTimeout)

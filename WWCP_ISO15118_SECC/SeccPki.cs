@@ -20,6 +20,7 @@ using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Tls;
 
 using cloud.charging.open.protocols.ISO15118.PKI;
+using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
 
 namespace cloud.charging.open.protocols.ISO15118.SECC
@@ -43,6 +44,34 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
     public static class SeccPki
     {
         private const int SigScheme = SignatureScheme.ecdsa_secp521r1_sha512;
+
+        /// <summary>
+        /// The station brings its <b>own</b> chain from a PKCS#12, for a car whose PKI this process did not
+        /// mint — the mirror of <c>EvccPki.WithVehicleCertificate</c>, and the only way this backend meets a
+        /// foreign peer.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Nothing is pinned here, and that is deliberate.</b> <see cref="Generate"/> can pin the car's
+        /// leaf because it minted it; a station serving a counterparty's certificate has no such expectation
+        /// to check against, so the peer is judged by <c>--trust-roots</c> or not at all. The caller says
+        /// which of the two happened rather than leaving it to be guessed.
+        /// </para>
+        /// <para>
+        /// One consequence worth knowing before pointing this at a counterparty: the backend's
+        /// <c>CertificateRequest</c> carries ISO 15118-20's strict signature pair
+        /// (<c>ecdsa_secp521r1_sha512</c>, <c>ed448</c>) unless told otherwise, so a car whose client
+        /// certificate is P-256 — Josev's, EVerest's, tux-evse's — cannot answer it. That is the profile
+        /// being kept, not a defect: use the .NET backend for those, and this one for a peer whose material
+        /// is what -20 describes.
+        /// </para>
+        /// </remarks>
+        public static BcTlsOptions WithServerCertificate(string path, string? password, bool requireClientCertificate)
+            => new()
+            {
+                OwnCredentials           = Credentials.LoadForBouncyCastle(path, password, "--server-cert"),
+                RequireClientCertificate = requireClientCertificate,
+            };
 
         /// <summary>Build the hierarchy, write the EVCC's files, return the SECC's mutual-TLS options.</summary>
         public static BcTlsOptions Generate(string pkiDir)

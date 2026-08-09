@@ -98,6 +98,12 @@ dotnet run --project WWCP_ISO15118_SECC -- --mode mcs --protocol 20
 # it mints the V2G hierarchy and writes the car's half into the shared directory.
 dotnet run --project WWCP_ISO15118_SECC -- --tls-backend bc --pki-dir /tmp/v2gpki
 
+# the same backend against a real car, whose PKI is not ours: present a chain from a PKCS#12 instead of
+# minting one, and judge the car by its chain rather than by a pin nobody can satisfy.
+dotnet run --project WWCP_ISO15118_SECC -- --tls-backend bc \
+    --server-cert secc.pfx --server-cert-pass interop \
+    --require-client-cert --trust-roots ./their-roots/
+
 # advertise on a link instead of being told a port (needs a real interface)
 dotnet run --project WWCP_ISO15118_SECC -- --sdp --interface eth0
 ```
@@ -123,6 +129,13 @@ the reason not to put it in front of a real car as anything but a test instrumen
   continues — the same choice the signature check already makes, for the reason its comment gives:
   a live interop session should run to the end so every verdict is observable, rather than dying at
   the first divergence. So `chain REJECTED` in the output is a finding, not an abort.
+
+  Both TLS backends validate chains, and they take the car's identity differently. `--tls-backend bc`
+  wants either `--pki-dir`, where it mints the hierarchy and pins the car it minted, or `--server-cert`,
+  where it presents a real chain and has nothing to pin — there the car is judged by `--trust-roots` or
+  not at all, and the program says which. One caveat before pointing it at a counterparty: its
+  `CertificateRequest` asks for `ecdsa_secp521r1_sha512` or `ed448`, so a car with a P-256 client
+  certificate cannot answer it. That is the -20 profile being kept; use the .NET backend for those.
 - **The timeouts are not the standard's** — a flat 2 s per message and 60 s per sequence, not the
   per-message performance tables.
 - **The charge loop is a fixed three iterations**, not a battery filling up.

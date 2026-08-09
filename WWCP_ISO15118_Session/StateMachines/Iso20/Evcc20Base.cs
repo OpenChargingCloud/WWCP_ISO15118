@@ -22,6 +22,7 @@ using cloud.charging.open.protocols.ISO15118_20.CommonMessages;
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated;
 using cloud.charging.open.protocols.ISO15118.Framing;
 using cloud.charging.open.protocols.ISO15118.Session;
+using cloud.charging.open.protocols.ISO15118.Simulation;
 using cloud.charging.open.protocols.ISO15118.Timing;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
@@ -272,6 +273,21 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// anchor). Dynamic mode only: it is the deadline the station schedules against.</summary>
         public UInt32 DepartureTime { get; set; } = 3600;
 
+        /// <summary>
+        /// A battery that fills up, and the goal that ends the charge loop. Null — the default — keeps the
+        /// fixed three iterations every recorded interop run was taken with.
+        /// </summary>
+        /// <remarks>
+        /// Opt-in on purpose. A goal-driven loop is the honest simulation and it is also hundreds of
+        /// exchanges rather than three, which would change the length of every session in
+        /// <c>docs/interop-runs/</c> and every counterparty's view of us. Setting this is saying that a
+        /// charging session, not a message sequence, is what the run is about.
+        /// </remarks>
+        public EvBattery? Battery { get; set; }
+
+        /// <summary>Why the charge loop ended; null while it has not run.</summary>
+        public ChargeStop? BatteryStop { get; private set; }
+
         /// <summary>The tariff signer's public key (fachlich the eMSP's). When set and the
         /// ScheduleExchangeRes carries a signed AbsolutePriceSchedule, the EV verifies it.</summary>
         public System.Security.Cryptography.ECDsa? TariffVerifyKey { get; set; }
@@ -449,10 +465,28 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 dest => new PowerDeliveryReq(SessionCtx.ToCommonHeader(), Processing.Finished, ChargeProgress.Start, evPowerProfile, null)
                     .TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
 
-            for (int cycle = 0; cycle < 3; cycle++)
+            // Without a battery this is a message sequence and three iterations are enough to exercise it.
+            // With one it is a charging session, and it ends when the car is done rather than when a
+            // counter runs out. The battery is fed from the meter's own increment, so it fills with what
+            // the station actually delivered and not with what the car asked for.
+            if (Battery is null)
+                for (int cycle = 0; cycle < 3; cycle++)
+                {
+                    await RunChargeLoopIterationAsync(ct);
+                    await pollDelay.Wait(PollInterval, ct);
+                }
+            else
             {
-                await RunChargeLoopIterationAsync(ct);
-                await pollDelay.Wait(PollInterval, ct);
+                ChargeStop stop;
+                do
+                {
+                    var before = Meter.Energy;
+                    await RunChargeLoopIterationAsync(ct);
+                    Battery.Add(Meter.Energy - before);
+                    await pollDelay.Wait(PollInterval, ct);
+                }
+                while ((stop = Battery.Stop) == ChargeStop.Running);
+                BatteryStop = stop;
             }
 
             await Exchange<PowerDeliveryRes>(MessageSet.Iso20CommonMessages,

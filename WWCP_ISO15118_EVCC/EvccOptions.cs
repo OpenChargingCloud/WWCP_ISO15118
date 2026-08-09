@@ -409,7 +409,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "          --taper-from <percent>      where constant-current charging ends and the car starts\n" +
             "                                      asking for less (default 80). 100 charges flat, which is\n" +
             "                                      what this did before the taper existed.\n" +
-            "          --power <kW>                what the car asks for. -20 DC: its EVMaximum* limits.\n" +
+            "          --power <kW>                what the car asks for, in whichever field the mode has:\n" +
+            "                                      -20 DC the loop's setpoint and limits, -20 AC its present\n" +
+            "                                      active power, -2 DC EVTargetCurrent, -2 AC the committed\n" +
+            "                                      ChargingProfile (and held inside 6..32 A per phase there).\n" +
             "                                      The station decides what it actually delivers, and the\n" +
             "                                      battery fills with what the meter counted.\n" +
             "           With no goal named at all, the goal is 100 %.\n" +

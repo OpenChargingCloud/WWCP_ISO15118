@@ -108,10 +108,26 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             };
             if (serverLeaf is not null)
                 Console.WriteLine($"Presenting server certificate: {serverLeaf.Subject} (+{serverChain?.Count ?? 0} intermediate(s))"
-                                  + (args.RequireClientCert ? "; requiring a client certificate (mutual TLS, dev: accept-any)" : ""));
-            var bcTls = args.TlsStack == TlsStack.BouncyCastle ? SeccPki.Generate(args.PkiDir!) : null;
+                                  + (args.RequireClientCert
+                                         ? trust is not null
+                                               ? "; requiring a client certificate and validating its chain"
+                                               : "; requiring a client certificate (mutual TLS, dev: accept-any)"
+                                         : ""));
+
+            // Two ways into the -20-faithful backend, and the difference is whose PKI it is. --pki-dir is
+            // the dev loopback: this side mints the hierarchy and pins the car it minted. --server-cert is
+            // a run against a car whose material is not ours, where there is nothing to pin and the peer is
+            // judged by --trust-roots or not at all.
+            var bcTls = args.TlsStack != TlsStack.BouncyCastle
+                            ? null
+                            : args.ServerCertPath is not null
+                                  ? SeccPki.WithServerCertificate(args.ServerCertPath, args.ServerCertPass, args.RequireClientCert)
+                                  : SeccPki.Generate(args.PkiDir!);
             if (bcTls is not null && trust is not null)
                 bcTls = bcTls with { ValidatePeerChain = c => Report("TLS client", trust.Validate(c[0], c[1..])) };
+            if (bcTls is not null && trust is null && args.RequireClientCert && args.ServerCertPath is not null)
+                Console.WriteLine("WARNING: requiring a client certificate and accepting ANY of them — " +
+                                  "nothing to pin against a foreign PKI, and no --trust-roots given. Dev tool only.");
 
             using var listener = bcTls is not null
                                      ? new TcpV2GListener(new IPEndPoint(IPAddress.IPv6Any, args.ListenPort), bcTls)

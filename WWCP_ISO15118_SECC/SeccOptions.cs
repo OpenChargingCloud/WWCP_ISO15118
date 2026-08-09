@@ -155,7 +155,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             if (backend == TlsStack.None && tls)
                 backend = TlsStack.Dotnet;
 
-            Validate(listenPort, backend, useSdp, iface, useSlac, slacListenPort, pkiDir, mcs, protocol, offerBoth, trustRootsPath);
+            Validate(listenPort, backend, useSdp, iface, useSlac, slacListenPort, pkiDir, mcs, protocol, offerBoth, trustRootsPath, serverCertPath);
 
             return new SeccOptions(listenPort, protocol, offerBoth, mode, mcs, backend,
                                    useSdp, iface, preferDynamic, noPnc, useSlac, slacListenPort, pkiDir,
@@ -165,13 +165,19 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
 
         private static void Validate(int listenPort, TlsStack backend, bool useSdp, string? iface,
                                      bool useSlac, int slacListenPort, string? pkiDir,
-                                     bool mcs, ProtocolVariant protocol, bool offerBoth, string? trustRootsPath)
+                                     bool mcs, ProtocolVariant protocol, bool offerBoth, string? trustRootsPath,
+                                     string? serverCertPath)
         {
             if (listenPort is <= 0 or > 65535)
                 throw new ArgumentException($"--listen expects a port between 1 and 65535, got {listenPort}.");
 
-            if (backend == TlsStack.BouncyCastle && pkiDir is null)
-                throw new ArgumentException("--tls-backend bc requires --pki-dir <dir> (shared V2G certificate material).");
+            // Two ways to give this backend a server identity, and it needs exactly one of them: --pki-dir
+            // mints a dev hierarchy and pins the car it minted, --server-cert brings a real chain for a car
+            // whose PKI is not ours. Neither leaves the station with nothing to present.
+            if (backend == TlsStack.BouncyCastle && pkiDir is null && serverCertPath is null)
+                throw new ArgumentException(
+                    "--tls-backend bc needs a server identity: --pki-dir <dir> to mint a dev hierarchy, " +
+                    "or --server-cert <pfx> to present a real one.");
 
             if (useSdp && iface is null)
                 throw new ArgumentException("--sdp requires --interface <name> (the V2G network interface).");
@@ -209,7 +215,11 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             "\n" +
             "  TLS:    --tls                       .NET SslStream with a fresh self-signed dev certificate\n" +
             "          --tls-backend dotnet|bc     bc = the -20-faithful profile (TLS 1.3, secp521r1,\n" +
-            "                                      mutual); needs --pki-dir <dir>\n" +
+            "                                      mutual); needs --pki-dir <dir> to mint a dev hierarchy\n" +
+            "                                      or --server-cert <pfx> to present a real one. Its\n" +
+            "                                      CertificateRequest asks for ecdsa_secp521r1_sha512 or\n" +
+            "                                      ed448, so a car with a P-256 client certificate cannot\n" +
+            "                                      answer it — that is the profile, use dotnet for those.\n" +
             "          --server-cert <pfx> [--server-cert-pass <pw>]   present this chain instead\n" +
             "          --require-client-cert       demand the car's certificate (mutual TLS)\n" +
             "          --trust-roots <file|dir>    validate the car's chains against these V2G root(s) —\n" +

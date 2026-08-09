@@ -42,7 +42,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         bool Renegotiate, string? TariffCertPath, string? TariffCertPass,
         double? BatteryKWh, double? StartSoC, double? TargetSoC, double? TargetEnergyKWh,
         TimeSpan? MaxChargingTime, double? PowerKW,
-        TimeSpan? DepartureIn, double? MinimumSoC)
+        TimeSpan? DepartureIn, double? MinimumSoC, double? TaperFromSoC)
     {
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         /// </summary>
         public bool HasBattery => BatteryKWh is not null || StartSoC is not null || TargetSoC is not null
                                || TargetEnergyKWh is not null || MaxChargingTime is not null || PowerKW is not null
-                               || DepartureIn is not null || MinimumSoC is not null;
+                               || DepartureIn is not null || MinimumSoC is not null || TaperFromSoC is not null;
 
         public static EvccOptions Parse(string[] args)
         {
@@ -74,7 +74,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             string? resumeSessionIdHex = null, tariffCertPath = null, tariffCertPass = null;
             double? batteryKWh = null, startSoC = null, targetSoC = null, targetEnergyKWh = null, powerKW = null;
             TimeSpan? maxChargingTime = null, departureIn = null;
-            double? minimumSoC = null;
+            double? minimumSoC = null, taperFromSoC = null;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -200,6 +200,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     case "--min-soc":
                         minimumSoC = ParsePercent(args[++i], "--min-soc");
                         break;
+                    // Where the constant-current phase ends. 100 charges flat all the way, which is what
+                    // this simulator did before the taper existed.
+                    case "--taper-from":
+                        taperFromSoC = ParsePercent(args[++i], "--taper-from");
+                        break;
                     case "--power":
                         powerKW = ParsePositive(args[++i], "--power", "kW");
                         break;
@@ -231,7 +236,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                    pauseResume, endPaused, resumeSessionIdHex,
                                    renegotiate, tariffCertPath, tariffCertPass,
                                    batteryKWh, startSoC, targetSoC, targetEnergyKWh, maxChargingTime, powerKW,
-                                   departureIn, minimumSoC);
+                                   departureIn, minimumSoC, taperFromSoC);
         }
 
         private static double ParsePositive(string value, string flag, string unit)
@@ -401,6 +406,9 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "          --min-soc <percent>         what the driver needs by then. A floor, not a goal: it\n" +
             "                                      cannot prolong a session, and the run reports whether\n" +
             "                                      the car left with enough.\n" +
+            "          --taper-from <percent>      where constant-current charging ends and the car starts\n" +
+            "                                      asking for less (default 80). 100 charges flat, which is\n" +
+            "                                      what this did before the taper existed.\n" +
             "          --power <kW>                what the car asks for. -20 DC: its EVMaximum* limits.\n" +
             "                                      The station decides what it actually delivers, and the\n" +
             "                                      battery fills with what the meter counted.\n" +

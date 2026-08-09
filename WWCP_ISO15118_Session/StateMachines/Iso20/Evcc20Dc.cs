@@ -96,8 +96,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         protected sbyte DeclaredTargetSoC
             => Battery?.TargetSoC is { } t ? (sbyte) Math.Clamp(Math.Round(t), 0, 100) : (sbyte) 80;
 
-        /// <summary>Watts as a -20 rational, keeping three significant figures without overflowing the
-        /// 16-bit value: 9 kW becomes 9×10³, 9.5 kW becomes 950×10¹.</summary>
+        /// <summary>Watts as a -20 DC rational, scaled down only as far as the 16-bit value needs: 9 kW
+        /// goes out as 9 000×10⁰, 50 kW as 5 000×10¹, an MCS 3.75 MW as 3 750×10³. See
+        /// <see cref="Evcc20Base.ScaledRational"/> — including why this used to claim otherwise.</summary>
         /// <remarks>Protected rather than private so a test can reach it: the saturation in
         /// <see cref="Evcc20Base.WattsRational"/> is the kind of edge a session-level test never exercises,
         /// and it was a silent overflow until review.</remarks>

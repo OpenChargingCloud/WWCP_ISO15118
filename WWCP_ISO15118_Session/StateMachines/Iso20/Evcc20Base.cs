@@ -289,15 +289,26 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public ChargeStop? BatteryStop { get; private set; }
 
         /// <summary>
-        /// An amount as a -20 rational's (value, exponent) pair, scaling down by powers of ten only when needed
-        /// to fit the 16-bit value (saturating if still too large): 9 000 becomes 9×10³; 60 000 becomes 6000×10¹.
-        /// The rational carries no unit, so this serves watts and watt-hours alike.
+        /// An amount as a -20 rational's (value, exponent) pair, scaling down by powers of ten only when
+        /// needed to fit the 16-bit value: 9 000 stays 9 000×10⁰, 60 000 becomes 6 000×10¹, 3 750 000
+        /// becomes 3 750×10³, and beyond 32 767×10³ it saturates. The rational carries no unit, so this
+        /// serves watts and watt-hours alike.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// The AC, DC and common message sets each declare their own <c>RationalNumberType</c> as a
         /// distinct CLR type, so only the arithmetic can be shared and each side wraps it. Shared rather
         /// than copied because the saturation below was a silent <c>short</c> overflow until review caught
         /// it, and three copies is three chances to lose it again.
+        /// </para>
+        /// <para>
+        /// <b>It does not normalise.</b> This said "keeping three significant figures — 9 kW becomes 9×10³"
+        /// from the day the DC version was written, and that is not what the loop does: anything a
+        /// <c>short</c> holds is sent at exponent 0, so 9 kW goes out as 9 000×10⁰. Both encodings are
+        /// schema-valid and decode to the same number, so nothing on the wire was ever wrong — but in a
+        /// project where the encoding is the thing under test, a comment naming the wrong one is what
+        /// misleads the next person reading a byte diff.
+        /// </para>
         /// </remarks>
         protected static (short Value, sbyte Exponent) ScaledRational(double amount)
         {

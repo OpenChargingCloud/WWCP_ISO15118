@@ -101,7 +101,10 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                 ClientCertificateValidation = !args.RequireClientCert ? null
                     : trust is null
                           ? (_, _, _, _) => true
-                          : (_, cert, _, _) => cert is not null && Report("TLS client", trust.Validate(new X509Certificate2(cert))),
+                          // The chain argument carries what the car put on the wire beyond its leaf; without
+                          // it a car that sends its Sub-CAs is judged as though it had sent none.
+                          : (_, cert, chain, _) => cert is not null
+                                && Report("TLS client", trust.Validate(new X509Certificate2(cert), TrustRoots.PeerIntermediates(chain))),
             };
             if (serverLeaf is not null)
                 Console.WriteLine($"Presenting server certificate: {serverLeaf.Subject} (+{serverChain?.Count ?? 0} intermediate(s))"

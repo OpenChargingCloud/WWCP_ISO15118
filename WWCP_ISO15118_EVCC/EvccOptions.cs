@@ -398,8 +398,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "          --battery <kWh>             usable capacity (default: 60)\n" +
             "          --soc <percent>             state of charge at plug-in (default: random 10–60 %)\n" +
             "          --target-soc <percent>      charge until this state of charge\n" +
-            "          --target-energy <kWh>       charge until this much has been delivered\n" +
-            "                                      (EAmount in -2, EVTargetEnergyRequest in -20)\n" +
+            "          --target-energy <kWh>       charge until this much has been delivered. Ends the\n" +
+            "                                      session only: the fields this corresponds to on the\n" +
+            "                                      wire (EAmount, EVTargetEnergyRequest) are still fixed\n" +
+            "                                      literals, so the station is not told the figure.\n" +
             "          --max-charging-time <dur>   stop after this much simulated time: 90, 90m, 2h, 1h30m\n" +
             "          --departure-time <dur>      when the car leaves. Goes on the wire as -20's\n" +
             "                                      DepartureTime, and ends the session when it arrives.\n" +

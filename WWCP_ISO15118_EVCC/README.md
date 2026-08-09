@@ -35,6 +35,7 @@ Everything the session layer implements, on the car's side:
 | **EIM and Plug & Charge** | `--contract-cert` signs the authorization with a real contract certificate instead of paying externally |
 | **CertificateInstallation** | `--oem-cert` asks the station to issue a contract, and unwraps the key it sends back (`-20`) |
 | **Scheduled and Dynamic** | follows the control mode the station offers |
+| **A battery** | nine flags turn the charge loop from three iterations into a session that ends when the car is done — see [The battery](#the-battery) |
 | **Signed tariffs** | `--tariff-cert` verifies the station's signed SalesTariff / AbsolutePriceSchedule and reports digest and ECDSA separately |
 | **Pause / resume** | `--pause-resume` pauses after the charge loop, reconnects and rejoins — and says so when the station refuses |
 | **Renegotiation** | `--renegotiate` sends `PowerDelivery(Renegotiate)` after the first cycle |
@@ -106,6 +107,79 @@ the default because it is what this car is usually pointed at, and where the int
 There is no default station: a car needs somewhere to drive to, so either `--connect host:port` or
 `--sdp --interface <name>` is required.
 
+## The battery
+
+By default this car has none: the charge loop runs three iterations and stops, which is a message
+sequence rather than a charging session, and is what every recorded interop run in the conformance
+repository was taken at. Any one of the nine flags below turns it into a session that ends when the
+car is done.
+
+| Flag | | |
+|---|---|---|
+| `--battery <kWh>` | usable capacity | default 60 |
+| `--soc <percent>` | state of charge at plug-in | default: random 10–60 % |
+| `--power <kW>` | what the car asks for | default: the fixed figure each mode always asked for |
+| `--taper-from <percent>` | where the car starts asking for less | default 80; `100` charges flat |
+| `--target-soc <percent>` | charge until this state of charge | |
+| `--target-energy <kWh>` | charge until this much has been delivered | |
+| `--max-charging-time <dur>` | stop after this much simulated time | `90`, `90m`, `2h`, `1h30m` |
+| `--departure-time <dur>` | when the car leaves | |
+| `--min-soc <percent>` | what the driver needs by then | a floor, not a goal — see below |
+
+Name no goal at all and the goal is 100 %. Name several and the first one reached ends the session,
+in the order a driver would care about: full, then target SoC, then delivered energy, then the time
+limit, then departure. A goal that cannot be reached — a station delivering nothing, a target above
+capacity — ends at a 5000-iteration ceiling rather than hanging on a live counterparty.
+
+**One iteration is one simulated minute.** That is the period the meter already counts by, so the
+car's counter and the station's signed reading are measuring the same process rather than two
+different ones. It also means a full charge is several hundred exchanges: give `--max-charging-time`
+when the far end is a live station and not a loopback.
+
+### What of it reaches the station
+
+Most of it does not, and the flag names hide that. The pack is the car's own business; only three of
+the nine have a field to go in.
+
+| | On the wire |
+|---|---|
+| `--power` | **yes, in all four modes** — see below |
+| `--target-soc` | **yes, `-20` DC**, as `TargetSOC` at `DC_ChargeParameterDiscovery` |
+| `--departure-time` | **yes, `-20`**, as `DepartureTime` in the Dynamic charge-loop request — the deadline a Dynamic station schedules against |
+| `--taper-from` | indirectly: it shapes what `--power` asks for as the pack fills |
+| `--battery`, `--soc`, `--target-energy`, `--max-charging-time`, `--min-soc` | **no.** They end the session, and the station learns of them only by the session ending. The fields they correspond to are still fixed literals here (`EAmount`, `EVTargetEnergyRequest`, `-2`'s `EVRESSSOC`), and `MinimumSOC` exists only in the station's *response*, so a car has nowhere to declare it at all. |
+
+### Where `--power` lands
+
+There is no "watts I want" field the four modes share; each carries the ask where it can.
+
+| | Field | Tapers |
+|---|---|---|
+| `-20` DC | the Scheduled setpoint (`EVTargetCurrent`) and the Dynamic `EVMaximum*` limits | yes |
+| `-20` AC | `EVPresentActivePower`, sent every iteration | yes |
+| `-2` DC | `EVTargetCurrent` at the loop's own 400 V, plus `EVMaximumPowerLimit` | yes |
+| `-2` AC | `EVMaxCurrent` at discovery, and the `ChargingProfile` committed at `PowerDelivery(Start)` | **no** |
+
+`-2` AC is the one that cannot taper, and that is not an omission: its charge-loop request
+(`ChargingStatusReq`) is an empty message, so there is no per-iteration field for the car to lower as
+the pack fills. The profile is agreed once and both sides meter it. `-2` AC also holds the ask inside
+6–32 A per phase, so `--power 1` charges at 4.2 kW three-phase — a contactor that cannot modulate
+below 6 A per phase charges at 6 A whatever the driver typed.
+
+In **Dynamic** control mode `--power` states limits and nothing more, because that is what Dynamic
+means: the station names the operating point ([V2G20-1600]), and a car that asked for 9 kW may be
+given something else. In **Scheduled** — the default here — the car names it.
+
+Whatever is asked for, the battery fills with **what the meter counted**, not with what was requested:
+a station that gives less than it was asked for shows up as a slower charge, which is the point of
+asking. The one thing this cannot model is a station giving more than the car allowed.
+
+`--min-soc` is deliberately not a stop condition. A floor cannot extend a session — you cannot charge
+after you have driven off — so it neither prolongs the loop past a departure time nor past a charging
+time limit. What it does is turn "the session ended" into "the session ended and the car had enough,
+or did not", which is the question the driver actually asked and the one a scheduling station should
+be judged on. The run says which.
+
 ## Worth trying
 
 ```bash
@@ -138,6 +212,18 @@ dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --tls-backend
 
 # force the -2 path through a station that offers both
 dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --protocol 2
+
+# a 77 kWh pack at 20 %, charging until it is full rather than for three iterations
+dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --battery 77 --soc 20
+
+# 9 kW to 80 %, and give up after two simulated hours whatever happened
+dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" \
+    --power 9 --target-soc 80 --max-charging-time 2h
+
+# leaving in 45 minutes and needing 60 % by then. -20 puts the departure on the wire,
+# so a Dynamic station has something to schedule against; the minimum is ours to check.
+dotnet run --project WWCP_ISO15118_EVCC -- --connect "[::1]:15118" --protocol 20 \
+    --departure-time 45m --min-soc 60
 ```
 
 `--help` prints the full flag list. Flags that belong to the station — `--listen`, `--dynamic`,
@@ -172,9 +258,10 @@ authenticated, not the station.
 
 A conformance and research peer, not a car. Chains are validated only when `--trust-roots` says so
 and revocation never is; its timeouts are a flat 2 s / 60 s rather than the standard's performance
-tables; its charge loop is a fixed three iterations rather than a battery filling up; and it has no
-electrical layer at all. The station's README lists the same limits from the other side, where they
-matter more.
+tables; and it has no electrical layer at all. [The battery](#the-battery) is arithmetic on a
+simulated clock — linear below the taper knee, with no temperature, no losses and no ageing — so a
+run that ends "at 100 %" is reporting a sum and not a charging curve. The station's README lists the
+same limits from the other side, where they matter more.
 
 ## Where the actual implementation is
 

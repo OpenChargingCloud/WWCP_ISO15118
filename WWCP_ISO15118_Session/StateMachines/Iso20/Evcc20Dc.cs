@@ -53,7 +53,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// station is still free to deliver less, and the battery fills with what the meter counted.
         /// </remarks>
         protected virtual Dc20.RationalNumberType LoopMaxPower
-            => Battery is { RequestedPowerW: > 0 } b ? Watts(b.RequestedPowerW) : Rat(50, exponent: 3);  // 50 kW
+            => Battery is { RequestedPowerW: > 0 } b ? Watts(b.RequestedPowerW * b.PowerFactor) : Rat(50, exponent: 3);  // 50 kW
 
         protected virtual Dc20.RationalNumberType LoopMaxCurrent
             // At the loop's own nominal 400 V, so the two requests describe one operating point rather
@@ -72,9 +72,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <c>--power</c> has to land to be felt at all — the Dynamic arms state limits and let the station
         /// choose, Scheduled names the setpoint itself.
         /// </summary>
+        /// <remarks>
+        /// Scaled by the battery's taper: above the knee the car asks for progressively less, which is
+        /// what makes the last fifth take as long as it does on a real pack. Our own station serves this
+        /// setpoint, so a loopback session shows the curve rather than a straight line.
+        /// </remarks>
         protected virtual Dc20.RationalNumberType LoopTargetCurrent
             => Battery is { RequestedPowerW: > 0 } b
-                   ? Rat((short) Math.Min((double) MaxCurrentAmps, Math.Max(1, Math.Round(b.RequestedPowerW / LoopNominalVolts))))
+                   ? Rat((short) Math.Min((double) MaxCurrentAmps,
+                                          Math.Max(1, Math.Round(b.RequestedPowerW * b.PowerFactor / LoopNominalVolts))))
                    : Rat(120);
 
         /// <summary>The declared current envelope as a plain number, for deriving a request from a power.</summary>

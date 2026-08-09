@@ -289,9 +289,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public ChargeStop? BatteryStop { get; private set; }
 
         /// <summary>
-        /// An amount as a -20 rational's (value, exponent) pair, keeping three significant figures without
-        /// overflowing the 16-bit value: 9 000 becomes 9×10³, 9 500 becomes 950×10¹. The rational carries
-        /// no unit, so this serves watts and watt-hours alike.
+        /// An amount as a -20 rational's (value, exponent) pair, scaling down by powers of ten only when needed
+        /// to fit the 16-bit value (saturating if still too large): 9 000 becomes 9×10³; 60 000 becomes 6000×10¹.
+        /// The rational carries no unit, so this serves watts and watt-hours alike.
         /// </summary>
         /// <remarks>
         /// The AC, DC and common message sets each declare their own <c>RationalNumberType</c> as a

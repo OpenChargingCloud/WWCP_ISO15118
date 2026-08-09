@@ -39,8 +39,17 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         string? ContractCertPath, string? ContractCertPass,
         string? OemCertPath, string? OemCertPass,
         bool PauseResume, bool EndPaused, string? ResumeSessionIdHex,
-        bool Renegotiate, string? TariffCertPath, string? TariffCertPass)
+        bool Renegotiate, string? TariffCertPath, string? TariffCertPass,
+        double? BatteryKWh, double? StartSoC, double? TargetSoC, double? TargetEnergyKWh,
+        TimeSpan? MaxChargingTime, double? PowerKW)
     {
+
+        /// <summary>
+        /// Whether this run simulates a battery filling up rather than a fixed three-iteration loop.
+        /// Any of the battery flags turns it on; none of them keeps every recorded interop run's shape.
+        /// </summary>
+        public bool HasBattery => BatteryKWh is not null || StartSoC is not null || TargetSoC is not null
+                               || TargetEnergyKWh is not null || MaxChargingTime is not null || PowerKW is not null;
 
         public static EvccOptions Parse(string[] args)
         {
@@ -61,6 +70,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             string? contractCertPath = null, contractCertPass = null;
             string? oemCertPath = null, oemCertPass = null;
             string? resumeSessionIdHex = null, tariffCertPath = null, tariffCertPass = null;
+            double? batteryKWh = null, startSoC = null, targetSoC = null, targetEnergyKWh = null, powerKW = null;
+            TimeSpan? maxChargingTime = null;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -160,6 +171,26 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     case "--renegotiate":
                         renegotiate = true;
                         break;
+                    // The battery. Any one of these turns the charge loop from three iterations into a
+                    // session that ends when the car is done; see EvBattery for why that is opt-in.
+                    case "--battery":
+                        batteryKWh = ParsePositive(args[++i], "--battery", "kWh");
+                        break;
+                    case "--soc":
+                        startSoC = ParsePercent(args[++i], "--soc");
+                        break;
+                    case "--target-soc":
+                        targetSoC = ParsePercent(args[++i], "--target-soc");
+                        break;
+                    case "--target-energy":
+                        targetEnergyKWh = ParsePositive(args[++i], "--target-energy", "kWh");
+                        break;
+                    case "--max-charging-time":
+                        maxChargingTime = ParseDuration(args[++i], "--max-charging-time");
+                        break;
+                    case "--power":
+                        powerKW = ParsePositive(args[++i], "--power", "kW");
+                        break;
                     case "--tariff-cert":
                         tariffCertPath = args[++i];
                         break;
@@ -186,7 +217,56 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                    contractCertPath, contractCertPass,
                                    oemCertPath, oemCertPass,
                                    pauseResume, endPaused, resumeSessionIdHex,
-                                   renegotiate, tariffCertPath, tariffCertPass);
+                                   renegotiate, tariffCertPath, tariffCertPass,
+                                   batteryKWh, startSoC, targetSoC, targetEnergyKWh, maxChargingTime, powerKW);
+        }
+
+        private static double ParsePositive(string value, string flag, string unit)
+            => double.TryParse(value, System.Globalization.NumberStyles.Float,
+                               System.Globalization.CultureInfo.InvariantCulture, out var d) && d > 0
+                   ? d
+                   : throw new ArgumentException($"{flag} expects a positive number of {unit}, got '{value}'.");
+
+        private static double ParsePercent(string value, string flag)
+            => double.TryParse(value.TrimEnd('%'), System.Globalization.NumberStyles.Float,
+                               System.Globalization.CultureInfo.InvariantCulture, out var d) && d is >= 0 and <= 100
+                   ? d
+                   : throw new ArgumentException($"{flag} expects a state of charge between 0 and 100 %, got '{value}'.");
+
+        /// <summary>
+        /// <c>90</c>, <c>90m</c>, <c>2h</c>, <c>45s</c>, or <c>1h30m</c>. A bare number is minutes, because
+        /// that is the unit a charging session is discussed in and the one a charge-loop iteration stands for.
+        /// </summary>
+        private static TimeSpan ParseDuration(string value, string flag)
+        {
+            var text  = value.Trim().ToLowerInvariant();
+            var total = TimeSpan.Zero;
+            var seen  = false;
+
+            for (int i = 0; i < text.Length;)
+            {
+                int start = i;
+                while (i < text.Length && (char.IsDigit(text[i]) || text[i] == '.')) i++;
+                if (i == start) throw new ArgumentException($"{flag}: cannot read a duration from '{value}' (try 90m, 2h, 1h30m).");
+
+                if (!double.TryParse(text[start..i], System.Globalization.NumberStyles.Float,
+                                     System.Globalization.CultureInfo.InvariantCulture, out var n))
+                    throw new ArgumentException($"{flag}: cannot read a duration from '{value}' (try 90m, 2h, 1h30m).");
+
+                var unit = i < text.Length ? text[i++] : 'm';
+                total += unit switch
+                {
+                    's' => TimeSpan.FromSeconds(n),
+                    'm' => TimeSpan.FromMinutes(n),
+                    'h' => TimeSpan.FromHours(n),
+                    _   => throw new ArgumentException($"{flag}: unknown unit '{unit}' in '{value}' — use s, m or h."),
+                };
+                seen = true;
+            }
+
+            return seen && total > TimeSpan.Zero
+                       ? total
+                       : throw new ArgumentException($"{flag} expects a duration greater than zero, got '{value}'.");
         }
 
         private static void Validate(string? connectHost, TlsStack backend, bool useSdp, string? iface,
@@ -261,7 +341,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "  --protocol 2|20|both   what to offer (default: both, -20 at priority 1)\n" +
             "                         both = offer -20 and -2 in one handshake and run whichever the\n" +
             "                         station picks; against a -20 station that is -20\n" +
-            "  --mode ac|dc|mcs       energy transfer mode (default: ac)\n" +
+            "  --mode ac|dc|mcs       energy transfer mode (default: dc)\n" +
             "                         mcs = the DC message set under energy-transfer services 8/9 with\n" +
             "                         a megawatt envelope; -20 only\n" +
             "\n" +
@@ -294,6 +374,19 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "                                      contract. -20: requests CertificateInstallation and\n" +
             "                                      unwraps the issued contract key (needs a P-521 key).\n" +
             "                                      Accepted for -2, where nothing uses it yet.\n" +
+            "  Battery: any one of these turns the charge loop from three iterations into a session that\n" +
+            "           ends when the car is done. One iteration is one simulated minute, so a full charge\n" +
+            "           is hundreds of exchanges — give --max-charging-time when driving a live station.\n" +
+            "          --battery <kWh>             usable capacity (default: 60)\n" +
+            "          --soc <percent>             state of charge at plug-in (default: random 10–60 %)\n" +
+            "          --target-soc <percent>      charge until this state of charge\n" +
+            "          --target-energy <kWh>       charge until this much has been delivered\n" +
+            "                                      (EAmount in -2, EVTargetEnergyRequest in -20)\n" +
+            "          --max-charging-time <dur>   stop after this much simulated time: 90, 90m, 2h, 1h30m\n" +
+            "          --power <kW>                what the car asks for. -20 DC: its EVMaximum* limits.\n" +
+            "                                      The station decides what it actually delivers, and the\n" +
+            "                                      battery fills with what the meter counted.\n" +
+            "           With no goal named at all, the goal is 100 %.\n" +
             "  Tariff: --tariff-cert <pfx> [--tariff-cert-pass <pw>]   verify the station's signed\n" +
             "                                      SalesTariff / AbsolutePriceSchedule with this public key\n" +
             "  Pause:  --pause-resume              pause after the charge loop, reconnect, rejoin the session\n" +

@@ -174,7 +174,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     {
                         ServerCertificateValidation = trust is null
                             ? (_, _, _, _) => true
-                            : (_, cert, _, _) => cert is not null && Report("TLS station", trust.Validate(new X509Certificate2(cert))),
+                            // The chain argument carries what the station put on the wire beyond its leaf;
+                            // without it a station that sends its Sub-CAs is judged as though it had sent none.
+                            : (_, cert, chain, _) => cert is not null
+                                  && Report("TLS station", trust.Validate(new X509Certificate2(cert), TrustRoots.PeerIntermediates(chain))),
                         // Negotiate TLS 1.2 or 1.3 so this interoperates with a peer in either mode (Josev's
                         // SECC serves TLS 1.2 unilateral by default, TLS 1.3 mutual with ENABLE_TLS_1_3=True).
                         EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,

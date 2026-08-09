@@ -138,16 +138,30 @@ when the far end is a live station and not a loopback.
 
 ### What of it reaches the station
 
-Most of it does not, and the flag names hide that. The pack is the car's own business; only three of
-the nine have a field to go in.
+Nearly all of it, and it is worth knowing which field carries what — a station that plans badly is
+often a station that was told badly.
 
 | | On the wire |
 |---|---|
-| `--power` | **yes, in all four modes** — see below |
-| `--target-soc` | **yes, `-20` DC**, as `TargetSOC` at `DC_ChargeParameterDiscovery` |
-| `--departure-time` | **yes, `-20`**, as `DepartureTime` in the Dynamic charge-loop request — the deadline a Dynamic station schedules against |
+| `--power` | **all four modes**, in whichever field each has — see below |
+| `--battery` | `-2` DC's `EVEnergyCapacity`, the one place either protocol asks a car how big its pack is |
+| `--soc` | `-2` DC's `EVRESSSOC`, and it **rises as the pack fills** — the only `-2` field that moves during a session |
+| `--target-soc` | `-20` DC's `TargetSOC` at `DC_ChargeParameterDiscovery`, and `TargetSOC` in the Dynamic `ScheduleExchange` request |
+| `--target-energy` | what is *left* of it, every request: `EAmount` in `-2` AC, `EVEnergyRequest` in `-2` DC, `EVTargetEnergyRequest` in `-20` |
+| `--min-soc` | `-20`'s `EVMinimumEnergyRequest` in watt-hours, and `MinimumSOC` in the Dynamic `ScheduleExchange` request |
+| `--departure-time` | `-20`'s `DepartureTime` — the deadline a Dynamic station schedules against |
 | `--taper-from` | indirectly: it shapes what `--power` asks for as the pack fills |
-| `--battery`, `--soc`, `--target-energy`, `--max-charging-time`, `--min-soc` | **no.** They end the session, and the station learns of them only by the session ending. The fields they correspond to are still fixed literals here (`EAmount`, `EVTargetEnergyRequest`, `-2`'s `EVRESSSOC`), and `MinimumSOC` exists only in the station's *response*, so a car has nowhere to declare it at all. |
+| `--max-charging-time` | **nothing.** No field in either protocol says "I am leaving after 90 minutes of charging" — `--departure-time` is the one that does, and it says something different |
+
+The `-20` energy fields are a triple, and they are all three what is **left**: how much the car still
+wants (`EVTargetEnergyRequest`), how much it can still take (`EVMaximumEnergyRequest`), how much it
+still needs (`EVMinimumEnergyRequest`). They shrink as the pack fills, which is the whole of what
+makes them useful to a station steering a Dynamic session — before this they were 30 / 60 / 10 kWh
+whatever the car was carrying, so a station scheduled against three constants.
+
+`--min-soc` is worth a second look here. It is still not a stop condition and cannot be one (see
+below), but "not a goal" was never the same as "not the station's business": a Dynamic station is
+owed the figure precisely because it is the one the driver will be judged on.
 
 ### Where `--power` lands
 

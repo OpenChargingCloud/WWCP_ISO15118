@@ -138,7 +138,13 @@ the reason not to put it in front of a real car as anything but a test instrumen
   certificate cannot answer it. That is the -20 profile being kept; use the .NET backend for those.
 - **The timeouts are not the standard's** — a flat 2 s per message and 60 s per sequence, not the
   per-message performance tables.
-- **The charge loop is a fixed three iterations**, not a battery filling up.
+- **The charge loop lasts as long as the car keeps asking.** This station has no pack and no view of
+  one: three iterations against a plain car, several hundred against one given a battery
+  ([`WWCP_ISO15118_EVCC`](../WWCP_ISO15118_EVCC/README.md#the-battery)) — the car decides, not this.
+  What it delivers follows the control mode, as it should: in **Scheduled** it serves the setpoint it
+  was sent, capped by its own limits, and in **Dynamic** it names the operating point itself
+  ([V2G20-1600]). AC is the exception in both — there the *car* decides what to draw inside the
+  envelope, so the station meters what the car reports drawing.
 - **There is no electrical layer at all**: no contactor, no Control Pilot, no isolation monitoring.
   On a station that is the entire safety-relevant half, and it belongs to IEC 61851 rather than to
   ISO 15118.

@@ -91,7 +91,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         /// <summary>Watts as a -20 rational, keeping three significant figures without overflowing the
         /// 16-bit value: 9 kW becomes 9×10³, 9.5 kW becomes 950×10¹.</summary>
-        private static Dc20.RationalNumberType Watts(double watts)
+        /// <remarks>Protected rather than private so a test can reach it: the saturation below is the kind
+        /// of edge a session-level test never exercises, and it was a silent overflow until review.</remarks>
+        protected static Dc20.RationalNumberType Watts(double watts)
         {
             sbyte exponent = 0;
             var   value    = Math.Round(watts);

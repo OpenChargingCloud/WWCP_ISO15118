@@ -326,6 +326,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 {
                     Renegotiations++;
                     Phase = Phase20.ServiceDiscovery;
+                    // Cleared, so the claim on SelectedEnergyServiceId is true. It said "re-set from scratch
+                    // by a service renegotiation" while this path left the old value standing — harmless
+                    // when nothing checked the id, and not harmless now that an unadvertised one is refused:
+                    // a stale id would be a *validated* stale id, surviving into a session that never
+                    // selected it.
+                    SelectedEnergyServiceId = 0;
                     return (MessageSet.Iso20CommonMessages, SessionStop(stopReq));
                 }
 
@@ -364,10 +370,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     Step(MessageSet.Iso20CommonMessages, SvcDiscovery(r), Phase20.ServiceDetail),
 
                 (Phase20.ServiceDetail, MessageSet.Iso20CommonMessages, ServiceDetailReq r) =>
-                    Step(MessageSet.Iso20CommonMessages, SvcDetail(r), Phase20.ServiceSelection),
+                    SvcDetailStep(r),
 
                 (Phase20.ServiceSelection, MessageSet.Iso20CommonMessages, ServiceSelectionReq r) =>
-                    Step(MessageSet.Iso20CommonMessages, SvcSelection(r), Phase20.ChargeParams),
+                    SvcSelectionStep(r),
 
                 (Phase20.ChargeParams, _, _) =>
                     Append(HandleChargeParameterDiscovery(request), Phase20.ScheduleExchange),
@@ -769,11 +775,68 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         protected bool BidirectionalServiceSelected
             => EnergyTransferService.IsBidirectional(SelectedEnergyServiceId);
 
-        private ServiceSelectionRes SvcSelection(ServiceSelectionReq req)
+        /// <summary>
+        /// ServiceDetail and ServiceSelection, both refusing an id this station never advertised.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Both used to echo whatever id arrived: <c>SvcDetail</c> answered <c>OK</c> with the EV's own
+        /// number in it, and <c>SvcSelection</c> assigned it to <see cref="SelectedEnergyServiceId"/> and
+        /// answered <c>OK</c>. So an EV could select a service that was never in the catalogue — service 99,
+        /// or DC against an AC station — and the session went on with it.
+        /// </para>
+        /// <para>
+        /// <b>That is not cosmetic, because the value is load-bearing.</b>
+        /// <see cref="BidirectionalServiceSelected"/> reads it to decide whether the charge-parameter and
+        /// control-mode types the EV sends next must be the <c>BPT_*</c> ones, so an unadvertised id decides
+        /// a conformance check with a number the station never stood behind.
+        /// </para>
+        /// <para>
+        /// It is also the mirror of the defect EVerest found in <em>us</em> on 2026-08-03: our EVCC named an
+        /// energy transfer mode instead of reading what <c>ServiceDiscoveryRes</c> offered, and their station
+        /// was right to refuse it (<c>docs/interop-runs/2026-08-03-everest-ac/</c>). We read their catalogue
+        /// from that day on and did not check our own.
+        /// </para>
+        /// <para>
+        /// The response codes are the schema's own — no requirement text is quoted, because none about
+        /// service selection is available here (see <c>docs/normative-basis.md</c> for the rule).
+        /// </para>
+        /// <para>
+        /// The phase these return is not the one that takes effect: <see cref="Handle"/> ends the session on
+        /// any failure response, whatever the handler asked for, and that blanket rule is older than this
+        /// check. So a refusal here is terminal, unlike its <c>-2</c> counterpart in <c>Secc2.PowerOn</c>,
+        /// which stays put and lets a corrected request through. Both are defensible and the difference is
+        /// not deliberate; it is recorded rather than tidied because changing it would change how every
+        /// other <c>-20</c> refusal behaves.
+        /// </para>
+        /// </remarks>
+        private (MessageSet, object, Phase20) SvcDetailStep(ServiceDetailReq req)
+            => Advertised(req.ServiceID)
+                   ? Step(MessageSet.Iso20CommonMessages, SvcDetail(req), Phase20.ServiceSelection)
+                   : (MessageSet.Iso20CommonMessages,
+                      new ServiceDetailRes(SessionCtx.ToCommonHeader(), ResponseCode.FAILED_ServiceIDInvalid,
+                                           req.ServiceID, new ServiceParameterListType(Array.Empty<ParameterSetType>())),
+                      Phase20.ServiceDetail);
+
+        private (MessageSet, object, Phase20) SvcSelectionStep(ServiceSelectionReq req)
         {
-            SelectedEnergyServiceId = req.SelectedEnergyTransferService.ServiceID;
-            return new(SessionCtx.ToCommonHeader(), ResponseCode.OK);
+            var id = req.SelectedEnergyTransferService.ServiceID;
+
+            if (!Advertised(id))
+                return (MessageSet.Iso20CommonMessages,
+                        new ServiceSelectionRes(SessionCtx.ToCommonHeader(), ResponseCode.FAILED_ServiceSelectionInvalid),
+                        Phase20.ServiceSelection);
+
+            SelectedEnergyServiceId = id;
+            return Step(MessageSet.Iso20CommonMessages,
+                        new ServiceSelectionRes(SessionCtx.ToCommonHeader(), ResponseCode.OK),
+                        Phase20.ChargeParams);
         }
+
+        /// <summary>Whether <paramref name="serviceId"/> is one this station put in its own
+        /// <c>ServiceDiscoveryRes</c> — which is <see cref="EnergyServiceIds"/> and nothing else, since
+        /// <see cref="SvcDiscovery"/> advertises no value-added services.</summary>
+        private bool Advertised(ushort serviceId) => EnergyServiceIds.Contains(serviceId);
 
         private ScheduleExchangeRes ScheduleExchange(ScheduleExchangeReq req)
         {

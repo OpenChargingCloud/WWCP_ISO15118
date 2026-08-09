@@ -453,6 +453,26 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// </remarks>
         private const int ThreePhase16A = 11_040;
 
+        /// <summary>
+        /// The other two steps this station offers, at the same 230 V it advertises: 32 A on one phase and
+        /// 32 A on three.
+        /// </summary>
+        /// <remarks>
+        /// These were <c>7_400</c> and <c>22_000</c> until 2026-08-09, and the second of the two is the
+        /// Taycan refusal above waiting to happen one tariff step higher: a car asking for its physical
+        /// 22,080 W against a 22,000 W offer is refused by [V2G2-761] exactly as it was at 11,040 against
+        /// 11,000. The fix went into <see cref="ThreePhase16A"/> and stopped there, which is the shape of
+        /// mistake worth naming — a rounded number is not one bug, it is a habit, and the tuple nobody was
+        /// looking at kept it.
+        /// <para>
+        /// 7,360 is the milder half: it is <em>below</em> the 7,400 it replaces, so no car was ever refused
+        /// by it. What it fixes is our own side, since an EV that shapes its profile to PMax was committing
+        /// to 7,400 W that 32 A on one phase at 230 V does not deliver.
+        /// </para>
+        /// </remarks>
+        private const int SinglePhase32A =  7_360;
+        private const int ThreePhase32A  = 22_080;
+
         /// <summary>What this DC outlet presents, and the most it will push — the ceiling on the current a
         /// vehicle's <c>CurrentDemandReq</c> can ask it for.</summary>
         private const short DcVolts   = 400;
@@ -469,11 +489,19 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     SalesTariff: null),
             });
 
-        /// <summary>The smart-charging offer: tuple 1 is the flat <see cref="ThreePhase16A"/> at price
-        /// levels 2→3, tuple 2 starts capped at 7.4 kW on level 1 and opens to 22 kW on level 2 after
-        /// 30 min — a price-aware EV picks tuple 2 (average level 1.5 vs 2.5) and shapes its
-        /// ChargingProfile to the 7.4/22 kW steps. Tuple 1 carries the same figure as the plain offer for
-        /// the same reason: a car that is not price-aware picks it, and it would meet the same wall.</summary>
+        /// <summary>
+        /// The smart-charging offer: tuple 1 is the flat <see cref="ThreePhase16A"/> at price levels 2→3;
+        /// tuple 2 starts capped at <see cref="SinglePhase32A"/> on level 1 and opens to
+        /// <see cref="ThreePhase32A"/> on level 2 after 30 min — a price-aware EV picks tuple 2 (average
+        /// level 1.5 vs 2.5) and shapes its ChargingProfile to those two steps. Tuple 1 carries the same
+        /// figure as the plain offer for the same reason: a car that is not price-aware picks it, and it
+        /// would meet the same wall.
+        /// <para>
+        /// This said "the 7.4/22 kW steps" until the constants were named, and kept saying it for one
+        /// commit after — the round numbers are what the whole change is about, so a summary still
+        /// reaching for them is how the drift starts again. Named, not spelled out, for the same reason.
+        /// </para>
+        /// </summary>
         private static SAScheduleListType TariffSchedules() =>
             new(new[]
             {
@@ -487,8 +515,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 new SAScheduleTupleType(SAScheduleTupleID: 2,
                     new PMaxScheduleType(new[]
                     {
-                        new PMaxScheduleEntryType(new RelativeTimeIntervalType(Start: 0, Duration: 1800), PMax: Watt(7_400)),
-                        new PMaxScheduleEntryType(new RelativeTimeIntervalType(Start: 1800, Duration: 1800), PMax: Watt(22_000)),
+                        new PMaxScheduleEntryType(new RelativeTimeIntervalType(Start: 0, Duration: 1800), PMax: Watt(SinglePhase32A)),
+                        new PMaxScheduleEntryType(new RelativeTimeIntervalType(Start: 1800, Duration: 1800), PMax: Watt(ThreePhase32A)),
                     }),
                     new SalesTariffType(Id: "salesTariff2", SalesTariffID: 2, SalesTariffDescription: "off-peak boost",
                         NumEPriceLevels: 3, SalesTariffEntry: new[] { TariffEntry(0, level: 1), TariffEntry(1800, level: 2) })),

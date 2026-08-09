@@ -147,18 +147,19 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             do
             {
                 using var stream = await listener.AcceptAsync();
+                var transport = TransportOf(args, stream);
                 SeccOptions sessionArgs;
                 if (args.OfferBoth)
                 {
                     // A mini-IsoMux: accept both protocols, follow the EV's priority, and run the state
                     // machine the handshake settled on rather than one chosen before it ran.
-                    var settled = await SapHandshake.RunSeccSideAsync(stream, BothOffers(args.Mode));
+                    var settled = await SapHandshake.RunSeccSideAsync(stream, BothOffers(args.Mode), transport: transport);
                     Console.WriteLine($"SAP: the EV's offer settled on {V2GInterface.Name(settled.Protocol)}.");
                     sessionArgs = args with { Protocol = settled.Protocol };
                 }
                 else
                 {
-                    await SapHandshake.RunSeccSideAsync(stream, args.Protocol, mode: args.Mode);
+                    await SapHandshake.RunSeccSideAsync(stream, args.Protocol, mode: args.Mode, transport: transport);
                     sessionArgs = args;
                 }
                 paused = await RunSessionAsync(stream, sessionArgs, trust, paused);
@@ -174,6 +175,35 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
         /// multiplexer supports. The mode applies to both entries.</summary>
         private static SapOffer[] BothOffers(PowerMode mode) =>
             [new(ProtocolVariant.Iso15118_20, mode), new(ProtocolVariant.Iso15118_2, mode)];
+
+        /// <summary>
+        /// The station's half of the same question the car answers in <c>EVCC/Program.cs</c>:
+        /// <c>[V2G20-2356]</c> forbids <i>selecting</i> ISO 15118-20 on plain TCP or TLS 1.2 and below,
+        /// whatever the car offered.
+        /// </summary>
+        /// <remarks>
+        /// Deliberately the same shape as the car's, including the standing down: this station answers most
+        /// of the matrix over plain TCP on purpose. What it will not do any more is answer <c>-20</c> there
+        /// without saying so — which is exactly the finding filed against EVerest's <c>IsoMux</c>
+        /// (<c>ISO15118ConformanceTests/docs/reports/everest-isomux-iso20-over-tls12.md</c>), and the reason
+        /// the obligation binds the station separately from the car is the case where the car is the one
+        /// getting it wrong.
+        /// </remarks>
+        private static TransportSecurity TransportOf(SeccOptions args, Stream stream)
+        {
+            var actual = Iso20Transport.Of(stream);
+
+            if (args.Protocol != ProtocolVariant.Iso15118_20 && !args.OfferBoth)
+                return actual;
+
+            if (Iso20Transport.MayCarryIso20(actual))
+                return actual;
+
+            Console.WriteLine($"SAP: prepared to select ISO 15118-20 on {Iso20Transport.Describe(actual)} — "
+                            + "[V2G20-2356] says a station should not, and this one will anyway because that "
+                            + "is what the run is for. Use TLS 1.3 for a conformant session.");
+            return TransportSecurity.Unknown;
+        }
 
         /// <summary>Runs one session; returns the session id when it ended <b>paused</b> (offer it to the
         /// next session as the resume id), else <c>null</c>.</summary>

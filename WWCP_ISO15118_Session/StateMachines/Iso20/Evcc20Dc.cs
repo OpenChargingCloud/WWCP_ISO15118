@@ -46,8 +46,66 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// envelope above on purpose: DC declares 200 A at discovery and then asks for 125 A of it, which
         /// is a live request and not a second declaration of the same limit. The loop's maximum voltage is
         /// <see cref="MaxVoltage"/> itself; a vehicle never asks above what it declared it can take.</summary>
-        protected virtual Dc20.RationalNumberType LoopMaxPower   => Rat(50, exponent: 3);  //  50 kW
-        protected virtual Dc20.RationalNumberType LoopMaxCurrent => Rat(125);              // 125 A
+        /// <remarks>
+        /// <c>--power</c> lands here, and only here: it is what the car <em>asks</em> for inside the loop,
+        /// which is the honest place for it. The discovery envelope above stays what the vehicle can take
+        /// at all, because a car does not shrink its hardware because the driver wanted 9 kW today. The
+        /// station is still free to deliver less, and the battery fills with what the meter counted.
+        /// </remarks>
+        protected virtual Dc20.RationalNumberType LoopMaxPower
+            => Battery is { RequestedPowerW: > 0 } b ? Watts(b.RequestedPowerW) : Rat(50, exponent: 3);  // 50 kW
+
+        protected virtual Dc20.RationalNumberType LoopMaxCurrent
+            // At the loop's own nominal 400 V, so the two requests describe one operating point rather
+            // than two unrelated ceilings. Capped by what the vehicle declared it can take.
+            => Battery is { RequestedPowerW: > 0 } b
+                   ? Rat((short) Math.Min(125, Math.Max(1, Math.Round(b.RequestedPowerW / LoopNominalVolts))))
+                   : Rat(125);                                                                   // 125 A
+
+        /// <summary>The voltage the loop operates at, and the one it reports as EVPresentVoltage. The
+        /// current requests below are derived at this voltage so that a power and a current describe one
+        /// operating point.</summary>
+        protected const short LoopNominalVolts = 400;
+
+        /// <summary>
+        /// What a <b>Scheduled</b> loop asks for. This is the default control mode, so it is where
+        /// <c>--power</c> has to land to be felt at all — the Dynamic arms state limits and let the station
+        /// choose, Scheduled names the setpoint itself.
+        /// </summary>
+        protected virtual Dc20.RationalNumberType LoopTargetCurrent
+            => Battery is { RequestedPowerW: > 0 } b
+                   ? Rat((short) Math.Min((double) MaxCurrentAmps, Math.Max(1, Math.Round(b.RequestedPowerW / LoopNominalVolts))))
+                   : Rat(120);
+
+        /// <summary>The declared current envelope as a plain number, for deriving a request from a power.</summary>
+        protected virtual short MaxCurrentAmps => 200;
+
+        /// <summary>
+        /// The state of charge the car tells the station it is heading for, at DC_ChargeParameterDiscovery.
+        /// Follows <c>--target-soc</c> when a battery names one; 80 % otherwise, which is what this stood
+        /// at unconditionally and is the conventional DC knee.
+        /// </summary>
+        /// <remarks>The schema's percentage is a signed byte, which 0..100 fits into.</remarks>
+        protected sbyte DeclaredTargetSoC
+            => Battery?.TargetSoC is { } t ? (sbyte) Math.Clamp(Math.Round(t), 0, 100) : (sbyte) 80;
+
+        /// <summary>Watts as a -20 rational, keeping three significant figures without overflowing the
+        /// 16-bit value: 9 kW becomes 9×10³, 9.5 kW becomes 950×10¹.</summary>
+        private static Dc20.RationalNumberType Watts(double watts)
+        {
+            sbyte exponent = 0;
+            var   value    = Math.Round(watts);
+            while (Math.Abs(value) > short.MaxValue && exponent < 3)
+            {
+                value /= 10;
+                exponent++;
+            }
+
+            if (Math.Abs(value) > short.MaxValue)
+                value = Math.Sign(value) * short.MaxValue;
+
+            return Rat((short) Math.Round(value), exponent);
+        }
 
         protected override async Task RunChargeParameterDiscoveryAsync(CancellationToken ct)
         {
@@ -61,13 +119,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 ? new Dc20.BPT_DC_CPDReqEnergyTransferModeType(
                       EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
                       EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
-                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: 80,
+                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: DeclaredTargetSoC,
                       EVMaximumDischargePower: MaxPower, EVMinimumDischargePower: Rat(0),
                       EVMaximumDischargeCurrent: MaxCurrent, EVMinimumDischargeCurrent: Rat(0))
                 : new Dc20.DC_CPDReqEnergyTransferModeType(
                       EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
                       EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
-                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: 80);
+                      EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: DeclaredTargetSoC);
 
             var req = new Dc20.DC_ChargeParameterDiscoveryReq(SessionCtx.ToDcHeader(), transferMode);
 
@@ -137,19 +195,19 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 // bidirectional. Stating it rather than leaving it null: a BPT request that names no
                 // discharge limit tells the station nothing the plain type would not have.
                 (false, true) => new Dc20.BPT_Scheduled_DC_CLReqControlModeType(
-                      null, null, null, EVTargetCurrent: Rat(120), EVTargetVoltage: Rat(400),
+                      null, null, null, EVTargetCurrent: LoopTargetCurrent, EVTargetVoltage: Rat(LoopNominalVolts),
                       null, null, null, null, null,
                       EVMaximumDischargePower:   MaxPower,
                       EVMinimumDischargePower:   Rat(0),
                       EVMaximumDischargeCurrent: MaxCurrent),
 
                 _ => new Dc20.Scheduled_DC_CLReqControlModeType(
-                      null, null, null, EVTargetCurrent: Rat(120), EVTargetVoltage: Rat(400),
+                      null, null, null, EVTargetCurrent: LoopTargetCurrent, EVTargetVoltage: Rat(LoopNominalVolts),
                       null, null, null, null, null),
             };
 
             var req = new Dc20.DC_ChargeLoopReq(SessionCtx.ToDcHeader(), DisplayParameters: null, MeterInfoRequested: false,
-                EVPresentVoltage: Rat(400), CLReqControlMode: controlMode);
+                EVPresentVoltage: Rat(LoopNominalVolts), CLReqControlMode: controlMode);
 
             var (set, message) = await ExchangeRaw(MessageSet.Iso20DC,
                 dest => Dc20.DcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct);

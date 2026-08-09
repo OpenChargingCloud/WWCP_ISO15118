@@ -18,7 +18,8 @@
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
-using Dc20 = cloud.charging.open.protocols.ISO15118_20.DC.Generated;
+using Dc20         = cloud.charging.open.protocols.ISO15118_20.DC.Generated;
+using Dc20Rational = cloud.charging.open.protocols.ISO15118_20.DC.RationalNumber;
 
 namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 {
@@ -142,7 +143,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 Dc20.BPT_Scheduled_DC_CLReqControlModeType => new Dc20.BPT_Scheduled_DC_CLResControlModeType(null, null, null, null, null, null, null, null),
                 _ => new Dc20.Scheduled_DC_CLResControlModeType(null, null, null, null),
             };
-            Deliver(400d * 120d);   // the EVSEPresentVoltage x EVSEPresentCurrent announced below
+            // What the station actually delivers. In Scheduled mode the EV names the setpoint, and a station
+            // that ignored it would make every EV-side power request untestable against us — so serve what
+            // was asked for, capped by this station's own 200 A. In Dynamic mode the SECC dictates the
+            // operating point ([V2G20-1600] and the mandatory EVSE limits above), so the default stands.
+            var servedAmps = req.CLReqControlMode is Dc20.Scheduled_DC_CLReqControlModeType s
+                                 ? Math.Min(200d, (double) Dc20Rational.ToDecimal(s.EVTargetCurrent))
+                                 : 120d;
+            Deliver(400d * servedAmps);   // the EVSEPresentVoltage x EVSEPresentCurrent announced below
 
             var res = new Dc20.DC_ChargeLoopRes(SessionCtx.ToDcHeader(), Dc20.ResponseCode.OK,
                 // Service renegotiation is requested via the (otherwise absent) EVSEStatus ([V2G20-1477]);
@@ -153,7 +161,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 MeterInfo: MeterReading() is { } m
                     ? new Dc20.MeterInfoType(m.Id, m.Wh, null, null, null, m.Signature, null, m.Timestamp)
                     : null, Receipt: null,
-                EVSEPresentCurrent: Rat(120), EVSEPresentVoltage: Rat(400),
+                EVSEPresentCurrent: Rat((short) servedAmps), EVSEPresentVoltage: Rat(400),
                 EVSEPowerLimitAchieved: false, EVSECurrentLimitAchieved: false, EVSEVoltageLimitAchieved: false,
                 CLResControlMode: clRes);
             return (MessageSet.Iso20DC, res);

@@ -116,6 +116,16 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>How many renegotiation cycles this session ran (own + SECC-requested).</summary>
         public int Renegotiations { get; private set; }
 
+        /// <summary>
+        /// A battery that fills up, and the goal that ends the charge loop. Null — the default — keeps the
+        /// fixed three iterations every recorded interop run was taken with. See the -20 side for why this
+        /// is opt-in rather than the default.
+        /// </summary>
+        public Simulation.EvBattery? Battery { get; set; }
+
+        /// <summary>Why the charge loop ended; null while it has not finished.</summary>
+        public Simulation.ChargeStop? BatteryStop { get; private set; }
+
         /// <summary>The tariff signer's public key (fachlich the Mobility Operator's). When set AND the
         /// SECC's SASchedule offer carries signed SalesTariffs, the EV verifies them (§7.9.2.5); without a
         /// key the tariffs are still read for the price-aware tuple choice, just not verified.</summary>
@@ -206,8 +216,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             await Send<PowerDeliveryResType>(PowerDelivery(ChargeProgress.Start), ct);
 
             bool renegotiated = false;
-            for (int cycle = 0; cycle < 3; cycle++)                    // a few charging-loop iterations
+            // Three iterations stand in for a session when there is no battery; with one, the loop ends
+            // when the car is done. Same rule as the -20 side, and the same reason it is opt-in: every
+            // recorded run was taken at three.
+            for (int cycle = 0; Battery is null ? cycle < 3 : BatteryStop is null; cycle++)
             {
+                var energyBefore = Meter.Energy;
                 // A Contract SECC may demand a receipt (ReceiptRequired) in its status response — answer with
                 // a signed MeteringReceiptReq echoing its MeterInfo (as a real EV, e.g. Josev, does).
                 EVSENotification notification;
@@ -252,6 +266,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     await RunChargeParameterDiscovery(ct);
                     await Send<PowerDeliveryResType>(PowerDelivery(ChargeProgress.Start), ct);
                 }
+
+                if (Battery is not null)
+                {
+                    Battery.Add(Meter.Energy - energyBefore);
+                    if (Battery.Stop is var stop && stop != Simulation.ChargeStop.Running)
+                        BatteryStop = stop;
+                }
+
                 await pollDelay.Wait(PollInterval, ct);
             }
 

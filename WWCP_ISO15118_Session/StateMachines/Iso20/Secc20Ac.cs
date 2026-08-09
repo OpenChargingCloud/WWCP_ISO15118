@@ -18,7 +18,8 @@
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated;
 using cloud.charging.open.protocols.ISO15118.EXI.Dispatch;
 
-using Ac20 = cloud.charging.open.protocols.ISO15118_20.AC.Generated;
+using Ac20         = cloud.charging.open.protocols.ISO15118_20.AC.Generated;
+using Ac20Rational = cloud.charging.open.protocols.ISO15118_20.AC.RationalNumber;
 
 namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 {
@@ -38,6 +39,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         protected override bool HasPreChargeSequence => false;
         protected override bool HasPostChargeSequence => false;
         protected override IReadOnlyList<ushort> EnergyServiceIds => new ushort[] { 1, 5 };   // AC + AC_BPT
+
+        /// <summary>What this outlet can supply, 22 kW — the same figure the discovery response and the
+        /// Dynamic target below announce, and the ceiling on what it will meter.</summary>
+        private const double MaxPowerW = 22_000;
 
         /// <summary>Answers AC charge-parameter discovery in kind, and refuses a direction that contradicts
         /// the selected service — see <see cref="Secc20Dc.HandleChargeParameterDiscovery"/> for the rule, the
@@ -93,9 +98,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 Ac20.BPT_Scheduled_AC_CLReqControlModeType => new Ac20.BPT_Scheduled_AC_CLResControlModeType(null, null, null, null, null, null, null, null, null),
                 _ => new Ac20.Scheduled_AC_CLResControlModeType(null, null, null, null, null, null, null, null, null),
             };
-            // 22 kW: the EVSETargetActivePower announced below, and the EVPresentActivePower the
-            // vehicle reports — AC is the one case where both sides name the same figure outright.
-            Deliver(22_000);
+            // The station meters what the car said it is drawing, up to what this outlet can supply.
+            // That is AC's control model rather than a concession: the station offers an envelope
+            // (EVSETargetActivePower, announced above) and the vehicle decides what to take inside it, which
+            // is why AC needs no setpoint field for the EV to be steerable — and why a car charging at 9 kW
+            // from a 22 kW outlet is a station delivering 9 kW, not a disagreement. A vehicle that names no
+            // present power at all is taken to be at the outlet's figure, which is where this stood before
+            // it read the request.
+            var drawn = req.CLReqControlMode switch
+            {
+                Ac20.Scheduled_AC_CLReqControlModeType s => (double) Ac20Rational.ToDecimal(s.EVPresentActivePower),
+                Ac20.Dynamic_AC_CLReqControlModeType   d => (double) Ac20Rational.ToDecimal(d.EVPresentActivePower),
+                _                                        => MaxPowerW,
+            };
+            Deliver(Math.Clamp(drawn, 0, MaxPowerW));
 
             var res = new Ac20.AC_ChargeLoopRes(SessionCtx.ToAcHeader(), Ac20.ResponseCode.OK,
                 // Service renegotiation is requested via the (otherwise absent) EVSEStatus ([V2G20-1477]).

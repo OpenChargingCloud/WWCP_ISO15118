@@ -35,6 +35,7 @@ using cloud.charging.open.protocols.ISO15118.Sap;
 using cloud.charging.open.protocols.ISO15118.Security;
 using cloud.charging.open.protocols.ISO15118.Session;
 using cloud.charging.open.protocols.ISO15118.SharedCC;
+using cloud.charging.open.protocols.ISO15118.Simulation;
 using cloud.charging.open.protocols.ISO15118.Slac;
 using cloud.charging.open.protocols.ISO15118.StateMachines;
 using cloud.charging.open.protocols.ISO15118.StateMachines.Iso2;
@@ -194,6 +195,43 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             }
         }
 
+        /// <summary>
+        /// The car's battery, or null when this run is a message sequence rather than a charging session.
+        /// </summary>
+        /// <remarks>
+        /// The defaults are the ones a driver would not have to think about: a 60 kWh pack, a state of
+        /// charge somewhere between 10 and 60 % because a car that always arrives at exactly half full is
+        /// a worse simulation than a random one, and — when no goal is named at all — full.
+        /// </remarks>
+        private static EvBattery? BuildBattery(EvccOptions args)
+        {
+            if (!args.HasBattery)
+                return null;
+
+            var capacity = args.BatteryKWh ?? EvBattery.DefaultCapacityKWh;
+            var soc      = args.StartSoC   ?? Random.Shared.Next(10, 61);
+
+            var battery = new EvBattery(capacity, soc)
+            {
+                // No goal named: full. The other three are limits on top of it, whichever comes first.
+                TargetSoC       = args.TargetSoC ?? (args.TargetEnergyKWh is null && args.MaxChargingTime is null ? 100.0 : null),
+                TargetEnergyWh  = args.TargetEnergyKWh * 1000.0,
+                MaxDuration     = args.MaxChargingTime,
+                RequestedPowerW = (args.PowerKW ?? 0) * 1000.0,
+            };
+
+            Console.WriteLine($"Battery: {capacity:F1} kWh at {soc:F0} %" +
+                              (args.PowerKW is { } p ? $", asking for {p:F1} kW" : "") + " — charging until " +
+                              string.Join(", whichever comes first: ", new[]
+                              {
+                                  battery.TargetSoC      is { } t ? $"{t:F0} %" : null,
+                                  battery.TargetEnergyWh is { } e ? $"{e / 1000:F1} kWh delivered" : null,
+                                  battery.MaxDuration    is { } d ? $"{d.TotalMinutes:F0} min" : null,
+                              }.Where(x => x is not null)) + ".");
+
+            return battery;
+        }
+
         private static async Task<ResumableSession> RunSessionAsync(Stream stream, EvccOptions args, bool pause = false, ResumableSession? resume = null)
         {
             if (args.Protocol == ProtocolVariant.Iso15118_2)
@@ -204,6 +242,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                      : cloud.charging.open.protocols.ISO15118_2.Generated.ChargingSession.Terminate,
                     ResumeSessionId = resume?.SessionId,
                     Renegotiate = args.Renegotiate,
+                    Battery = BuildBattery(args),
                 };
                 if (args.ContractCertPath is not null)
                     evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
@@ -219,6 +258,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 Console.WriteLine($"  {evcc.Exchanges} exchanges, {evcc.BytesOnWire} bytes on the wire (request side), " +
                                   $"auth: {evcc.AuthorizationMode}, metering receipts sent: {evcc.MeteringReceiptsSent}, " +
                                   $"renegotiations: {evcc.Renegotiations}, session setup: {evcc.SessionSetupCode}.");
+                if (evcc.Battery is { } b2 && evcc.BatteryStop is { } s2)
+                    Console.WriteLine("  " + b2.Describe(s2));
                 if (evcc.Tariff is { } t2)
                     Console.WriteLine($"-2 Tariff: {t2.TuplesOffered} tuple(s), signature " +
                                       $"{(t2.SignaturePresent ? $"present, digests {(t2.DigestOk ? "OK" : "FAIL")}, " +
@@ -239,6 +280,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 evcc.StopMode = pause ? cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Pause
                                       : cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Terminate;
                 evcc.ResumeFrom(resume);
+                evcc.Battery = BuildBattery(args);
                 if (args.ContractCertPath is not null)
                     evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
                 if (args.OemCertPath is not null)
@@ -248,6 +290,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 await evcc.RunAsync();
                 Console.WriteLine($"  {evcc.Exchanges} exchanges, {evcc.BytesOnWire} bytes on the wire (request side), " +
                                   $"auth: {evcc.AuthorizationMode}, session setup: {evcc.SessionSetupCode}.");
+                if (evcc.Battery is { } b20 && evcc.BatteryStop is { } s20)
+                    Console.WriteLine("  " + b20.Describe(s20));
                 if (evcc.InstalledContractCertificate is not null)
                     Console.WriteLine("  CertificateInstallation: a contract certificate was issued and its private " +
                                       "key unwrapped — the ECDH/AES-GCM round trip closed.");

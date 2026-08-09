@@ -395,19 +395,26 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "  Battery: any one of these turns the charge loop from three iterations into a session that\n" +
             "           ends when the car is done. One iteration is one simulated minute, so a full charge\n" +
             "           is hundreds of exchanges — give --max-charging-time when driving a live station.\n" +
-            "          --battery <kWh>             usable capacity (default: 60)\n" +
-            "          --soc <percent>             state of charge at plug-in (default: random 10–60 %)\n" +
-            "          --target-soc <percent>      charge until this state of charge\n" +
-            "          --target-energy <kWh>       charge until this much has been delivered. Ends the\n" +
-            "                                      session only: the fields this corresponds to on the\n" +
-            "                                      wire (EAmount, EVTargetEnergyRequest) are still fixed\n" +
-            "                                      literals, so the station is not told the figure.\n" +
-            "          --max-charging-time <dur>   stop after this much simulated time: 90, 90m, 2h, 1h30m\n" +
+            "          --battery <kWh>             usable capacity (default: 60). -2 DC states it outright\n" +
+            "                                      as EVEnergyCapacity — the one place either protocol asks\n" +
+            "                                      a car how big its pack is.\n" +
+            "          --soc <percent>             state of charge at plug-in (default: random 10–60 %).\n" +
+            "                                      -2 DC reports it as EVRESSSOC and it rises as the pack\n" +
+            "                                      fills — the only -2 field that moves during a session.\n" +
+            "          --target-soc <percent>      charge until this state of charge. On the wire as -20\n" +
+            "                                      DC's TargetSOC and, in Dynamic mode, in the\n" +
+            "                                      ScheduleExchange request.\n" +
+            "          --target-energy <kWh>       charge until this much has been delivered. What is left\n" +
+            "                                      of it goes on the wire every request: EAmount in -2 AC,\n" +
+            "                                      EVEnergyRequest in -2 DC, EVTargetEnergyRequest in -20.\n" +
+            "          --max-charging-time <dur>   stop after this much simulated time: 90, 90m, 2h, 1h30m.\n" +
+            "                                      Ends the session only; no field carries it.\n" +
             "          --departure-time <dur>      when the car leaves. Goes on the wire as -20's\n" +
             "                                      DepartureTime, and ends the session when it arrives.\n" +
             "          --min-soc <percent>         what the driver needs by then. A floor, not a goal: it\n" +
             "                                      cannot prolong a session, and the run reports whether\n" +
-            "                                      the car left with enough.\n" +
+            "                                      the car left with enough. Declared all the same, as -20's\n" +
+            "                                      EVMinimumEnergyRequest and the Dynamic MinimumSOC.\n" +
             "          --taper-from <percent>      where constant-current charging ends and the car starts\n" +
             "                                      asking for less (default 80). 100 charges flat, which is\n" +
             "                                      what this did before the taper existed.\n" +

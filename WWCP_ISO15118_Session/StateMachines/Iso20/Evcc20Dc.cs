@@ -103,9 +103,35 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// and it was a silent overflow until review.</remarks>
         protected static Dc20.RationalNumberType Watts(double watts)
         {
-            var (value, exponent) = WattsRational(watts);
+            var (value, exponent) = ScaledRational(watts);
             return Rat(value, exponent);
         }
+
+        /// <summary>Watt-hours as a -20 DC rational. Same arithmetic as <see cref="Watts"/> — the rational
+        /// carries no unit, the field does — and named apart so a call site says which it is sending.</summary>
+        protected static Dc20.RationalNumberType WattHours(double wattHours)
+        {
+            var (value, exponent) = ScaledRational(wattHours);
+            return Rat(value, exponent);
+        }
+
+        /// <summary>
+        /// What the car asks for as energy: how much it wants, how much it can still take, how much it
+        /// needs. All three shrink as the pack fills, because they are what is left; the 30 / 60 / 10 kWh
+        /// below is what every recorded run carries and what a car without a pack still sends.
+        /// </summary>
+        protected Dc20.RationalNumberType LoopTargetEnergy
+            => EnergyRequestWh is { } e ? WattHours(e.Target)  : Rat(30, 3);
+        protected Dc20.RationalNumberType LoopMaximumEnergy
+            => EnergyRequestWh is { } e ? WattHours(e.Maximum) : Rat(60, 3);
+        protected Dc20.RationalNumberType LoopMinimumEnergy
+            => EnergyRequestWh is { } e ? WattHours(e.Minimum) : Rat(10, 3);
+
+        /// <summary>The same three where Scheduled leaves them optional: absent unless a pack has
+        /// something to say, which is where they stood before there were packs.</summary>
+        protected Dc20.RationalNumberType? ScheduledTargetEnergy  => Battery is null ? null : LoopTargetEnergy;
+        protected Dc20.RationalNumberType? ScheduledMaximumEnergy => Battery is null ? null : LoopMaximumEnergy;
+        protected Dc20.RationalNumberType? ScheduledMinimumEnergy => Battery is null ? null : LoopMinimumEnergy;
 
         protected override async Task RunChargeParameterDiscoveryAsync(CancellationToken ct)
         {
@@ -166,9 +192,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 // asked to steer a bidirectional session cannot do it without knowing how far either way.
                 (true, true) => new Dc20.BPT_Dynamic_DC_CLReqControlModeType(
                       DepartureTime:             DepartureTime,
-                      EVTargetEnergyRequest:     Rat(30, 3),    // 30 kWh
-                      EVMaximumEnergyRequest:    Rat(60, 3),    // 60 kWh
-                      EVMinimumEnergyRequest:    Rat(10, 3),    // 10 kWh
+                      EVTargetEnergyRequest:     LoopTargetEnergy,
+                      EVMaximumEnergyRequest:    LoopMaximumEnergy,
+                      EVMinimumEnergyRequest:    LoopMinimumEnergy,
                       EVMaximumChargePower:      LoopMaxPower,
                       EVMinimumChargePower:      Rat(1,  3),    //  1 kW
                       EVMaximumChargeCurrent:    LoopMaxCurrent,
@@ -181,9 +207,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
                 (true, false) => new Dc20.Dynamic_DC_CLReqControlModeType(
                       DepartureTime:          DepartureTime,
-                      EVTargetEnergyRequest:  Rat(30, 3),    // 30 kWh
-                      EVMaximumEnergyRequest: Rat(60, 3),    // 60 kWh
-                      EVMinimumEnergyRequest: Rat(10, 3),    // 10 kWh
+                      EVTargetEnergyRequest:  LoopTargetEnergy,
+                      EVMaximumEnergyRequest: LoopMaximumEnergy,
+                      EVMinimumEnergyRequest: LoopMinimumEnergy,
                       EVMaximumChargePower:   LoopMaxPower,
                       EVMinimumChargePower:   Rat(1,  3),    //  1 kW
                       EVMaximumChargeCurrent: LoopMaxCurrent,
@@ -195,14 +221,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 // bidirectional. Stating it rather than leaving it null: a BPT request that names no
                 // discharge limit tells the station nothing the plain type would not have.
                 (false, true) => new Dc20.BPT_Scheduled_DC_CLReqControlModeType(
-                      null, null, null, EVTargetCurrent: LoopTargetCurrent, EVTargetVoltage: Rat(LoopNominalVolts),
+                      EVTargetEnergyRequest:  ScheduledTargetEnergy,
+                      EVMaximumEnergyRequest: ScheduledMaximumEnergy,
+                      EVMinimumEnergyRequest: ScheduledMinimumEnergy,
+                      EVTargetCurrent: LoopTargetCurrent, EVTargetVoltage: Rat(LoopNominalVolts),
                       null, null, null, null, null,
                       EVMaximumDischargePower:   MaxPower,
                       EVMinimumDischargePower:   Rat(0),
                       EVMaximumDischargeCurrent: MaxCurrent),
 
                 _ => new Dc20.Scheduled_DC_CLReqControlModeType(
-                      null, null, null, EVTargetCurrent: LoopTargetCurrent, EVTargetVoltage: Rat(LoopNominalVolts),
+                      EVTargetEnergyRequest:  ScheduledTargetEnergy,
+                      EVMaximumEnergyRequest: ScheduledMaximumEnergy,
+                      EVMinimumEnergyRequest: ScheduledMinimumEnergy,
+                      EVTargetCurrent: LoopTargetCurrent, EVTargetVoltage: Rat(LoopNominalVolts),
                       null, null, null, null, null),
             };
 

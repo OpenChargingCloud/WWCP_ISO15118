@@ -133,15 +133,61 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
         /// ended and the car had enough / did not", which is the question a driver actually asked and the
         /// one a scheduling station should be judged on. <see cref="Describe"/> says which.
         /// <para>
-        /// It also has nowhere to go on the -20 DC request side: the Dynamic charge-loop request carries
-        /// <c>DepartureTime</c> and the three energy requests, and <c>MinimumSOC</c> exists only in the
-        /// station's response. So this is a simulator-side expectation, not a declaration.
+        /// It is declared as well as expected — see <see cref="MinimumNeededWh"/>. The -20 charge-loop
+        /// request has no <c>MinimumSOC</c>, which is what this note used to say and read as if that were
+        /// the end of it; the Dynamic ScheduleExchange request does, and the energy triple states the same
+        /// need in watt-hours everywhere the loop carries it.
         /// </para>
         /// </remarks>
         public double? MinimumSoC { get; init; }
 
         /// <summary>Whether the minimum was asked for and missed. False when none was asked for.</summary>
         public bool MinimumSoCMissed => MinimumSoC is { } m && SoC < m;
+
+
+        // ── the same goals, as the energy a request carries ────────────────────
+        // -20 asks for three figures rather than one, and they are exactly the three questions a
+        // scheduling station has to answer: how much do you want, how much can you still take, how much
+        // do you actually need. All three shrink as the pack fills, because they are what is *left*.
+
+        /// <summary>
+        /// How much more this session is asking for, in watt-hours: what it takes to reach the nearest
+        /// goal that names a quantity — a target state of charge, a target amount delivered, or simply a
+        /// full pack. Never negative, and zero once the goal is met.
+        /// </summary>
+        /// <remarks>
+        /// The time-based goals do not shorten this, and deliberately: what the car wants is not changed
+        /// by having less time to get it. Reconciling the two is the station's job, which is what
+        /// <c>DepartureTime</c> beside this figure is for.
+        /// </remarks>
+        public double EnergyNeededWh
+        {
+            get
+            {
+                var wanted = EnergyAcceptableWh;   // a full pack, the goal behind every other one
+                if (TargetSoC      is { } s) wanted = Math.Min(wanted, Math.Max(0, CapacityWh * s / 100.0 - EnergyWh));
+                if (TargetEnergyWh is { } e) wanted = Math.Min(wanted, Math.Max(0, e - DeliveredWh));
+                return wanted;
+            }
+        }
+
+        /// <summary>How much more the pack can physically take, in watt-hours — the ceiling on any
+        /// request, whatever the goals say, and the figure a station may not plan above.</summary>
+        public double EnergyAcceptableWh => Math.Max(0, CapacityWh - EnergyWh);
+
+        /// <summary>
+        /// How much more it takes to reach <see cref="MinimumSoC"/>, in watt-hours; zero when no minimum
+        /// was asked for, or it is already met.
+        /// </summary>
+        /// <remarks>
+        /// This is where the minimum reaches the wire. It is not a stop condition and cannot be one (see
+        /// <see cref="MinimumSoC"/>), but a station scheduling a Dynamic session is owed it, and -20 has
+        /// two places to put it: <c>EVMinimumEnergyRequest</c> in every request that carries the energy
+        /// triple, and <c>MinimumSOC</c> in the Dynamic ScheduleExchange request, which — unlike the
+        /// charge-loop request — does carry it EV-side.
+        /// </remarks>
+        public double MinimumNeededWh
+            => MinimumSoC is { } m ? Math.Max(0, CapacityWh * m / 100.0 - EnergyWh) : 0;
 
         /// <summary>The power the car asks for, in watts. Zero means "whatever the station offers".</summary>
         public double RequestedPowerW { get; init; }

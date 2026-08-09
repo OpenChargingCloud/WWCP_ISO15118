@@ -289,19 +289,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public ChargeStop? BatteryStop { get; private set; }
 
         /// <summary>
-        /// Watts as a -20 rational's (value, exponent) pair, keeping three significant figures without
-        /// overflowing the 16-bit value: 9 kW becomes 9×10³, 9.5 kW becomes 950×10¹.
+        /// An amount as a -20 rational's (value, exponent) pair, scaling down by powers of ten only when needed
+        /// to fit the 16-bit value (saturating if still too large): 9 000 becomes 9×10³; 60 000 becomes 6000×10¹.
+        /// The rational carries no unit, so this serves watts and watt-hours alike.
         /// </summary>
         /// <remarks>
-        /// The AC and DC message sets each declare their own <c>RationalNumberType</c> as a distinct CLR
-        /// type, so only the arithmetic can be shared and each side wraps it. Shared rather than copied
-        /// because the saturation below was a silent <c>short</c> overflow until review caught it, and two
-        /// copies is two chances to lose it again.
+        /// The AC, DC and common message sets each declare their own <c>RationalNumberType</c> as a
+        /// distinct CLR type, so only the arithmetic can be shared and each side wraps it. Shared rather
+        /// than copied because the saturation below was a silent <c>short</c> overflow until review caught
+        /// it, and three copies is three chances to lose it again.
         /// </remarks>
-        protected static (short Value, sbyte Exponent) WattsRational(double watts)
+        protected static (short Value, sbyte Exponent) ScaledRational(double amount)
         {
             sbyte exponent = 0;
-            var   value    = Math.Round(watts);
+            var   value    = Math.Round(amount);
             while (Math.Abs(value) > short.MaxValue && exponent < 3)
             {
                 value /= 10;
@@ -313,6 +314,29 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             return ((short) Math.Round(value), exponent);
         }
+
+        /// <summary>
+        /// The three energy figures a -20 request carries, in watt-hours — how much the car wants, how
+        /// much it can still take, how much it needs — or null when there is no pack to derive them from,
+        /// in which case every call site keeps the literal it always sent.
+        /// </summary>
+        /// <remarks>
+        /// Mandatory in the Dynamic arms and optional in the Scheduled ones, which is the schema saying
+        /// the obvious: a station asked to choose the operating point cannot do it without knowing the
+        /// target. Until this existed they were 30 / 60 / 10 kWh whatever the car was actually carrying,
+        /// so a Dynamic station scheduled against three constants.
+        /// </remarks>
+        protected (double Target, double Maximum, double Minimum)? EnergyRequestWh
+            => Battery is { } b ? (b.EnergyNeededWh, b.EnergyAcceptableWh, b.MinimumNeededWh) : null;
+
+        /// <summary>The state of charge the car is heading for, as -20's signed-byte percentage, or null
+        /// when no target was named.</summary>
+        protected sbyte? DeclaredTargetSoCPercent
+            => Battery?.TargetSoC is { } t ? (sbyte) Math.Clamp(Math.Round(t), 0, 100) : null;
+
+        /// <summary>And what the driver needs to have by departure. Null when none was asked for.</summary>
+        protected sbyte? DeclaredMinimumSoCPercent
+            => Battery?.MinimumSoC is { } m ? (sbyte) Math.Clamp(Math.Round(m), 0, 100) : null;
 
         /// <summary>The tariff signer's public key (fachlich the eMSP's). When set and the
         /// ScheduleExchangeRes carries a signed AbsolutePriceSchedule, the EV verifies it.</summary>
@@ -807,15 +831,28 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// instead of a schedule to choose from. The three energy fields are <b>mandatory</b> in this arm
         /// (they are optional in the Scheduled one), which is the schema saying the same thing: a station can
         /// only steer if it knows the target.</summary>
+        /// <remarks>
+        /// This is the one -20 request where the state-of-charge goals are the car's to state — the
+        /// charge-loop request has neither <c>TargetSOC</c> nor <c>MinimumSOC</c> — so <c>--target-soc</c>
+        /// and <c>--min-soc</c> land here. Without a pack the four figures stay the constants every
+        /// recorded run carries.
+        /// </remarks>
         private Dynamic_SEReqControlModeType DynamicScheduleRequest()
             => new(DepartureTime:            DepartureTime,
-                   MinimumSOC:               30,
-                   TargetSOC:                80,
-                   EVTargetEnergyRequest:    new RationalNumberType(3, 30),   // 30 kWh
-                   EVMaximumEnergyRequest:   new RationalNumberType(3, 60),   // 60 kWh
-                   EVMinimumEnergyRequest:   new RationalNumberType(3, 10),   // 10 kWh
+                   MinimumSOC:               Battery is null ? (sbyte) 30 : DeclaredMinimumSoCPercent,
+                   TargetSOC:                Battery is null ? (sbyte) 80 : DeclaredTargetSoCPercent,
+                   EVTargetEnergyRequest:    EnergyRequestWh is { } e1 ? WattHours(e1.Target)  : new RationalNumberType(3, 30),   // 30 kWh
+                   EVMaximumEnergyRequest:   EnergyRequestWh is { } e2 ? WattHours(e2.Maximum) : new RationalNumberType(3, 60),   // 60 kWh
+                   EVMinimumEnergyRequest:   EnergyRequestWh is { } e3 ? WattHours(e3.Minimum) : new RationalNumberType(3, 10),   // 10 kWh
                    EVMaximumV2XEnergyRequest: null,
                    EVMinimumV2XEnergyRequest: null);
+
+        /// <summary>Watt-hours as a CommonMessages rational; the arithmetic is <see cref="ScaledRational"/>.</summary>
+        private static RationalNumberType WattHours(double wattHours)
+        {
+            var (value, exponent) = ScaledRational(wattHours);
+            return new RationalNumberType(exponent, value);
+        }
 
         /// <summary>Verifies a signed <c>AbsolutePriceSchedule</c> in the Scheduled-mode offer, if any:
         /// reference digest over the schedule's re-encoded EXI fragment, then (with

@@ -658,11 +658,25 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 ? new ChargeParameterDiscoveryReqType(MaxEntriesSAScheduleTuple: null, _energyTransferMode,
                     new DC_EVChargeParameterType(DepartureTime: null, EvStatus(),
                         EVMaximumCurrentLimit: Amp(DcMaxAmps), EVMaximumPowerLimit: null, EVMaximumVoltageLimit: Volt(500),
-                        EVEnergyCapacity: null, EVEnergyRequest: null, FullSOC: 100, BulkSOC: 80))
+                        // Both optional and both absent until there was a pack to describe. -2 DC is the
+                        // one place a car states its capacity outright, which is what a station needs to
+                        // turn "40 kWh wanted" into a schedule rather than a number.
+                        EVEnergyCapacity: Battery is { } dc ? WattHours(dc.CapacityWh)     : null,
+                        EVEnergyRequest:  Battery is { } dr ? WattHours(dr.EnergyNeededWh) : null,
+                        FullSOC: 100, BulkSOC: 80))
                 : new ChargeParameterDiscoveryReqType(MaxEntriesSAScheduleTuple: null, _energyTransferMode,
                     new AC_EVChargeParameterType(DepartureTime: null,
-                        EAmount: PhysicalValue.Of(22_000, UnitSymbol.Wh), EVMaxVoltage: Volt(AcLineVolts),
+                        // EAmount is -2 AC's only energy field, and it is the request: how much this
+                        // session wants, not what the pack holds. 22 kWh when nothing asked.
+                        EAmount: Battery is { } ac ? WattHours(ac.EnergyNeededWh)
+                                                   : PhysicalValue.Of(22_000, UnitSymbol.Wh),
+                        EVMaxVoltage: Volt(AcLineVolts),
                         EVMaxCurrent: Amp(AcRequestedAmps), EVMinCurrent: Amp(AcMinAmps)));
+
+        /// <summary>Watt-hours as a -2 physical value, rounded to the whole watt-hour the wire and the
+        /// meter both count in.</summary>
+        private static PhysicalValueType WattHours(double wattHours)
+            => PhysicalValue.Of((decimal) Math.Round(wattHours), UnitSymbol.Wh);
 
         /// <summary>
         /// One DC charge-loop request. <c>--power</c> lands here: <c>EVTargetCurrent</c> is the setpoint
@@ -695,7 +709,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 ? (double) profile.ProfileEntry[0].ChargingProfileEntryMaxPower.ToDecimal()
                 : 0;
 
-        private static DC_EVStatusType EvStatus() => new(EVReady: true, DC_EVErrorCode.NO_ERROR, EVRESSSOC: 50);
+        /// <summary>
+        /// The DC status this car repeats in every request of the DC sequence — and, with a pack, the one
+        /// field in -2 that <em>moves</em> during a session: <c>EVRESSSOC</c> is the present state of
+        /// charge, so a station watching it sees the battery fill.
+        /// </summary>
+        /// <remarks>
+        /// A flat 50 % until there were packs, which is what a car without one still sends. Worth naming
+        /// because it is the only per-iteration reading -2 asks the vehicle for: -2 gives a DC car no field
+        /// for a measured power, so this percentage is the whole of what the station learns about the
+        /// vehicle's own state while charging.
+        /// </remarks>
+        private DC_EVStatusType EvStatus()
+            => new(EVReady: true, DC_EVErrorCode.NO_ERROR,
+                   EVRESSSOC: Battery is { } b ? (sbyte) Math.Clamp(Math.Round(b.SoC), 0, 100) : (sbyte) 50);
         private static PhysicalValueType Volt(short v) => new(0, UnitSymbol.V, v);
         private static PhysicalValueType Amp(short a)  => new(0, UnitSymbol.A, a);
     }

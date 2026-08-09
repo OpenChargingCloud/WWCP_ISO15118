@@ -306,7 +306,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// against its re-encoded EXI fragment and (with <see cref="TariffVerifyKey"/>) the ECDSA signature
         /// — dual-grammar, like every other signature in this interop; (2) choose the tuple with the lowest
         /// average EPriceLevel; (3) shape the ChargingProfile to the chosen tuple's PMaxSchedule (entry for
-        /// entry — this simulated EV can always draw PMax; a weaker EV would cap at its own limit).</summary>
+        /// entry, capped at <see cref="ProfileCapW"/> — this simulated EV draws PMax unless <c>--power</c>
+        /// asked for less, which is the "weaker EV capping at its own limit" this used to only describe).</summary>
         private void EvaluateSchedules(ChargeParameterDiscoveryResType cpd)
         {
             if (cpd.SASchedules is not SAScheduleListType offer || offer.SAScheduleTuple.Count == 0)
@@ -350,11 +351,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             var chosen = offer.SAScheduleTuple.OrderBy(AveragePriceLevel).First();
             _chosenTupleId = chosen.SAScheduleTupleID;
 
-            // (3) the ChargingProfile follows the chosen tuple's PMaxSchedule step for step.
+            // (3) the ChargingProfile follows the chosen tuple's PMaxSchedule step for step — capped, when
+            //     --power asked for less, at what this car will actually draw. That cap is the whole of
+            //     what --power means on a -2 AC wire: the profile is the only power either side ever sees,
+            //     and both counters read it back (CommittedPowerW here, _acCommittedPowerW at the station).
+            //     It only ever lowers an entry, so a profile that was within PMax ([V2G2-761]) stays within it.
+            //     DC caps too, though nothing there reads it back: a profile claiming PMax beside a
+            //     CurrentDemand asking for a quarter of it would be the EV contradicting itself on the wire.
+            var cap = ProfileCapW;
             _chargingProfile = new ChargingProfileType(chosen.PMaxSchedule.PMaxScheduleEntry
                 .Select(p => new ProfileEntryType(
                     ChargingProfileEntryStart: p.TimeInterval is RelativeTimeIntervalType rti ? rti.Start : 0,
-                    ChargingProfileEntryMaxPower: p.PMax,
+                    ChargingProfileEntryMaxPower: cap is { } watts && (double) p.PMax.ToDecimal() > watts
+                                                      ? PhysicalValue.Of((decimal) watts, UnitSymbol.W)
+                                                      : p.PMax,
                     ChargingProfileEntryMaxNumberOfPhasesInUse: null))
                 .ToArray());
 
@@ -548,23 +558,127 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
         }
 
+        // ── what --power means on a -2 wire ───────────────────────────────────
+        // -2 has no field anywhere that says "watts I want", so the ask has to be expressed as the current
+        // and the profile the protocol does carry. Each mode below states where, and every one of them
+        // falls back to the literal it had before batteries existed when no battery names a power — the
+        // recorded sessions in ISO15118ConformanceTests are taken without one and must not move.
+
+        /// <summary>The line-to-line voltage this EV declares for AC, and the per-phase voltage derived
+        /// from it — one constant rather than a 400 here and a 230 there, because a single phase of a
+        /// 400 V system <em>is</em> 400/√3 and saying so is better than restating it.</summary>
+        private const  short  AcLineVolts  = 400;
+        private static readonly double AcPhaseVolts = AcLineVolts / Math.Sqrt(3);   // ≈ 230.9 V
+
+        /// <summary>The current band this EV's AC contactor can switch, per phase. Hardware: declared at
+        /// discovery, and not lowered because the driver asked for less today.</summary>
+        private const short AcMaxAmps = 32;
+        private const short AcMinAmps =  6;
+
+        /// <summary>The voltage the DC loop operates at — reported as <c>EVTargetVoltage</c>, and the one
+        /// the current requests below are derived at so a power and a current describe one operating
+        /// point.</summary>
+        private const short DcLoopVolts = 400;
+        private const short DcMaxAmps   = 200;
+
+        /// <summary>How many phases the selected energy transfer mode draws through.</summary>
+        private int AcPhases => _energyTransferMode == EnergyTransferMode.AC_single_phase_core ? 1 : 3;
+
+        /// <summary>
+        /// The power this EV will actually draw on AC, in watts — <c>--power</c> held inside the current
+        /// band it just declared. Null when no battery named a power.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The clamp is the hardware, not caution: a contactor that cannot modulate below 6 A per phase
+        /// charges at 6 A whatever the driver typed, and one that tops out at 32 A takes 32. So
+        /// <c>--power 1</c> on three-phase AC charges at 4.2 kW — and says 4.2 kW in both the current and
+        /// the profile, rather than putting a profile on the wire that the current beside it contradicts.
+        /// </para>
+        /// <para>
+        /// <b>No taper here, and it cannot be one.</b> The profile is agreed once, at
+        /// <c>PowerDeliveryReq(Start)</c>, and -2's AC charge loop (<c>ChargingStatusReq</c>) is an empty
+        /// message: there is no per-iteration field for the vehicle to lower as the pack fills. Both meters
+        /// read the committed profile, so a taper applied on this side alone would only make them disagree.
+        /// -20 AC has <c>EVPresentActivePower</c> every iteration and does taper; that difference between
+        /// the two protocols is real and this is where it shows.
+        /// </para>
+        /// </remarks>
+        private double? AcRequestedPowerW
+            => Battery is { RequestedPowerW: > 0 } b
+                   ? Math.Round(Math.Clamp(b.RequestedPowerW,
+                                           AcPhases * AcPhaseVolts * AcMinAmps,
+                                           AcPhases * AcPhaseVolts * AcMaxAmps))
+                   : null;
+
+        /// <summary>The per-phase current the AC request asks for, derived from
+        /// <see cref="AcRequestedPowerW"/> at the voltage it declared. The full 32 A when nothing asked.</summary>
+        private short AcRequestedAmps
+            => AcRequestedPowerW is { } watts
+                   ? (short) Math.Clamp(Math.Round(watts / (AcPhases * AcPhaseVolts)), AcMinAmps, AcMaxAmps)
+                   : AcMaxAmps;
+
+        /// <summary>What <c>--power</c> asks for on DC, scaled by the battery's taper: above the knee the
+        /// car asks for progressively less, which is what makes the last fifth take as long as it does.
+        /// Null when no battery named a power.</summary>
+        private double? DcRequestedPowerW
+            => Battery is { RequestedPowerW: > 0 } b ? Math.Round(b.RequestedPowerW * b.PowerFactor) : null;
+
+        /// <summary>The DC setpoint, at <see cref="DcLoopVolts"/> and capped by the envelope this vehicle
+        /// declared it can take. 120 A when nothing asked — the figure every recorded -2 DC run carries.</summary>
+        private short DcRequestedAmps
+            => DcRequestedPowerW is { } watts
+                   ? (short) Math.Clamp(Math.Round(watts / DcLoopVolts), 1, DcMaxAmps)
+                   : (short) 120;
+
+        /// <summary>
+        /// The ceiling to shape the ChargingProfile to: the untapered ask, held inside what this vehicle
+        /// can take in the mode it is charging in. Null when nothing asked, which leaves the profile
+        /// following PMax exactly as it always did.
+        /// </summary>
+        /// <remarks>Untapered because the profile is agreed once and then stands for the whole session,
+        /// while the taper is a function of a state of charge that keeps moving. A commitment cannot track
+        /// it; the DC setpoint, re-sent every iteration, can and does.</remarks>
+        private double? ProfileCapW
+            => mode == PowerMode.Ac
+                   ? AcRequestedPowerW
+                   : Battery is { RequestedPowerW: > 0 } b
+                         ? Math.Round(Math.Min(b.RequestedPowerW, (double) DcLoopVolts * DcMaxAmps))
+                         : null;
+
+        /// <summary>
+        /// The discovery request. The envelope stated here is what the vehicle can take <em>at all</em> —
+        /// on DC it stays hardware, the same split <see cref="Iso20.Evcc20Dc"/> makes. AC is the exception,
+        /// and not by choice: <c>EVMaxCurrent</c> is the only current an AC EV ever sends, so it has to
+        /// carry both the capability and the ask, and a station shaping its PMax schedule has nothing else
+        /// to read.
+        /// </summary>
         private ChargeParameterDiscoveryReqType ChargeParameterDiscovery() =>
             mode == PowerMode.Dc
                 ? new ChargeParameterDiscoveryReqType(MaxEntriesSAScheduleTuple: null, _energyTransferMode,
                     new DC_EVChargeParameterType(DepartureTime: null, EvStatus(),
-                        EVMaximumCurrentLimit: Amp(200), EVMaximumPowerLimit: null, EVMaximumVoltageLimit: Volt(500),
+                        EVMaximumCurrentLimit: Amp(DcMaxAmps), EVMaximumPowerLimit: null, EVMaximumVoltageLimit: Volt(500),
                         EVEnergyCapacity: null, EVEnergyRequest: null, FullSOC: 100, BulkSOC: 80))
                 : new ChargeParameterDiscoveryReqType(MaxEntriesSAScheduleTuple: null, _energyTransferMode,
                     new AC_EVChargeParameterType(DepartureTime: null,
-                        EAmount: PhysicalValue.Of(22_000, UnitSymbol.Wh), EVMaxVoltage: Volt(400),
-                        EVMaxCurrent: Amp(32), EVMinCurrent: Amp(6)));
+                        EAmount: PhysicalValue.Of(22_000, UnitSymbol.Wh), EVMaxVoltage: Volt(AcLineVolts),
+                        EVMaxCurrent: Amp(AcRequestedAmps), EVMinCurrent: Amp(AcMinAmps)));
 
+        /// <summary>
+        /// One DC charge-loop request. <c>--power</c> lands here: <c>EVTargetCurrent</c> is the setpoint
+        /// this car asks for at its own voltage, and the optional <c>EVMaximumPowerLimit</c> — absent until
+        /// something had a figure to put in it — states the same ask as a power outright, which is the
+        /// nearest -2 comes to a watts field.
+        /// </summary>
         private CurrentDemandReqType CurrentDemand() =>
-            new(EvStatus(), EVTargetCurrent: Amp(120),
-                EVMaximumVoltageLimit: null, EVMaximumCurrentLimit: null, EVMaximumPowerLimit: null,
+            new(EvStatus(), EVTargetCurrent: Amp(DcRequestedAmps),
+                EVMaximumVoltageLimit: null, EVMaximumCurrentLimit: null,
+                EVMaximumPowerLimit: DcRequestedPowerW is { } watts
+                                         ? PhysicalValue.Of((decimal) watts, UnitSymbol.W)
+                                         : null,
                 BulkChargingComplete: null, ChargingComplete: false,
                 RemainingTimeToFullSoC: null, RemainingTimeToBulkSoC: null,
-                EVTargetVoltage: Volt(400));
+                EVTargetVoltage: Volt(DcLoopVolts));
 
         /// <summary>
         /// The power this EV committed to in its ChargingProfile — its own view of an AC session,

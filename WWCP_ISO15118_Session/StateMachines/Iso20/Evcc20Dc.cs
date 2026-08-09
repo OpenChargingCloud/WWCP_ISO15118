@@ -47,9 +47,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// is a live request and not a second declaration of the same limit. The loop's maximum voltage is
         /// <see cref="MaxVoltage"/> itself; a vehicle never asks above what it declared it can take.</summary>
         /// <remarks>
-        /// <c>--power</c> lands here, and only here: it is what the car <em>asks</em> for inside the loop,
-        /// which is the honest place for it. The discovery envelope above stays what the vehicle can take
-        /// at all, because a car does not shrink its hardware because the driver wanted 9 kW today. The
+        /// <c>--power</c> lands in the loop and not in the envelope above: it is what the car <em>asks</em>
+        /// for, which is the honest place for it, while the envelope stays what the vehicle can take at all
+        /// — a car does not shrink its hardware because the driver wanted 9 kW today. The other three modes
+        /// make the same split where they can; -2 AC cannot, and says so (<c>Evcc2.AcRequestedPowerW</c>). The
         /// station is still free to deliver less, and the battery fills with what the meter counted.
         /// </remarks>
         protected virtual Dc20.RationalNumberType LoopMaxPower
@@ -97,22 +98,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         /// <summary>Watts as a -20 rational, keeping three significant figures without overflowing the
         /// 16-bit value: 9 kW becomes 9×10³, 9.5 kW becomes 950×10¹.</summary>
-        /// <remarks>Protected rather than private so a test can reach it: the saturation below is the kind
-        /// of edge a session-level test never exercises, and it was a silent overflow until review.</remarks>
+        /// <remarks>Protected rather than private so a test can reach it: the saturation in
+        /// <see cref="Evcc20Base.WattsRational"/> is the kind of edge a session-level test never exercises,
+        /// and it was a silent overflow until review.</remarks>
         protected static Dc20.RationalNumberType Watts(double watts)
         {
-            sbyte exponent = 0;
-            var   value    = Math.Round(watts);
-            while (Math.Abs(value) > short.MaxValue && exponent < 3)
-            {
-                value /= 10;
-                exponent++;
-            }
-
-            if (Math.Abs(value) > short.MaxValue)
-                value = Math.Sign(value) * short.MaxValue;
-
-            return Rat((short) Math.Round(value), exponent);
+            var (value, exponent) = WattsRational(watts);
+            return Rat(value, exponent);
         }
 
         protected override async Task RunChargeParameterDiscoveryAsync(CancellationToken ct)

@@ -288,6 +288,32 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <summary>Why the charge loop ended; null while it has not run.</summary>
         public ChargeStop? BatteryStop { get; private set; }
 
+        /// <summary>
+        /// Watts as a -20 rational's (value, exponent) pair, keeping three significant figures without
+        /// overflowing the 16-bit value: 9 kW becomes 9×10³, 9.5 kW becomes 950×10¹.
+        /// </summary>
+        /// <remarks>
+        /// The AC and DC message sets each declare their own <c>RationalNumberType</c> as a distinct CLR
+        /// type, so only the arithmetic can be shared and each side wraps it. Shared rather than copied
+        /// because the saturation below was a silent <c>short</c> overflow until review caught it, and two
+        /// copies is two chances to lose it again.
+        /// </remarks>
+        protected static (short Value, sbyte Exponent) WattsRational(double watts)
+        {
+            sbyte exponent = 0;
+            var   value    = Math.Round(watts);
+            while (Math.Abs(value) > short.MaxValue && exponent < 3)
+            {
+                value /= 10;
+                exponent++;
+            }
+
+            if (Math.Abs(value) > short.MaxValue)
+                value = Math.Sign(value) * short.MaxValue;
+
+            return ((short) Math.Round(value), exponent);
+        }
+
         /// <summary>The tariff signer's public key (fachlich the eMSP's). When set and the
         /// ScheduleExchangeRes carries a signed AbsolutePriceSchedule, the EV verifies it.</summary>
         public System.Security.Cryptography.ECDsa? TariffVerifyKey { get; set; }

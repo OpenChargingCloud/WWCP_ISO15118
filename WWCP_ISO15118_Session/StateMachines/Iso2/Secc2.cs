@@ -223,8 +223,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 PowerOn(r),
 
             // ── charging loop (mode-specific request) ──
-            (Phase.Charging, CurrentDemandReqType) when mode == PowerMode.Dc =>
-                (CurrentDemand(), Phase.Charging),
+            (Phase.Charging, CurrentDemandReqType r) when mode == PowerMode.Dc =>
+                (CurrentDemand(r), Phase.Charging),
             (Phase.Charging, ChargingStatusReqType) when mode == PowerMode.Ac =>
                 (ChargingStatus(), Phase.Charging),
             // Contract sessions: our charging-status responses set ReceiptRequired, so each loop cycle the
@@ -444,6 +444,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// </remarks>
         private const int ThreePhase16A = 11_040;
 
+        /// <summary>What this DC outlet presents, and the most it will push — the ceiling on the current a
+        /// vehicle's <c>CurrentDemandReq</c> can ask it for.</summary>
+        private const short DcVolts   = 400;
+        private const short DcMaxAmps = 120;
+
         private static SAScheduleListType PlainSchedule() =>
             new(new[]
             {
@@ -553,11 +558,21 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         private BodyBaseType PowerDeliveryRes(ResponseCode code) =>
             new PowerDeliveryResType(code, EvseStatus());
 
-        private BodyBaseType CurrentDemand()
+        /// <summary>
+        /// One DC charge-loop iteration. The station serves the current the EV asked for, up to the
+        /// <see cref="DcMaxAmps"/> this outlet can push — the -2 half of what <see cref="Iso20.Secc20Dc"/>
+        /// does for -20, and for the same reason: a station announcing a flat 120 A whatever was requested
+        /// makes the EV's setpoint invisible on this side of the wire, and leaves the reading it signs
+        /// disagreeing with the counter the car kept. A vehicle asking for the full 120 A — every recorded
+        /// run — is served exactly what it always was.
+        /// </summary>
+        private BodyBaseType CurrentDemand(CurrentDemandReqType req)
         {
+            var servedAmps = Math.Clamp((double) req.EVTargetCurrent.ToDecimal(), 0, DcMaxAmps);
+
             // The station's own view of this iteration: what it is presenting at the outlet. The same
-            // 400 V x 120 A it reports below, so the number it signs is the number it announces.
-            var measured = Deliver(400d * 120d);
+            // volts x amps it reports below, so the number it signs is the number it announces.
+            var measured = Deliver(DcVolts * servedAmps);
 
             bool receipt = DemandReceipt();
             // A station with a real meter reports it every cycle, not only when it wants a receipt
@@ -565,7 +580,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             // MeterInfo is optional here. Without a meter installed, nothing changes.
             bool reading = receipt || InstalledMeter is not null;
             return new CurrentDemandResType(ResponseCode.OK, DcEvseStatus(Notification()),
-                EVSEPresentVoltage: Volt(400), EVSEPresentCurrent: Amp(120),
+                EVSEPresentVoltage: Volt(DcVolts),
+                EVSEPresentCurrent: PhysicalValue.Of((decimal) servedAmps, UnitSymbol.A),
                 EVSECurrentLimitAchieved: false, EVSEVoltageLimitAchieved: false, EVSEPowerLimitAchieved: false,
                 EVSEMaximumVoltageLimit: null, EVSEMaximumCurrentLimit: null, EVSEMaximumPowerLimit: null,
                 EVSEID: "DE*ABC*E1", SAScheduleTupleID: _chosenTupleId,

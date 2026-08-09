@@ -119,8 +119,29 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
         /// <summary>Stop after this much simulated charging time.</summary>
         public TimeSpan? MaxDuration { get; init; }
 
-        /// <summary>Stop when the departure time arrives — the same value the wire carries.</summary>
+        /// <summary>Stop when the departure time arrives — the same value the wire carries as
+        /// <c>DepartureTime</c>, seconds from the session's anchor.</summary>
         public TimeSpan? DepartureIn { get; init; }
+
+        /// <summary>
+        /// The state of charge the driver needs to have when leaving, in percent.
+        /// </summary>
+        /// <remarks>
+        /// <b>Not a stop condition, and deliberately not one.</b> A floor cannot extend a session — you
+        /// cannot charge after you have driven off — so this neither prolongs the loop past a departure
+        /// time nor past a charging-time limit. What it does is turn "the session ended" into "the session
+        /// ended and the car had enough / did not", which is the question a driver actually asked and the
+        /// one a scheduling station should be judged on. <see cref="Describe"/> says which.
+        /// <para>
+        /// It also has nowhere to go on the -20 DC request side: the Dynamic charge-loop request carries
+        /// <c>DepartureTime</c> and the three energy requests, and <c>MinimumSOC</c> exists only in the
+        /// station's response. So this is a simulator-side expectation, not a declaration.
+        /// </para>
+        /// </remarks>
+        public double? MinimumSoC { get; init; }
+
+        /// <summary>Whether the minimum was asked for and missed. False when none was asked for.</summary>
+        public bool MinimumSoCMissed => MinimumSoC is { } m && SoC < m;
 
         /// <summary>The power the car asks for, in watts. Zero means "whatever the station offers".</summary>
         public double RequestedPowerW { get; init; }
@@ -186,7 +207,12 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
                    ChargeStop.Departure    => "departure time reached.",
                    ChargeStop.LoopLimit    => $"stopped at the {MaxIterations}-iteration ceiling — the goal was not reachable.",
                    _                       => "still running.",
-               };
+               }
+             + (MinimumSoC is { } m
+                    ? MinimumSoCMissed
+                          ? $" NOT ENOUGH: {m:F0} % was asked for and the car leaves at {SoC:F1} %."
+                          : $" The {m:F0} % minimum was met."
+                    : "");
 
     }
 

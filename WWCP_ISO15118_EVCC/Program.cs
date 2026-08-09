@@ -213,10 +213,13 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
 
             var battery = new EvBattery(capacity, soc)
             {
-                // No goal named: full. The other three are limits on top of it, whichever comes first.
-                TargetSoC       = args.TargetSoC ?? (args.TargetEnergyKWh is null && args.MaxChargingTime is null ? 100.0 : null),
+                // No goal named: full. The others are limits on top of it, whichever comes first.
+                TargetSoC       = args.TargetSoC ?? (args.TargetEnergyKWh is null && args.MaxChargingTime is null
+                                                     && args.DepartureIn is null ? 100.0 : null),
                 TargetEnergyWh  = args.TargetEnergyKWh * 1000.0,
                 MaxDuration     = args.MaxChargingTime,
+                DepartureIn     = args.DepartureIn,
+                MinimumSoC      = args.MinimumSoC,
                 RequestedPowerW = (args.PowerKW ?? 0) * 1000.0,
             };
 
@@ -227,7 +230,9 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                   battery.TargetSoC      is { } t ? $"{t:F0} %" : null,
                                   battery.TargetEnergyWh is { } e ? $"{e / 1000:F1} kWh delivered" : null,
                                   battery.MaxDuration    is { } d ? $"{d.TotalMinutes:F0} min" : null,
-                              }.Where(x => x is not null)) + ".");
+                                  battery.DepartureIn    is { } dep ? $"departure in {dep.TotalMinutes:F0} min" : null,
+                              }.Where(x => x is not null)) + "."
+                            + (battery.MinimumSoC is { } min ? $" The driver needs {min:F0} % by then." : ""));
 
             return battery;
         }
@@ -281,6 +286,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                       : cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Terminate;
                 evcc.ResumeFrom(resume);
                 evcc.Battery = BuildBattery(args);
+                // The one battery goal that is also a protocol field: -20 carries DepartureTime as seconds
+                // from the session's time anchor, and a Dynamic station schedules against it.
+                if (args.DepartureIn is { } departure)
+                    evcc.DepartureTime = (uint) Math.Max(1, Math.Round(departure.TotalSeconds));
                 if (args.ContractCertPath is not null)
                     evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
                 if (args.OemCertPath is not null)

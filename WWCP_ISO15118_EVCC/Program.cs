@@ -114,19 +114,57 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             if (trust is not null)
                 Console.WriteLine($"Trust roots: {string.Join(", ", trust.RootSubjects)}");
             using var stream = await ConnectAsync(args, host, port, trust);
+            var transport = TransportOf(args, stream);
 
             if (args.OfferBoth)
             {
                 // The state machine is chosen AFTER the handshake: offer both, run whichever the
                 // station picked — the case a multiplexing station (EVerest's IsoMux) exists for.
-                var accepted = await SapHandshake.RunEvccSideAsync(stream, BothOffers(args.Mode));
+                var accepted = await SapHandshake.RunEvccSideAsync(stream, BothOffers(args.Mode), transport: transport);
                 Console.WriteLine($"SAP: offered -20 (priority 1) and -2 (priority 2); " +
                                   $"the station picked {V2GInterface.Name(accepted.Protocol)}.");
                 return await RunSessionAsync(stream, args with { Protocol = accepted.Protocol }, pause, resume);
             }
 
-            await SapHandshake.RunEvccSideAsync(stream, args.Protocol, mode: args.Mode);
+            await SapHandshake.RunEvccSideAsync(stream, args.Protocol, mode: args.Mode, transport: transport);
             return await RunSessionAsync(stream, args, pause, resume);
+        }
+
+        /// <summary>
+        /// What to tell the handshake about the connection underneath it — and, where the answer would stop
+        /// a run this project makes on purpose, the line that says so instead.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>[V2G20-1237]</c> forbids offering ISO 15118-20 on plain TCP or on TLS 1.2 and below, and most
+        /// of this project's interop matrix offers exactly that on purpose. So the car reports the transport
+        /// only when the rule would be satisfied anyway, and otherwise prints what it is about to do and
+        /// leaves the transport unstated — the requirement is then not applied, deliberately and out loud.
+        /// The defect being fixed was never the plain-TCP bench run; it was that nothing said a word when
+        /// the same offer went out over TLS 1.2 against a real station on 2026-08-06.
+        /// </para>
+        /// <para>
+        /// The BouncyCastle backend is TLS 1.3 by construction on both sides (<c>BcV2GTls.Tls13Only</c>) and
+        /// hands back a stream <see cref="Iso20Transport.Of"/> deliberately does not guess about, so that
+        /// case is named here rather than sniffed.
+        /// </para>
+        /// </remarks>
+        private static TransportSecurity TransportOf(EvccOptions args, Stream stream)
+        {
+            var actual = args.TlsStack == TlsStack.BouncyCastle
+                             ? TransportSecurity.Tls13
+                             : Iso20Transport.Of(stream);
+
+            if (args.Protocol != ProtocolVariant.Iso15118_20 && !args.OfferBoth)
+                return actual;
+
+            if (Iso20Transport.MayCarryIso20(actual))
+                return actual;
+
+            Console.WriteLine($"SAP: offering ISO 15118-20 on {Iso20Transport.Describe(actual)} — "
+                            + "[V2G20-1237] says a car should not, and this one is doing it anyway because "
+                            + "that is what the run is for. Use TLS 1.3 for a conformant offer.");
+            return TransportSecurity.Unknown;
         }
 
         /// <summary>

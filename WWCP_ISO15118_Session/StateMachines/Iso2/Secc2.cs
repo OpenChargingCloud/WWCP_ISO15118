@@ -196,7 +196,37 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             }
         }
 
-        // The guard: only the (phase, request) pairs below are legal. The wildcard arm rejects the rest.
+        /// <summary>
+        /// What a refusal does to the session, which is the one place this station differs from
+        /// <see cref="Iso20.Secc20Base"/> on purpose: <b>here a <c>FAILED_*</c> response leaves the phase
+        /// where it was</b>, so a car that corrects itself charges. There a <c>FAILED_*</c> ends the
+        /// session outright.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The two standards say different things, and each state machine follows its own. <c>-20</c>'s
+        /// §8.6 states that a <c>FAILED</c> response is a fatal error and that both SECC and EVCC terminate
+        /// the communication session after sending or receiving it — a plain statement in the ResponseCode
+        /// description, carrying no requirement ID of its own. <c>-2</c>'s §8.8.2 has the parallel
+        /// description <em>without</em> that sentence: `[V2G2-735]` obliges the EVCC to ignore the response's
+        /// other parameters and nothing more, `[V2G2-734]` covers the OK case, and `[V2G2-736]` requires the
+        /// SECC to fill the mandatory fields with schema-conformant values anyway. Nothing in <c>-2</c>
+        /// obliges either side to end the session.
+        /// </para>
+        /// <para>
+        /// So the asymmetry is the standards', not an oversight — which is the opposite of what the note in
+        /// <c>Secc20Base</c> claimed until 2026-08-09, and the reason unifying the behaviour was dropped
+        /// after the documents were read rather than before. Making <c>-20</c> lenient would contradict
+        /// §8.6 outright; making <c>-2</c> strict would remove a behaviour it permits, for no requirement.
+        /// Carries the <c>-2</c> document caveat in <c>docs/normative-basis.md</c>: the text to hand is the
+        /// 2022 DIS revision, while this stack targets ISO 15118-2:2014.
+        /// </para>
+        /// </remarks>
+        /// <remarks>
+        /// The guard as well: only the (phase, request) pairs below are legal, and the wildcard arm rejects
+        /// the rest. Each arm names the phase to move to, which is how the refusal policy above is applied
+        /// — the arms that refuse name the phase they are already in.
+        /// </remarks>
         private (BodyBaseType Body, Phase Next) Dispatch(BodyBaseType req) => (_phase, req) switch
         {
             (Phase.SessionSetup, SessionSetupReqType) =>

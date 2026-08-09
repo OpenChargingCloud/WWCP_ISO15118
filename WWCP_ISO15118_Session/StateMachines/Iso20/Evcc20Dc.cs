@@ -59,7 +59,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // At the loop's own nominal 400 V, so the two requests describe one operating point rather
             // than two unrelated ceilings. Capped by what the vehicle declared it can take.
             => Battery is { RequestedPowerW: > 0 } b
-                   ? Rat((short) Math.Min(125, Math.Max(1, Math.Round(b.RequestedPowerW / 400.0))))
+                   ? Rat((short) Math.Min(125, Math.Max(1, Math.Round(b.RequestedPowerW / LoopNominalVolts))))
                    : Rat(125);                                                                   // 125 A
 
         /// <summary>The voltage the loop operates at, and the one it reports as EVPresentVoltage. The

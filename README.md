@@ -169,7 +169,9 @@ a test instrument:
   *good*.
 - **The timeouts are not the standard's.** `MessageTimeoutOptions` says so itself: a flat 2 s per
   message and 60 s per sequence, not the per-message performance tables of -2 and -20.
-- **The charge loop is a fixed three iterations**, not a battery filling up.
+- **The charge loop is a fixed three iterations** unless the car is given a battery
+  ([`WWCP_ISO15118_EVCC`](WWCP_ISO15118_EVCC/README.md#the-battery)), and then it is a pack filling up
+  on a simulated clock — arithmetic, not an electrical model.
 - **There is no electrical layer at all** — no contactor, no Control Pilot, no isolation monitoring,
   no power electronics. On the SECC side that is the entire safety-relevant half of a charging
   station, and it is governed by IEC 61851 rather than by ISO 15118.

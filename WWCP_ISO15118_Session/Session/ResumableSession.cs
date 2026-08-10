@@ -33,11 +33,18 @@ namespace cloud.charging.open.protocols.ISO15118.Session
     /// service negotiation, so this is the only way the next connection learns it; `-2` renegotiates it
     /// anyway and leaves this at 0.
     /// </param>
+    /// <param name="DeliveredWh">
+    /// What the paused session had already charged, so the resumed one can ask for the remainder:
+    /// `[V2G2-743]` requires a `-2` EVCC to send <c>EAmount</c> reduced by the energy already charged.
+    /// Only needed where nothing else remembers — a car whose pack is carried across the pause has the
+    /// better answer in the pack, and <c>Evcc2</c> prefers it. See <c>Iso2.Evcc2.AlreadyChargedWh</c>.
+    /// </param>
     /// <remarks>
-    /// The three travel together because they are only meaningful together, and because keeping them apart
+    /// These travel together because they are only meaningful together, and because keeping them apart
     /// is how the session id came to be offered without anything to authenticate it — the defect this type
     /// exists downstream of.
     /// </remarks>
-    public sealed record ResumableSession(byte[] SessionId, byte[]? Binding, ushort EnergyServiceId);
+    public sealed record ResumableSession(byte[] SessionId, byte[]? Binding, ushort EnergyServiceId,
+                                          Double DeliveredWh = 0);
 
 }

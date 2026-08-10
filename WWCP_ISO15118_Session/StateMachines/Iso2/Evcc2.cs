@@ -94,6 +94,29 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         public byte[]? ResumeSessionId { get; set; }
 
         /// <summary>
+        /// What a paused predecessor already charged, so this session asks for the remainder:
+        /// <c>[V2G2-743]</c> requires <c>EAmount</c> on a resume to be reduced by the energy already
+        /// charged.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Read only when there is no <see cref="Battery"/>, and that is the whole contract.</b> A pack
+        /// carried across the pause already holds the better answer — its state of charge moved, so
+        /// <c>EnergyNeededWh</c> is the remainder by construction — and subtracting this on top would count
+        /// the same energy twice. So the battery wins where there is one, and a caller that sets both still
+        /// gets the right number rather than a footgun.
+        /// </para>
+        /// <para>
+        /// A real car cannot be in the second case: its pack does not forget when the cable comes out. The
+        /// simulator can, because a battery is optional here, and until 2026-08-10 the CLI built a
+        /// <i>fresh</i> one per connection — so a resumed session asked for the full original amount again
+        /// with a pack that had already been charged. That was the actual violation; this property is only
+        /// what covers the batteryless case behind it.
+        /// </para>
+        /// </remarks>
+        public Double AlreadyChargedWh { get; set; }
+
+        /// <summary>
         /// How long a phase may keep answering <c>EVSEProcessing = Ongoing</c> before the session ends.
         /// </summary>
         /// <remarks>60 s, ISO 15118's EVCC ongoing timeout. See <see cref="OngoingGuard"/> for the live
@@ -667,9 +690,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 : new ChargeParameterDiscoveryReqType(MaxEntriesSAScheduleTuple: null, _energyTransferMode,
                     new AC_EVChargeParameterType(DepartureTime: null,
                         // EAmount is -2 AC's only energy field, and it is the request: how much this
-                        // session wants, not what the pack holds. 22 kWh when nothing asked.
+                        // session wants, not what the pack holds. 22 kWh when nothing asked — less what a
+                        // paused predecessor already charged, which is [V2G2-743] and is why the fallback
+                        // is no longer a constant. With a pack there is nothing to subtract: charging moved
+                        // its state of charge, so EnergyNeededWh is already the remainder.
                         EAmount: Battery is { } ac ? WattHours(ac.EnergyNeededWh)
-                                                   : PhysicalValue.Of(22_000, UnitSymbol.Wh),
+                                                   : WattHours(Math.Max(0, 22_000 - AlreadyChargedWh)),
                         EVMaxVoltage: Volt(AcLineVolts),
                         EVMaxCurrent: Amp(AcRequestedAmps), EVMinCurrent: Amp(AcMinAmps)));
 

@@ -239,12 +239,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       null, null, null, null, null),
             };
 
-            var req = new Dc20.DC_ChargeLoopReq(SessionCtx.ToDcHeader(), DisplayParameters: null, MeterInfoRequested: false,
+            var req = new Dc20.DC_ChargeLoopReq(SessionCtx.ToDcHeader(), DisplayParameters: null,
+                MeterInfoRequested: RequestMeterInfo,
                 EVPresentVoltage: Rat(LoopNominalVolts), CLReqControlMode: controlMode);
 
             var (set, message) = await ExchangeRaw(MessageSet.Iso20DC,
                 dest => Dc20.DcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct);
             var response = Expect<Dc20.DC_ChargeLoopRes>(set, message, MessageSet.Iso20DC);
+
+            NoteMeterInfo(response.MeterInfo is not null);
 
             // The EV's own voltage — it sent EVPresentVoltage above, and a DC vehicle really does
             // measure that at its own inlet — times the current the station reports. Half-borrowed on

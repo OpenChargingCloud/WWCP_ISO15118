@@ -435,7 +435,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         private EVSEChargeParameterType EvseChargeParameter() =>
             mode == PowerMode.Dc
                 ? new DC_EVSEChargeParameterType(DcEvseStatus(),
-                      EVSEMaximumCurrentLimit: Amp(200), EVSEMaximumPowerLimit: Watt(150_000),
+                      EVSEMaximumCurrentLimit: PhysicalValue.Of((decimal) (DcAdvertisedMaxAmps ?? 200), UnitSymbol.A),
+                      EVSEMaximumPowerLimit: Watt(150_000),
                       EVSEMaximumVoltageLimit: Volt(500), EVSEMinimumCurrentLimit: Amp(0),
                       EVSEMinimumVoltageLimit: Volt(200), EVSECurrentRegulationTolerance: null,
                       EVSEPeakCurrentRipple: Amp(1), EVSEEnergyToBeDelivered: null)
@@ -507,6 +508,42 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// vehicle's <c>CurrentDemandReq</c> can ask it for.</summary>
         private const short DcVolts   = 400;
         private const short DcMaxAmps = 120;
+
+        /// <summary>
+        /// The DC current this station <b>announces</b> at ChargeParameterDiscovery, in amps. Null — the
+        /// default — announces the 200 A it always has.
+        /// </summary>
+        /// <remarks>A station may announce more than one outlet can push, and this one does: 200 A
+        /// announced against <see cref="DcMaxAmps"/> served. That is not a contradiction — the envelope is
+        /// the equipment's, the outlet is this connector's — but it does mean the announcement alone never
+        /// constrained a car here, which is part of why nothing on this side ever exercised an EV reading
+        /// it. Setting this makes the announcement bite.</remarks>
+        public Double? DcAdvertisedMaxAmps { get; set; }
+
+        /// <summary>
+        /// A <b>running</b> DC current limit, in amps: the ceiling this station restates in every
+        /// <c>CurrentDemandRes</c> and serves under. Null — the default — restates nothing, exactly as
+        /// before.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// -2 lets the SECC carry <c>EVSEMaximumCurrentLimit</c>, <c>EVSEMaximumPowerLimit</c> and
+        /// <c>EVSEMaximumVoltageLimit</c> in every charge-loop response, which is how a real station
+        /// derates mid-session. This one sent all three as <c>null</c> for its whole life, so no loopback
+        /// session ever put a running limit in front of our own EVCC — and when a live EVerest station did,
+        /// on 2026-08-10, the car ignored it and asked for 120 A against a stated 55.2 A, three times out
+        /// of three.
+        /// </para>
+        /// <para>
+        /// <b>Opt-in on purpose.</b> Left null the wire output is byte-for-byte what the session corpus
+        /// records, so this costs no vector regeneration; set, the station announces a ceiling, serves
+        /// under it, and reports <c>EVSECurrentLimitAchieved</c> truthfully. The default path still reports
+        /// that flag as <c>false</c> even when serving at <see cref="DcMaxAmps"/>, which is the one
+        /// inaccuracy deliberately left alone here: correcting it would rewrite every recorded trace to
+        /// settle a question no counterparty has asked.
+        /// </para>
+        /// </remarks>
+        public Double? DcRunningMaxAmps { get; set; }
 
         private static SAScheduleListType PlainSchedule() =>
             new(new[]
@@ -635,7 +672,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// </summary>
         private BodyBaseType CurrentDemand(CurrentDemandReqType req)
         {
-            var servedAmps = Math.Clamp((double) req.EVTargetCurrent.ToDecimal(), 0, DcMaxAmps);
+            // The ceiling this iteration is served under: the outlet's own, lowered by a running limit if
+            // one was set. A station that announces a limit and then serves past it is worse than one that
+            // announces none, so the clamp and the announcement come from the same figure.
+            var cap        = DcRunningMaxAmps is { } running ? Math.Min(running, DcMaxAmps) : (double) DcMaxAmps;
+            var servedAmps = Math.Clamp((double) req.EVTargetCurrent.ToDecimal(), 0, cap);
 
             // The station's own view of this iteration: what it is presenting at the outlet. The same
             // volts x amps it reports below, so the number it signs is the number it announces.
@@ -649,8 +690,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             return new CurrentDemandResType(ResponseCode.OK, DcEvseStatus(Notification()),
                 EVSEPresentVoltage: Volt(DcVolts),
                 EVSEPresentCurrent: PhysicalValue.Of((decimal) servedAmps, UnitSymbol.A),
-                EVSECurrentLimitAchieved: false, EVSEVoltageLimitAchieved: false, EVSEPowerLimitAchieved: false,
-                EVSEMaximumVoltageLimit: null, EVSEMaximumCurrentLimit: null, EVSEMaximumPowerLimit: null,
+                EVSECurrentLimitAchieved: DcRunningMaxAmps is not null && servedAmps >= cap,
+                EVSEVoltageLimitAchieved: false, EVSEPowerLimitAchieved: false,
+                EVSEMaximumVoltageLimit: DcRunningMaxAmps is null ? null : Volt(DcVolts),
+                EVSEMaximumCurrentLimit: DcRunningMaxAmps is null ? null : PhysicalValue.Of((decimal) cap, UnitSymbol.A),
+                EVSEMaximumPowerLimit:   DcRunningMaxAmps is null ? null : PhysicalValue.Of((decimal) (DcVolts * cap), UnitSymbol.W),
                 EVSEID: "DE*ABC*E1", SAScheduleTupleID: _chosenTupleId,
                 MeterInfo: reading ? measured : null, ReceiptRequired: receipt ? true : null);
         }

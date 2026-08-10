@@ -254,6 +254,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     var cd = await Send<CurrentDemandResType>(demand, ct);
                     notification = cd.DC_EVSEStatus.EVSENotification;
 
+                    // What this station can deliver *now*. -2 lets it restate its ceiling every
+                    // iteration, and the next request is where reading it shows.
+                    ReadEvseLimits(cd.EVSEMaximumCurrentLimit, cd.EVSEMaximumPowerLimit);
+
                     // The EV's own view, from the EV's own request. ISO 15118-2 gives a DC vehicle no
                     // field for a *measured* inlet power, so what it asked for is the closest thing it
                     // owns — and taking the station's EVSEPresent* instead would make this counter an
@@ -333,6 +337,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// asked for less, which is the "weaker EV capping at its own limit" this used to only describe).</summary>
         private void EvaluateSchedules(ChargeParameterDiscoveryResType cpd)
         {
+
+            // The envelope this station announced, before a single charge-loop message exists to revise
+            // it. On AC there is nothing to read: AC_EVSEChargeParameter carries EVSEMaxCurrent per phase
+            // and this ceiling is a DC one.
+            if (cpd.EVSEChargeParameter is DC_EVSEChargeParameterType dcEvse)
+                ReadEvseLimits(dcEvse.EVSEMaximumCurrentLimit, dcEvse.EVSEMaximumPowerLimit);
+
             if (cpd.SASchedules is not SAScheduleListType offer || offer.SAScheduleTuple.Count == 0)
             {
                 Tariff = null;   // no offer (EVSEProcessing games aside, [V2G2-905] makes this a SECC bug)
@@ -647,12 +658,77 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         private double? DcRequestedPowerW
             => Battery is { RequestedPowerW: > 0 } b ? Math.Round(b.RequestedPowerW * b.PowerFactor) : null;
 
-        /// <summary>The DC setpoint, at <see cref="DcLoopVolts"/> and capped by the envelope this vehicle
-        /// declared it can take. 120 A when nothing asked — the figure every recorded -2 DC run carries.</summary>
+        /// <summary>The DC setpoint this vehicle <em>wants</em>, at <see cref="DcLoopVolts"/> and capped by
+        /// the envelope it declared it can take. 120 A when nothing asked — the figure every recorded -2 DC
+        /// run carries. What actually goes on the wire is <see cref="DcTargetAmps"/>, which holds this
+        /// inside what the station said it can deliver.</summary>
         private short DcRequestedAmps
             => DcRequestedPowerW is { } watts
                    ? (short) Math.Clamp(Math.Round(watts / DcLoopVolts), 1, DcMaxAmps)
                    : (short) 120;
+
+        /// <summary>
+        /// What the station last said it can deliver: seeded from the <c>DC_EVSEChargeParameter</c> of the
+        /// ChargeParameterDiscoveryRes and then replaced by whatever each CurrentDemandRes carries. Null
+        /// until a station has said anything, and null again for any field a station omits — both of which
+        /// mean "no ceiling known from that quarter", not zero.
+        /// </summary>
+        private Double? _evseMaxAmps;
+        private Double? _evseMaxPowerW;
+
+        /// <summary>
+        /// The DC setpoint actually put on the wire: <see cref="DcRequestedAmps"/> held inside the station's
+        /// current <em>and</em> power ceiling, at the voltage this loop runs at.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// -2 lets the SECC restate <c>EVSEMaximumCurrentLimit</c>, <c>EVSEMaximumPowerLimit</c> and
+        /// <c>EVSEMaximumVoltageLimit</c> in <b>every</b> CurrentDemandRes, and a station that derates
+        /// mid-session — thermal, grid, a second outlet starting — does exactly that. Until 2026-08-10 this
+        /// car read none of it: it computed a setpoint once and re-sent it, and a live EVerest station
+        /// dropped its limit from 200 A to 55.2 A while our EVCC went on asking for 120 A, three times out
+        /// of three. Their `EvseManager` clamped and warned each time — 47 such warnings across the
+        /// recorded runs before anyone read one.
+        /// </para>
+        /// <para>
+        /// <b>Floor, not round</b>: a car that rounds up asks for more than it was allowed. And the limit
+        /// applies from the response that carried it onwards — the first request of a session is sent
+        /// before any CurrentDemandRes exists, which is why the discovery values are read too rather than
+        /// waiting for the loop to teach it.
+        /// </para>
+        /// </remarks>
+        private short DcTargetAmps
+        {
+            get
+            {
+
+                var amps = (Double) DcRequestedAmps;
+
+                if (_evseMaxAmps   is { } maxAmps)
+                    amps = Math.Min(amps, maxAmps);
+
+                if (_evseMaxPowerW is { } maxWatts)
+                    amps = Math.Min(amps, maxWatts / DcLoopVolts);
+
+                return (short) Math.Max(0, Math.Floor(amps));
+
+            }
+        }
+
+        /// <summary>Read the station's limits off whatever message carried them. Called for the
+        /// ChargeParameterDiscoveryRes (through <see cref="EvaluateSchedules"/>) and for every
+        /// CurrentDemandRes; each field is replaced only when the message actually carries one, so a
+        /// station that states its ceiling once and then omits it keeps that ceiling.</summary>
+        private void ReadEvseLimits(PhysicalValueType? maxCurrent, PhysicalValueType? maxPower)
+        {
+
+            if (maxCurrent is not null)
+                _evseMaxAmps   = (Double) maxCurrent.ToDecimal();
+
+            if (maxPower   is not null)
+                _evseMaxPowerW = (Double) maxPower.ToDecimal();
+
+        }
 
         /// <summary>
         /// The ceiling to shape the ChargingProfile to: the untapered ask, held inside what this vehicle
@@ -710,15 +786,23 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// something had a figure to put in it — states the same ask as a power outright, which is the
         /// nearest -2 comes to a watts field.
         /// </summary>
-        private CurrentDemandReqType CurrentDemand() =>
-            new(EvStatus(), EVTargetCurrent: Amp(DcRequestedAmps),
+        private CurrentDemandReqType CurrentDemand()
+        {
+
+            var amps = DcTargetAmps;
+
+            return new(EvStatus(), EVTargetCurrent: Amp(amps),
                 EVMaximumVoltageLimit: null, EVMaximumCurrentLimit: null,
-                EVMaximumPowerLimit: DcRequestedPowerW is { } watts
-                                         ? PhysicalValue.Of((decimal) watts, UnitSymbol.W)
+                // The power is the same operating point stated in watts, so the two fields cannot
+                // contradict each other once the station's ceiling has moved the current.
+                EVMaximumPowerLimit: DcRequestedPowerW is not null
+                                         ? PhysicalValue.Of(amps * (decimal) DcLoopVolts, UnitSymbol.W)
                                          : null,
                 BulkChargingComplete: null, ChargingComplete: false,
                 RemainingTimeToFullSoC: null, RemainingTimeToBulkSoC: null,
                 EVTargetVoltage: Volt(DcLoopVolts));
+
+        }
 
         /// <summary>
         /// The power this EV committed to in its ChargingProfile — its own view of an AC session,

@@ -101,13 +101,19 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             // Pause/resume: session 1 ends with ChargingSession.Pause; then a completely fresh connection
             // (incl. SDP re-discovery when --sdp) rejoins the paused session — the SECC must answer
             // SessionSetup with OK_OldSessionJoined, which for -20 also means proving we are the same car.
-            var paused = await RunOneConnectionAsync(args, pause: true, resume: null);
-            Console.WriteLine($"\n— Paused (session {Convert.ToHexString(paused.SessionId)}); reconnecting to resume —\n");
+            // One pack for both connections. A car's battery does not forget what it took while the cable
+            // was out, and building a fresh one per connection is what made the resumed session ask for the
+            // full original EAmount again — [V2G2-743] says it asks for the remainder.
+            var pack   = BuildBattery(args);
+            var paused = await RunOneConnectionAsync(args, pause: true, resume: null, battery: pack);
+            Console.WriteLine($"\n— Paused (session {Convert.ToHexString(paused.SessionId)}"
+                            + $"{(pack is null ? $", {paused.DeliveredWh:F0} Wh charged" : "")}); reconnecting to resume —\n");
             await Task.Delay(TimeSpan.FromSeconds(2));
-            await RunOneConnectionAsync(args, pause: false, resume: paused);
+            await RunOneConnectionAsync(args, pause: false, resume: paused, battery: pack);
         }
 
-        private static async Task<ResumableSession> RunOneConnectionAsync(EvccOptions args, bool pause, ResumableSession? resume)
+        private static async Task<ResumableSession> RunOneConnectionAsync(EvccOptions args, bool pause, ResumableSession? resume,
+                                                                          EvBattery? battery = null)
         {
             var (host, port) = await ResolveEndpointAsync(args);
             var trust = args.TrustRootsPath is null ? null : TrustRoots.Load(args.TrustRootsPath);
@@ -123,11 +129,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 var accepted = await SapHandshake.RunEvccSideAsync(stream, BothOffers(args.Mode), transport: transport);
                 Console.WriteLine($"SAP: offered -20 (priority 1) and -2 (priority 2); " +
                                   $"the station picked {V2GInterface.Name(accepted.Protocol)}.");
-                return await RunSessionAsync(stream, args with { Protocol = accepted.Protocol }, pause, resume);
+                return await RunSessionAsync(stream, args with { Protocol = accepted.Protocol }, pause, resume, battery);
             }
 
             await SapHandshake.RunEvccSideAsync(stream, args.Protocol, mode: args.Mode, transport: transport);
-            return await RunSessionAsync(stream, args, pause, resume);
+            return await RunSessionAsync(stream, args, pause, resume, battery);
         }
 
         /// <summary>
@@ -281,7 +287,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             return battery;
         }
 
-        private static async Task<ResumableSession> RunSessionAsync(Stream stream, EvccOptions args, bool pause = false, ResumableSession? resume = null)
+        private static async Task<ResumableSession> RunSessionAsync(Stream stream, EvccOptions args, bool pause = false,
+                                                                    ResumableSession? resume = null, EvBattery? battery = null)
         {
             if (args.Protocol == ProtocolVariant.Iso15118_2)
             {
@@ -291,7 +298,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                      : cloud.charging.open.protocols.ISO15118_2.Generated.ChargingSession.Terminate,
                     ResumeSessionId = resume?.SessionId,
                     Renegotiate = args.Renegotiate,
-                    Battery = BuildBattery(args),
+                    Battery = battery ?? BuildBattery(args),
+                    AlreadyChargedWh = resume?.DeliveredWh ?? 0,   // [V2G2-743], batteryless case only
                 };
                 if (args.ContractCertPath is not null)
                     evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
@@ -316,7 +324,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                       $"chose tuple {t2.ChosenTupleId}, profile {t2.ProfileEntries} entr{(t2.ProfileEntries == 1 ? "y" : "ies")}.");
                 // -2 binds nothing to the session and renegotiates the service on resume — both by design
                 // there, and both changed in -20. See Session/ResumableSession.
-                return new ResumableSession(evcc.SessionId, null, 0);
+                return new ResumableSession(evcc.SessionId, null, 0,
+                                            (resume?.DeliveredWh ?? 0) + evcc.Meter.Energy);
             }
             else
             {
@@ -329,7 +338,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 evcc.StopMode = pause ? cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Pause
                                       : cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated.ChargingSession.Terminate;
                 evcc.ResumeFrom(resume);
-                evcc.Battery = BuildBattery(args);
+                evcc.Battery = battery ?? BuildBattery(args);
                 // The one battery goal that is also a protocol field: -20 carries DepartureTime as seconds
                 // from the session's time anchor, and a Dynamic station schedules against it.
                 if (args.DepartureIn is { } departure)

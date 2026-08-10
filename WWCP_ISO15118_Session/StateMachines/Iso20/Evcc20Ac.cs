@@ -177,11 +177,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             };
 
             var req = new Ac20.AC_ChargeLoopReq(SessionCtx.ToAcHeader(), DisplayParameters: null,
-                MeterInfoRequested: false, CLReqControlMode: controlMode);
+                MeterInfoRequested: RequestMeterInfo, CLReqControlMode: controlMode);
 
             var (set, message) = await ExchangeRaw(MessageSet.Iso20AC,
                 dest => Ac20.AcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct);
-            Expect<Ac20.AC_ChargeLoopRes>(set, message, MessageSet.Iso20AC);
+            var response = Expect<Ac20.AC_ChargeLoopRes>(set, message, MessageSet.Iso20AC);
+
+            NoteMeterInfo(response.MeterInfo is not null);
 
             // The one place in this project where the EV's own inlet power is a field on the wire:
             // -20 AC has EVPresentActivePower in the request, so the vehicle's view needs no deriving

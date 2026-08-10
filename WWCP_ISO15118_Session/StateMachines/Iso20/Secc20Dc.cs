@@ -147,6 +147,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // that ignored it would make every EV-side power request untestable against us — so serve what
             // was asked for, capped by this station's own 200 A. In Dynamic mode the SECC dictates the
             // operating point ([V2G20-1600] and the mandatory EVSE limits above), so the default stands.
+            MeterInfoRequestedByEv = req.MeterInfoRequested;
+
             var servedAmps = req.CLReqControlMode is Dc20.Scheduled_DC_CLReqControlModeType s
                                  ? Math.Min(200d, (double) Dc20Rational.ToDecimal(s.EVTargetCurrent))
                                  : 120d;

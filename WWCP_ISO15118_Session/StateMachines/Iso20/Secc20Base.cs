@@ -235,6 +235,17 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <see cref="Deliver"/>, never here, so one iteration yields exactly one signature.</summary>
         protected (string Id, ulong Wh, ulong Timestamp, byte[] Signature)? MeterReading() => _lastReading;
 
+        /// <summary>Whether the last charge-loop request set <c>MeterInfoRequested</c> — `[V2G20-1081]`,
+        /// the EV asking to be told the meter reading.</summary>
+        /// <remarks>
+        /// Recorded rather than acted on, because this station already answers with <c>MeterInfo</c>
+        /// whenever it has a reading, asked or not — which `[V2G20-1833]` wants of a metering EVSE and
+        /// which satisfies `[V2G20-1082]` a fortiori. What the flag buys is that a loopback can see the
+        /// request field at all: it is otherwise invisible from either end, and a car that stopped asking
+        /// would look exactly like one that never had.
+        /// </remarks>
+        public Boolean MeterInfoRequestedByEv { get; protected set; }
+
         private (string Id, ulong Wh, ulong Timestamp, byte[] Signature)? MeasureNow()
         {
             if (InstalledMeter is null)

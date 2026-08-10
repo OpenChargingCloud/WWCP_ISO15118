@@ -274,6 +274,41 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public UInt32 DepartureTime { get; set; } = 3600;
 
         /// <summary>
+        /// Set <c>MeterInfoRequested</c> in every charge-loop request, which is `[V2G20-1081]` — the one
+        /// mechanism the standard gives an EV for asking to be told the meter reading. `[V2G20-1082]` is
+        /// the station's half: having been asked, it <em>shall</em> answer with the <c>MeterInfo</c>
+        /// element.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Opt-in, and the default keeps the field <c>false</c> exactly as every recorded session and
+        /// every vector in <c>ISO15118ConformanceTests.Simulation/Vectors/</c> has it, so nothing needed
+        /// regenerating. The same shape as <see cref="Battery"/> and <c>TransportSecurity.Unknown</c>:
+        /// new behaviour that has to be asked for.
+        /// </para>
+        /// <para>
+        /// It was hardcoded <c>false</c> in both charge loops until 2026-08-10, which meant this EVCC
+        /// could not exercise `[V2G20-1081]` at all — and therefore could not tell whether any station
+        /// honours `[V2G20-1082]`. It could not: the first station asked did not answer
+        /// (<c>ISO15118ConformanceTests/docs/reports/everest-d20-meter-info.md</c>).
+        /// </para>
+        /// </remarks>
+        public Boolean RequestMeterInfo { get; set; }
+
+        /// <summary>How many charge-loop responses carried a <c>MeterInfo</c> element. Counted whether or
+        /// not <see cref="RequestMeterInfo"/> is set, because `[V2G20-1833]` asks a metering station for
+        /// an initial reading without being asked.</summary>
+        public Int32 MeterInfoResponses { get; private set; }
+
+        /// <summary>Record that a charge-loop response did or did not carry <c>MeterInfo</c>. Called by
+        /// the AC and DC loops, which see different generated types for the same element.</summary>
+        protected void NoteMeterInfo(Boolean present)
+        {
+            if (present)
+                MeterInfoResponses++;
+        }
+
+        /// <summary>
         /// A battery that fills up, and the goal that ends the charge loop. Null — the default — keeps the
         /// fixed three iterations every recorded interop run was taken with.
         /// </summary>

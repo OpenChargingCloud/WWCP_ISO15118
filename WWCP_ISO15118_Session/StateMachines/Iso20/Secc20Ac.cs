@@ -105,6 +105,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // from a 22 kW outlet is a station delivering 9 kW, not a disagreement. A vehicle that names no
             // present power at all is taken to be at the outlet's figure, which is where this stood before
             // it read the request.
+            MeterInfoRequestedByEv = req.MeterInfoRequested;
+
             var drawn = req.CLReqControlMode switch
             {
                 Ac20.Scheduled_AC_CLReqControlModeType s => (double) Ac20Rational.ToDecimal(s.EVPresentActivePower),

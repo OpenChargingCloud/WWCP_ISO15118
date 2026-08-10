@@ -743,11 +743,26 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             });
             var scheduled = ParamSet(1, controlMode: 1);
             var dynamic   = ParamSet(2, controlMode: 2);
-            return new(SessionCtx.ToCommonHeader(), ResponseCode.OK, req.ServiceID,
+            var res = new ServiceDetailRes(SessionCtx.ToCommonHeader(), ResponseCode.OK, req.ServiceID,
                 new ServiceParameterListType(PreferDynamicControlMode
                     ? new[] { dynamic, scheduled }
                     : new[] { scheduled, dynamic }));
+
+            // Remember the pairs as they leave, rather than re-deriving them at selection time: what the EV
+            // may name later is what this station actually put on the wire ([V2G20-1216]), and reading it off
+            // the response is the only version of that which cannot drift from it.
+            foreach (var set in res.ServiceParameterList.ParameterSet)
+                offeredParameterSets.Add((req.ServiceID, set.ParameterSetID));
+
+            return res;
         }
+
+        /// <summary>Every <c>(ServiceID, ParameterSetID)</c> this station has offered in a
+        /// <c>ServiceDetailRes</c> this session — the set <c>[V2G20-433]</c> holds a selection against, and
+        /// the set <c>[V2G20-1216]</c> confines the EVCC to.</summary>
+        /// <remarks>Not cleared by a service renegotiation: the requirement is about what was provided during
+        /// the <i>session</i>, and a renegotiation stays inside one.</remarks>
+        private readonly HashSet<(UInt16 ServiceId, UInt16 ParameterSetId)> offeredParameterSets = [];
 
         /// <summary>The energy-transfer service the EV selected in ServiceSelection; 0 before that phase (and
         /// re-set from scratch by a service renegotiation, which re-enters ServiceDiscovery). Kept because the
@@ -810,12 +825,23 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// an unadvertised id is *surprising* is the behaviour the standard obliges.
         /// </para>
         /// <para>
-        /// Two gaps this check knowingly leaves, both narrower than what the requirements ask:
-        /// <c>[V2G20-433]</c> refuses an unadvertised <i>ServiceID, ParameterSetID pair</i> and
-        /// <see cref="Advertised"/> looks only at the id, so an advertised service with a parameter set
-        /// this station never offered is still accepted; and <c>[V2G20-1618]</c> wants
-        /// <c>FAILED_NoEnergyTransferServiceSelected</c> where the selection names no energy transfer
-        /// service at all, which is not distinguished here.
+        /// <b>The selection is held to the pair, not to the id.</b> <c>[V2G20-433]</c> speaks of a
+        /// <i>ServiceID, ParameterSetID</i> pair the SECC never offered, and until 2026-08-10 this looked
+        /// only at the id. <see cref="offeredParameterSets"/> now records what each
+        /// <c>ServiceDetailRes</c> actually carried, and a selection is checked against that — which also
+        /// refuses a service whose detail was never requested, since ParameterSetIDs exist nowhere else and
+        /// a car naming one it was never given is naming a value it invented (<c>[V2G20-1216]</c>).
+        /// </para>
+        /// <para>
+        /// <b><c>[V2G20-1618]</c> is deliberately not implemented, because this station cannot produce the
+        /// case.</b> It wants <c>FAILED_NoEnergyTransferServiceSelected</c> where the selection names no
+        /// energy transfer service at all. Two things rule that out here: the schema makes
+        /// <c>SelectedEnergyTransferService</c> a mandatory single element, so a request always names one;
+        /// and the only way to name a non-energy-transfer service is a VAS id, while
+        /// <see cref="SvcDiscovery"/> sends <c>VASList: null</c>. An id that is neither is simply
+        /// unadvertised, which is <c>[V2G20-467]</c>'s case and answered above. Writing the branch anyway
+        /// would be unreachable code that reads as coverage. Worth revisiting the day this station
+        /// advertises a value-added service, and not before.
         /// </para>
         /// <para>
         /// The phase these return is not the one that takes effect: <see cref="Handle"/> ends the session on
@@ -837,9 +863,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         private (MessageSet, object, Phase20) SvcSelectionStep(ServiceSelectionReq req)
         {
-            var id = req.SelectedEnergyTransferService.ServiceID;
+            var selected = req.SelectedEnergyTransferService;
+            var id       = selected.ServiceID;
 
-            if (!Advertised(id))
+            // [V2G20-433] is about the *pair*, not the id: a parameter set this station never offered for
+            // this service is as unadvertised as an id it never offered at all. Selecting a service whose
+            // detail was never asked for lands here too, and correctly — the ParameterSetIDs exist only in a
+            // ServiceDetailRes, so a car naming one it was not given is naming a value it invented.
+            if (!Advertised(id) || !offeredParameterSets.Contains((id, selected.ParameterSetID)))
                 return (MessageSet.Iso20CommonMessages,
                         new ServiceSelectionRes(SessionCtx.ToCommonHeader(), ResponseCode.FAILED_ServiceSelectionInvalid),
                         Phase20.ServiceSelection);

@@ -68,6 +68,24 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>Contract credentials (same shape as the -20 EVCC's); <c>null</c> (default) pays via EIM.</summary>
         public PncEvccOptions? Pnc { get; set; }
 
+        /// <summary>Provisioning credentials; when set (and the station advertises the certificate service),
+        /// the EVCC asks for a contract before authorizing. <c>null</c> (default) skips it.</summary>
+        public Iso2CertInstallOptions? CertInstallRequest { get; set; }
+
+        /// <summary>The contract certificate (DER) installed via the provisioning exchange, once received —
+        /// with <see cref="InstalledContractKey"/> proving the ECDH unwrap round-tripped.</summary>
+        public byte[]? InstalledContractCertificate { get; private set; }
+
+        /// <summary>The unwrapped contract private key (P-256); the caller owns disposal.</summary>
+        public ECDsa? InstalledContractKey { get; private set; }
+
+        /// <summary>Whether the response's four-reference signature verified against the provisioning
+        /// certificate the station sent with it.</summary>
+        public bool InstalledContractSignatureOk { get; private set; }
+
+        /// <summary>The eMAID the operator issued the contract under.</summary>
+        public string? InstalledEmaid { get; private set; }
+
         /// <summary>How this session authorized: <c>"eim"</c>, or <c>"pnc-signed"</c> after a Contract
         /// PaymentDetails + signed AuthorizationReq.</summary>
         public string AuthorizationMode { get; private set; } = "eim";
@@ -207,9 +225,25 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 ?? throw new SessionAborted("ServiceDiscovery: the station advertised no ChargeService.");
 
             bool contract = Pnc is not null && discovery.PaymentOptionList.PaymentOption.Contains(PaymentOption.Contract);
+
+            // Contract provisioning is a value-added service in -2: it has to be found in the station's
+            // ServiceList and then *selected* by id, where -20 needs only a flag in AuthorizationSetupRes.
+            var certificateService = CertInstallRequest is null
+                                         ? null
+                                         : discovery.ServiceList?.Service
+                                                    .FirstOrDefault(s => s.ServiceCategory == ServiceCategory.ContractCertificate);
+
+            var selected = new List<SelectedServiceType> { new(chargeServiceId, ParameterSetID: null) };
+            if (certificateService is not null)
+                selected.Add(new SelectedServiceType(certificateService.ServiceID,
+                                                     (short) (CertInstallRequest!.Action == Iso2CertificateAction.Update ? 2 : 1)));
+
             await Send<PaymentServiceSelectionResType>(new PaymentServiceSelectionReqType(
                 contract ? PaymentOption.Contract : PaymentOption.ExternalPayment,
-                new SelectedServiceListType(new[] { new SelectedServiceType(chargeServiceId, ParameterSetID: null) })), ct);
+                new SelectedServiceListType(selected.ToArray())), ct);
+
+            if (certificateService is not null)
+                await RunCertificateProvisioningAsync(CertInstallRequest!, ct);
 
             // ── AUTH (loop until authorised) ───────────────────────────────────
             // Contract: PaymentDetails first (contract chain → GenChallenge), then a signed AuthorizationReq
@@ -433,6 +467,143 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             tuple.SalesTariff is { SalesTariffEntry.Count: > 0 } tariff
                 ? tariff.SalesTariffEntry.Average(e => (double?)e.EPriceLevel ?? byte.MaxValue)
                 : double.MaxValue;
+
+        /// <summary>
+        /// Runs the -2 contract-provisioning exchange (§7.9.2.4): sends the signed request — the OEM
+        /// provisioning certificate for an installation, the expiring contract for an update, signed over
+        /// its own message fragment in the Josev interop form — then verifies the response's four-reference
+        /// signature against the provisioning certificate the station sent and ECDH-unwraps the issued
+        /// contract private key.
+        /// </summary>
+        private async Task RunCertificateProvisioningAsync(Iso2CertInstallOptions options, CancellationToken ct)
+        {
+
+            // -2 has the EV name the roots it trusts, so the operator can pick a chain the car can build.
+            // Ours names the one dev root this stack uses; a real car lists what it was built with.
+            var roots = new ListOfRootCertificateIDsType(new[] { new X509IssuerSerialType("CN=V2GRootCA (dev)", 1) });
+
+            var fragment = new byte[4096];
+            SignatureType signature;
+            BodyBaseType request;
+
+            if (options.Action == Iso2CertificateAction.Update)
+            {
+                var update = new CertificateUpdateReqType("id1",
+                    new CertificateChainType(Id: null, options.Certificate,
+                        options.SubCertificates is { Count: > 0 } subs ? new SubCertificatesType(subs.ToArray()) : null),
+                    options.Emaid ?? throw new SessionAborted("CertificateUpdateReq: the eMAID of the expiring contract is required."),
+                    roots);
+
+                if (!Iso2Codec.EncodeFragment_CertificateUpdateReq(update, fragment, out int n))
+                    throw new InvalidOperationException("CertificateUpdateReq fragment encode failed.");
+                signature = XmlDsigInterop2.Sign("id1", fragment.AsSpan(0, n), options.SignKey);
+                request = update;
+            }
+            else
+            {
+                var install = new CertificateInstallationReqType("id1", options.Certificate, roots);
+
+                if (!Iso2Codec.EncodeFragment_CertificateInstallationReq(install, fragment, out int n))
+                    throw new InvalidOperationException("CertificateInstallationReq fragment encode failed.");
+                signature = XmlDsigInterop2.Sign("id1", fragment.AsSpan(0, n), options.SignKey);
+                request = install;
+            }
+
+            // The two responses carry the same six fields in the same order, bar the update's trailing
+            // RetryCounter, so everything after this point is common.
+            var (code, provisioningChain, contractChain, encryptedKey, dhPublicKey, emaid) =
+                options.Action == Iso2CertificateAction.Update
+                    ? Unpack(await Send<CertificateUpdateResType>(request, ct, signature))
+                    : Unpack(await Send<CertificateInstallationResType>(request, ct, signature));
+
+            if (code >= ResponseCode.FAILED)
+                throw new SessionAborted($"contract provisioning refused: {code}.");
+
+            InstalledContractSignatureOk = VerifyProvisioningSignature(provisioningChain, contractChain,
+                                                                       encryptedKey, dhPublicKey, emaid);
+
+            InstalledContractCertificate = contractChain.Certificate;
+            InstalledEmaid               = emaid.Value;
+            InstalledContractKey         = ContractProvisioning.RecoverContractKey(
+                                               options.KeyAgreement, dhPublicKey.Value, encryptedKey.Value);
+
+            // CBC authenticates nothing, so an unwrap always "succeeds". The check that it succeeded with
+            // the right key is that the key belongs to the certificate it arrived with — without this a
+            // car would carry on and only find out at its next AuthorizationReq, one session later.
+            using var issued = X509CertificateLoader.LoadCertificate(contractChain.Certificate);
+            using var issuedPublicKey = issued.GetECDsaPublicKey();
+            if (issuedPublicKey is null || !ContractProvisioning.Matches(InstalledContractKey, issuedPublicKey))
+            {
+                InstalledContractKey.Dispose();
+                InstalledContractKey = null;
+                throw new SessionAborted("contract provisioning: the unwrapped key does not belong to the issued certificate.");
+            }
+
+            static (ResponseCode, CertificateChainType, CertificateChainType,
+                    ContractSignatureEncryptedPrivateKeyType, DiffieHellmanPublickeyType, EMAIDType) Unpack(BodyBaseType body)
+                => body switch
+                {
+                    CertificateInstallationResType r => (r.ResponseCode, r.SAProvisioningCertificateChain,
+                                                         r.ContractSignatureCertChain, r.ContractSignatureEncryptedPrivateKey,
+                                                         r.DHpublickey, r.EMAID),
+                    CertificateUpdateResType r       => (r.ResponseCode, r.SAProvisioningCertificateChain,
+                                                         r.ContractSignatureCertChain, r.ContractSignatureEncryptedPrivateKey,
+                                                         r.DHpublickey, r.EMAID),
+                    _ => throw new SessionAborted($"contract provisioning: unexpected response {body.GetType().Name}."),
+                };
+
+        }
+
+        /// <summary>
+        /// Checks the response's header signature: four references — the contract chain, the encrypted key,
+        /// the DH public key and the eMAID — each digested over its own EXI fragment, then the ECDSA
+        /// signature against the provisioning certificate the station sent alongside.
+        /// </summary>
+        /// <remarks>
+        /// Four references where every other signed -2 message has one, and all four have to hold: a car
+        /// that checked only the chain would take an encrypted key nobody signed for.
+        /// </remarks>
+        private bool VerifyProvisioningSignature(CertificateChainType provisioningChain,
+                                                 CertificateChainType contractChain,
+                                                 ContractSignatureEncryptedPrivateKeyType encryptedKey,
+                                                 DiffieHellmanPublickeyType dhPublicKey,
+                                                 EMAIDType emaid)
+        {
+
+            if (_lastHeader?.Signature is not { } sig || sig.SignedInfo.Reference.Count != 4)
+                return false;
+
+            var buf = new byte[4096];
+            if (!Matches(contractChain.Id, Iso2Codec.EncodeFragment_ContractSignatureCertChain(contractChain, buf, out int n1), buf, n1) ||
+                !Matches(encryptedKey.Id, Iso2Codec.EncodeFragment_ContractSignatureEncryptedPrivateKey(encryptedKey, buf, out int n2), buf, n2) ||
+                !Matches(dhPublicKey.Id, Iso2Codec.EncodeFragment_DHpublickey(dhPublicKey, buf, out int n3), buf, n3) ||
+                !Matches(emaid.Id, Iso2Codec.EncodeFragment_eMAID(emaid, buf, out int n4), buf, n4))
+                return false;
+
+            try
+            {
+                using var provisioningLeaf = X509CertificateLoader.LoadCertificate(provisioningChain.Certificate);
+                using var verifyKey = provisioningLeaf.GetECDsaPublicKey();
+                if (verifyKey is null)
+                    return false;
+
+                return V2GSignature.Verify(sig.SignedInfo, sig.SignatureValue.Value, verifyKey)
+                    || XmlDsigInterop2.VerifyStandaloneXmldsig(sig.SignedInfo, sig.SignatureValue.Value, verifyKey);
+            }
+            catch (CryptographicException)
+            {
+                return false;
+            }
+
+            bool Matches(string? id, bool encoded, byte[] buffer, int length)
+            {
+                if (!encoded || id is null)
+                    return false;
+                var reference = sig.SignedInfo.Reference.FirstOrDefault(r => r.URI == "#" + id);
+                return reference is not null && V2GSignature.VerifyReference(reference, buffer.AsSpan(0, length));
+            }
+
+        }
 
         /// <summary>Signs and sends one MeteringReceiptReq for the SECC's MeterInfo, in the Josev form.</summary>
         private async Task SendMeteringReceipt(MeterInfoType meterInfo, byte? saScheduleTupleId, CancellationToken ct)

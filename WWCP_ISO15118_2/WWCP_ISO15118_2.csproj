@@ -12,8 +12,21 @@
          AppProtocol codec (both come from the same source generator). -->
     <ExiGeneratedNamespace>cloud.charging.open.protocols.ISO15118_2.Generated</ExiGeneratedNamespace>
     <ExiCodecClassName>Iso2Codec</ExiCodecClassName>
-    <!-- Signable elements that get an EXI fragment codec (XMLDSig, §8.5.3). -->
-    <ExiFragmentElements>AuthorizationReq MeteringReceiptReq SalesTariff SignedInfo</ExiFragmentElements>
+    <!-- Signable elements that get an EXI fragment codec (XMLDSig, §8.5.3).
+
+         The five certificate-provisioning entries are what §7.9.2.4 signs: the request as a whole, and
+         on the way back the four elements a CertificateInstallationRes/CertificateUpdateRes carries
+         their own Id attributes for.
+
+         Adding names here is purely additive. The fragment event codes are assigned over *every* element
+         declaration of the set, sorted by name — not over this list, which only decides which codecs get
+         emitted. So no existing fragment's bytes move, and the recorded signature vectors stay valid.
+
+         eMAID is declared four times in the body schema, twice as the simple eMAIDType (PaymentDetailsReq,
+         CertificateUpdateReq) and twice as the complex EMAIDType (the two certificate responses). The
+         fragment grammar keys on the element *name*, so there is one event code either way; the codec
+         emitted here encodes EMAIDType content, which is the one that is ever signed. -->
+    <ExiFragmentElements>AuthorizationReq CertificateInstallationReq CertificateUpdateReq ContractSignatureCertChain ContractSignatureEncryptedPrivateKey DHpublickey eMAID MeteringReceiptReq SalesTariff SignedInfo</ExiFragmentElements>
 
     <!-- Write the generated codec to obj/ for inspection. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>

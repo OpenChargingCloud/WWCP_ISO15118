@@ -495,12 +495,34 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// offer whose SalesTariffs are digitally signed into this response's header (§7.9.2.5).</summary>
         private SAScheduleListType Schedules()
         {
-            var schedules = TariffSignKey is null ? PlainSchedule() : TariffSchedules();
+            var schedules = OfferedSchedules();
             _offeredSchedules = schedules;
             if (TariffSignKey is not null)
                 _responseSignature = SignTariffs(schedules);
             return schedules;
         }
+
+        /// <summary>
+        /// The schedule offer itself — override to let something other than this station decide it.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The <b>SA</b> in SAScheduleList is <i>Secondary Actor</i>: ISO 15118-2 has the list come to the
+        /// SECC from the actor that sells the energy, not from the charger's own opinion. This class
+        /// invents one, which is right for a demo station and is all a demo station can do — but a station
+        /// with a backend has to be able to offer what the backend granted, and could not.
+        /// </para>
+        /// <para>
+        /// Overridable rather than settable, and the difference matters: the offer is made fresh at each
+        /// ChargeParameterDiscovery, including after a renegotiation ([V2G2-841]), so a property set once
+        /// would go stale exactly when the EV re-asked. And it has to be produced <em>here</em>, inside the
+        /// answer, because what is offered is also what <c>PowerDeliveryReq(Start)</c> is validated against
+        /// ([V2G2-761]): a subclass that rewrote the response afterwards would offer one PMax and enforce
+        /// another, and would refuse a car for exceeding a limit it was never shown.
+        /// </para>
+        /// </remarks>
+        protected virtual SAScheduleListType OfferedSchedules()
+            => TariffSignKey is null ? PlainSchedule() : TariffSchedules();
 
         /// <summary>
         /// What the ordinary European three-phase charge point actually offers: 3 × 230 V × 16 A.

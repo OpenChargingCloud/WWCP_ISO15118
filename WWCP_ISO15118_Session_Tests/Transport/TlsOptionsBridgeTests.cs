@@ -47,14 +47,21 @@ public class TlsOptionsBridgeTests
     // PKI, and the shape Schannel rejects.
     private static (X509Certificate2 Root, X509Certificate2 Leaf) Hierarchy(ECCurve curve, HashAlgorithmName hash)
     {
+        // One clock reading for the whole hierarchy, and a root window that strictly contains the leaf's.
+        // X.509 validity is truncated to whole seconds, so four separate UtcNow calls put the leaf's
+        // notAfter one second past the root's whenever a second boundary falls between them — and
+        // CertificateRequest.Create refuses that outright ("later than issuerCertificate.NotAfter").
+        // It failed in two of three consecutive runs on 2026-08-11 before this was pinned.
+        var now = DateTimeOffset.UtcNow;
+
         using var rootKey = ECDsa.Create(curve);
         var rootRequest   = new CertificateRequest("CN=Test V2G Root CA", rootKey, hash);
         rootRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, critical: true));
         rootRequest.CertificateExtensions.Add(
             new X509KeyUsageExtension(X509KeyUsageFlags.KeyCertSign | X509KeyUsageFlags.CrlSign, critical: true));
 
-        using var root = rootRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5),
-                                                     DateTimeOffset.UtcNow.AddHours(1));
+        using var root = rootRequest.CreateSelfSigned(now.AddMinutes(-10),
+                                                     now.AddHours(2));
 
         using var leafKey = ECDsa.Create(curve);
         var leafRequest   = new CertificateRequest("CN=Vehicle", leafKey, hash);
@@ -63,8 +70,8 @@ public class TlsOptionsBridgeTests
             new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
 
         using var issued = leafRequest.Create(root,
-                                              DateTimeOffset.UtcNow.AddMinutes(-5),
-                                              DateTimeOffset.UtcNow.AddHours(1),
+                                              now.AddMinutes(-5),
+                                              now.AddHours(1),
                                               RandomNumberGenerator.GetBytes(8));
 
         using var withKey = issued.CopyWithPrivateKey(leafKey);

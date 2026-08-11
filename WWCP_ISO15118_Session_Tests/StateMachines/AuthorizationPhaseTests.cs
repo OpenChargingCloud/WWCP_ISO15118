@@ -70,8 +70,11 @@ namespace cloud.charging.open.protocols.ISO15118.Session.Tests.StateMachines
 
         }
 
-        private static V2G_Message Request(BodyBaseType body)
-            => new (new MessageHeaderType(new Byte[8], Notification: null, Signature: null),
+        // A real car echoes the SessionID the station assigned ([V2G2-460]); before SessionSetup that is
+        // still the all-zero id a SessionSetupReq carries. Reading it off the station is what keeps this
+        // harness a conformant peer now that Secc2 refuses a header carrying anybody else's id.
+        private static V2G_Message Request(Secc2 secc, BodyBaseType body)
+            => new (new MessageHeaderType(secc.SessionId, Notification: null, Signature: null),
                     new BodyType(body));
 
         private static SlowSecc2 SeccAtAuthorization()
@@ -79,9 +82,9 @@ namespace cloud.charging.open.protocols.ISO15118.Session.Tests.StateMachines
 
             var secc = new SlowSecc2(PowerMode.Dc, TimeSpan.FromSeconds(30), TimeProvider.System);
 
-            secc.Handle(Request(new SessionSetupReqType(EVCCID: new Byte[] { 0xAB, 0xCD, 0xEF, 0x01, 0x02, 0x03 })));
-            secc.Handle(Request(new ServiceDiscoveryReqType(ServiceScope: null, ServiceCategory: null)));
-            secc.Handle(Request(new PaymentServiceSelectionReqType(
+            secc.Handle(Request(secc, new SessionSetupReqType(EVCCID: new Byte[] { 0xAB, 0xCD, 0xEF, 0x01, 0x02, 0x03 })));
+            secc.Handle(Request(secc, new ServiceDiscoveryReqType(ServiceScope: null, ServiceCategory: null)));
+            secc.Handle(Request(secc, new PaymentServiceSelectionReqType(
                                     PaymentOption.ExternalPayment,
                                     new SelectedServiceListType(new[] { new SelectedServiceType(ServiceID: 1, ParameterSetID: null) }))));
 
@@ -95,8 +98,8 @@ namespace cloud.charging.open.protocols.ISO15118.Session.Tests.StateMachines
 
             var secc  = SeccAtAuthorization();
 
-            var first  = secc.Handle(Request(new AuthorizationReqType(Id: null, GenChallenge: null)));
-            var second = secc.Handle(Request(new AuthorizationReqType(Id: null, GenChallenge: null)));
+            var first  = secc.Handle(Request(secc, new AuthorizationReqType(Id: null, GenChallenge: null)));
+            var second = secc.Handle(Request(secc, new AuthorizationReqType(Id: null, GenChallenge: null)));
 
             Assert.Multiple(() => {
 
@@ -124,13 +127,13 @@ namespace cloud.charging.open.protocols.ISO15118.Session.Tests.StateMachines
             // ChargeParameterDiscovery is in order.
             var secc = new Secc2(PowerMode.Dc, TimeSpan.FromSeconds(30), TimeProvider.System);
 
-            secc.Handle(Request(new SessionSetupReqType(EVCCID: new Byte[] { 0xAB, 0xCD, 0xEF, 0x01, 0x02, 0x03 })));
-            secc.Handle(Request(new ServiceDiscoveryReqType(ServiceScope: null, ServiceCategory: null)));
-            secc.Handle(Request(new PaymentServiceSelectionReqType(
+            secc.Handle(Request(secc, new SessionSetupReqType(EVCCID: new Byte[] { 0xAB, 0xCD, 0xEF, 0x01, 0x02, 0x03 })));
+            secc.Handle(Request(secc, new ServiceDiscoveryReqType(ServiceScope: null, ServiceCategory: null)));
+            secc.Handle(Request(secc, new PaymentServiceSelectionReqType(
                                     PaymentOption.ExternalPayment,
                                     new SelectedServiceListType(new[] { new SelectedServiceType(ServiceID: 1, ParameterSetID: null) }))));
 
-            var auth = secc.Handle(Request(new AuthorizationReqType(Id: null, GenChallenge: null)));
+            var auth = secc.Handle(Request(secc, new AuthorizationReqType(Id: null, GenChallenge: null)));
 
             Assert.That(((AuthorizationResType) auth.Body.BodyElement!).EVSEProcessing,
                         Is.EqualTo(EVSEProcessing.Finished));

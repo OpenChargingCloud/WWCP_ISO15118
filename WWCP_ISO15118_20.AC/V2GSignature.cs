@@ -62,13 +62,30 @@ namespace cloud.charging.open.protocols.ISO15118_20.AC
                 KeyInfo: null,
                 Object: null);
 
+        /// <remarks>
+        /// The growth loop catches rather than tests. A generated <c>EncodeFragment_*</c> signals a full
+        /// buffer by letting <c>BitWriter</c> throw <see cref="IndexOutOfRangeException"/>, and returns
+        /// <c>false</c> only for a destination too small to hold even the EXI header byte — so the <c>if</c>
+        /// this loop span on never came back false, the doubling was unreachable, and 512 bytes was in truth
+        /// a hard limit that threw. Unhit here while every signed -20 message has a single Reference; found
+        /// in the -2 copy by the first four-reference SignedInfo (a CertificateInstallationRes, §7.9.2.4.2)
+        /// and repaired across all six copies together.
+        /// </remarks>
         public static byte[] SignedInfoFragment(SignedInfoType signedInfo)
         {
-            var buf = new byte[512];
+            var buf = new byte[1024];
             while (true)
             {
-                if (AcCodec.EncodeFragment_SignedInfo(signedInfo, buf, out int n))
-                    return buf.AsSpan(0, n).ToArray();
+                try
+                {
+                    if (AcCodec.EncodeFragment_SignedInfo(signedInfo, buf, out int n))
+                        return buf.AsSpan(0, n).ToArray();
+                }
+                catch (IndexOutOfRangeException)
+                { /* the buffer was too small; the only way the encoder says so */ }
+
+                if (buf.Length >= 1 << 20)
+                    throw new InvalidOperationException("SignedInfo fragment: encode failed even at 1 MiB.");
                 buf = new byte[buf.Length * 2];
             }
         }

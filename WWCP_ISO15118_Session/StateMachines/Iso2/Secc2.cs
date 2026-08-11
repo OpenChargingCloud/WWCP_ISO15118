@@ -109,6 +109,16 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// It is what used to live in the <see cref="SessionAborted"/> message the guard threw.</summary>
         public string? SequenceErrorAt { get; private set; }
 
+        /// <summary>The name of the last request refused with <c>FAILED_UnknownSession</c> ([V2G2-460]), or
+        /// null if every request carried this session's id. Unlike <see cref="SequenceErrorAt"/> this does
+        /// <b>not</b> end the session — a car that echoes the right id next time charges — so it is the only
+        /// way a caller can tell that the guard fired at all.</summary>
+        public string? UnknownSessionAt { get; private set; }
+
+        /// <summary>How many requests this session refused with <c>FAILED_UnknownSession</c>. Counted rather
+        /// than flagged because the guard is non-fatal: a peer may send several.</summary>
+        public int UnknownSessionRefusals { get; private set; }
+
         /// <summary>True when the session ended with <c>ChargingSession.Pause</c> rather than Terminate —
         /// the caller should keep <see cref="SessionId"/> and offer it as <see cref="ResumeSessionId"/> to
         /// the next <see cref="Secc2"/> instance so the EV can rejoin ([V2G2-740]).</summary>
@@ -173,7 +183,27 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
             _requestHeader = request.Header;   // the PnC verify paths need the header signature
             _responseSignature = null;         // a response builder (ChargeParams) may set one
-            var (body, next) = Dispatch(request.Body.BodyElement!);
+
+            var element = request.Body.BodyElement!;
+
+            // [V2G2-460]: any request except SessionSetupReq whose SessionID is not the one stored for the
+            // active session is answered FAILED_UnknownSession. SessionSetupReq is excluded by the
+            // requirement itself — that is where zero means "new session" and an old id means "resume".
+            //
+            // The phase is left alone, which is this station's -2 policy for the whole FAILED family (see
+            // Dispatch's remarks): -2 obliges nobody to end the session over a response code, so a car that
+            // echoes the right id next time goes on charging. -20 would end it; that asymmetry is the
+            // standards', and it is why this guard lives here rather than in shared code.
+            if (element is not SessionSetupReqType &&
+                !request.Header.SessionID.AsSpan().SequenceEqual(_sessionId))
+            {
+                UnknownSessionAt = element.GetType().Name.Replace("Type", "");
+                UnknownSessionRefusals++;
+                return new V2G_Message(new MessageHeaderType(_sessionId, Notification: null, Signature: null),
+                                       new BodyType(Refuse(element, ResponseCode.FAILED_UnknownSession)));
+            }
+
+            var (body, next) = Dispatch(element);
             _phase = next;
             return new V2G_Message(new MessageHeaderType(_sessionId, Notification: null, Signature: _responseSignature), new BodyType(body));
         }
@@ -325,10 +355,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// </remarks>
         private BodyBaseType SequenceError(BodyBaseType req)
         {
-
             SequenceErrorAt = req.GetType().Name.Replace("Type", "");
+            return Refuse(req, ResponseCode.FAILED_SequenceError);
+        }
 
-            const ResponseCode code = ResponseCode.FAILED_SequenceError;
+
+        /// <summary>
+        /// The response that <b>pairs with</b> <paramref name="req"/>, carrying <paramref name="code"/> and
+        /// nothing this station cannot mean. Split out of <see cref="SequenceError"/> on 2026-08-11, when
+        /// `[V2G2-460]` gained a second reason to refuse a request whose own response type is the only legal
+        /// answer — `[V2G2-538]` asks for *the corresponding response message*, and there is exactly one
+        /// table of those.
+        /// </summary>
+        private BodyBaseType Refuse(BodyBaseType req, ResponseCode code)
+        {
 
             return req switch
             {
@@ -371,8 +411,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 // stronger objection than "not now" and is raised as one. Anything else reaching here is not
                 // a request at all.
                 _ => throw new SessionAborted(
-                         $"SECC sequence guard: {SequenceErrorAt} not allowed in phase {_phase}, and no " +
-                         $"response of its own type can be built to carry FAILED_SequenceError."),
+                         $"SECC refusal guard: {req.GetType().Name.Replace("Type", "")} cannot be answered " +
+                         $"in phase {_phase}, because no response of its own type can be built to carry {code}."),
             };
 
         }

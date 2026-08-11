@@ -732,11 +732,78 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     }
                 }
 
+                // The mirror instrument: stop answering once a charge loop is running, holding the socket
+                // open, so the *car's* V2G_EVCC_Msg_Timeout is what decides. Checked before Handle so the
+                // request is swallowed whole rather than answered into the void.
+                if (GoSilentInChargeLoop is { } silence && _lastResponseWasChargeLoop)
+                {
+                    SilenceEndedAfter = await WaitForPeerToEndSessionAsync(stream, silence, ct).ConfigureAwait(false);
+                    return;
+                }
+
                 var (replySet, reply) = Handle(set, message);
 
                 int n = EncodeAny(replySet, reply, buf);
                 await V2GTPStream.WriteFrameAsync(stream, replySet, buf.AsMemory(0, n), ct).ConfigureAwait(false);
             }
+        }
+
+        /// <summary>
+        /// Answer the charge loop once, then stop answering — with the connection <b>open</b> — and wait up
+        /// to this budget for the EV to give up on its own. Null (the default) serves normally.
+        /// <see cref="SilenceEndedAfter"/> carries the answer.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The exact mirror of <see cref="Evcc20Base.GoSilentInChargeLoop"/>, and it exists for the same
+        /// reason one message set over: a station that hangs up is an EOF and tells you nothing about a
+        /// timer, while one that goes quiet holding the socket is what <c>V2G_EVCC_Msg_Timeout</c> is
+        /// defined against. Nothing here could do that until 2026-08-11, so no run had ever measured
+        /// <b>any</b> EV's per-message timeout — ours included, which is how we found ours was checked only
+        /// after the read returned and therefore never fired against a silent peer at all.
+        /// </para>
+        /// <para>
+        /// The charge loop is the interesting place for the same reason it is on the other side: Tables 216,
+        /// 217 and 218 tighten <c>V2G_EVCC_Msg_Timeout</c> to <b>0,5 s</b> there against Table 215's 2 s
+        /// (<c>[V2G20-1499]</c>, <c>[V2G20-1501]</c>, <c>[V2G20-5069]</c>), and it is the phase in which the
+        /// contactor is closed. It is also usable against a foreign EV in an interop run, which is the point
+        /// of building it here rather than as a fixture.
+        /// </para>
+        /// </remarks>
+        public TimeSpan? GoSilentInChargeLoop { get; set; }
+
+        /// <summary>How long the EV kept the session after this station stopped answering, or null when it
+        /// was still waiting at the end of <see cref="GoSilentInChargeLoop"/>.</summary>
+        public TimeSpan? SilenceEndedAfter { get; private set; }
+
+        /// <summary>Hold the connection open and read nothing but the peer's disconnect, up to
+        /// <paramref name="budget"/>. Returns how long that took, or null if it never came.</summary>
+        private async Task<TimeSpan?> WaitForPeerToEndSessionAsync(Stream stream, TimeSpan budget, CancellationToken ct)
+        {
+
+            var start = clock.GetUtcNow();
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(budget);
+
+            var scratch = new byte[256];
+            try
+            {
+                while (true)
+                {
+                    int read = await stream.ReadAsync(scratch, cts.Token).ConfigureAwait(false);
+                    if (read == 0)
+                        return clock.GetUtcNow() - start;   // the EV closed: it gave up, and when
+                }
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                return null;                                 // still waiting when the budget ran out
+            }
+            catch (IOException)
+            {
+                return clock.GetUtcNow() - start;            // reset rather than a clean close
+            }
+
         }
 
         /// <summary>

@@ -89,8 +89,25 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             var req = (Dc20.DC_ChargeParameterDiscoveryReq)request;
             bool bidirectionalRequest = req.DC_CPDReqEnergyTransferMode is Dc20.BPT_DC_CPDReqEnergyTransferModeType;
 
+            var mode = CpdModeInKind(bidirectionalRequest);
+
+            var responseCode = bidirectionalRequest == BidirectionalServiceSelected
+                                   ? Dc20.ResponseCode.OK
+                                   : Dc20.ResponseCode.FAILED_WrongChargeParameter;
+
+            return (MessageSet.Iso20DC, new Dc20.DC_ChargeParameterDiscoveryRes(SessionCtx.ToDcHeader(), responseCode, mode));
+        }
+
+        /// <summary>This station's charge-parameter mode, built in kind with the request — bidirectional
+        /// (BPT) in, discharge limits out.</summary>
+        /// <remarks>Lifted out of <see cref="HandleChargeParameterDiscovery"/> so
+        /// <see cref="RefuseInEnergyTransferSet"/> builds the same one: the schema makes the mode mandatory
+        /// on a refusal too, and the paragraphs above say why "in kind with the request" is the reading a
+        /// station that has actually sent this response chose.</remarks>
+        private Dc20.DC_CPDResEnergyTransferModeType CpdModeInKind(bool bidirectionalRequest)
+
             // Bidirectional (BPT) EV → respond with discharge limits too; else the charge-only mode.
-            Dc20.DC_CPDResEnergyTransferModeType mode = bidirectionalRequest
+            => bidirectionalRequest
                 ? new Dc20.BPT_DC_CPDResEnergyTransferModeType(
                     EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
                     EVSEMaximumChargeCurrent: MaxCurrent, EVSEMinimumChargeCurrent: Rat(0),
@@ -101,13 +118,6 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
                     EVSEMaximumChargeCurrent: MaxCurrent, EVSEMinimumChargeCurrent: Rat(0),
                     EVSEMaximumVoltage: MaxVoltage, EVSEMinimumVoltage: MinVoltage, EVSEPowerRampLimitation: null);
-
-            var responseCode = bidirectionalRequest == BidirectionalServiceSelected
-                                   ? Dc20.ResponseCode.OK
-                                   : Dc20.ResponseCode.FAILED_WrongChargeParameter;
-
-            return (MessageSet.Iso20DC, new Dc20.DC_ChargeParameterDiscoveryRes(SessionCtx.ToDcHeader(), responseCode, mode));
-        }
 
         protected override (MessageSet Set, object Response) HandleCableCheck(object request)
         {
@@ -121,14 +131,22 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             return (MessageSet.Iso20DC, new Dc20.DC_PreChargeRes(SessionCtx.ToDcHeader(), Dc20.ResponseCode.OK, Rat(390)));
         }
 
-        protected override (MessageSet Set, object Response) HandleChargeLoop(object request)
-        {
-            var req = (Dc20.DC_ChargeLoopReq)request;
-            // Answer strictly in kind: the res control mode must be the same variant (Scheduled/Dynamic,
-            // BPT or not) as the req's ([V2G20-1600]). The Dynamic res types carry *mandatory* EVSE limits
-            // (in dynamic mode the SECC dictates the operating point); Scheduled res fields are all optional.
-            // BPT_Dynamic derives from Dynamic — match the BPT subtypes first.
-            Dc20.CLResControlModeType clRes = req.CLReqControlMode switch
+        /// <summary>The charge-loop response control mode that pairs with <paramref name="reqMode"/>.</summary>
+        /// <remarks>
+        /// Answer strictly in kind: the res control mode must be the same variant (Scheduled/Dynamic, BPT or
+        /// not) as the req's ([V2G20-1600]). The Dynamic res types carry *mandatory* EVSE limits (in dynamic
+        /// mode the SECC dictates the operating point); Scheduled res fields are all optional. BPT_Dynamic
+        /// derives from Dynamic — match the BPT subtypes first.
+        /// <para>
+        /// Shared with <see cref="RefuseInEnergyTransferSet"/>, which has the same problem for the same
+        /// reason: <c>CLResControlMode</c> is mandatory, so even a refused charge loop has to name a
+        /// variant, and naming a different one than the request would break [V2G20-1600] in the one message
+        /// where the EV is least able to argue.
+        /// </para>
+        /// </remarks>
+        private Dc20.CLResControlModeType ClResInKind(Dc20.CLReqControlModeType reqMode)
+
+            => reqMode switch
             {
                 Dc20.BPT_Dynamic_DC_CLReqControlModeType => new Dc20.BPT_Dynamic_DC_CLResControlModeType(
                     DepartureTime: null, MinimumSOC: null, TargetSOC: null, AckMaxDelay: null,
@@ -143,6 +161,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 Dc20.BPT_Scheduled_DC_CLReqControlModeType => new Dc20.BPT_Scheduled_DC_CLResControlModeType(null, null, null, null, null, null, null, null),
                 _ => new Dc20.Scheduled_DC_CLResControlModeType(null, null, null, null),
             };
+
+        protected override (MessageSet Set, object Response) HandleChargeLoop(object request)
+        {
+            var req   = (Dc20.DC_ChargeLoopReq)request;
+            var clRes = ClResInKind(req.CLReqControlMode);
+
             // What the station actually delivers. In Scheduled mode the EV names the setpoint, and a station
             // that ignored it would make every EV-side power request untestable against us — so serve what
             // was asked for, capped by this station's own 200 A. In Dynamic mode the SECC dictates the
@@ -173,6 +197,49 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         {
             var req = (Dc20.DC_WeldingDetectionReq)request;
             return (MessageSet.Iso20DC, new Dc20.DC_WeldingDetectionRes(SessionCtx.ToDcHeader(), Dc20.ResponseCode.OK, Rat(5)));
+        }
+
+        /// <summary>The DC half of <see cref="Secc20Base.Refuse"/> — the five requests whose response types
+        /// live in <c>DC.Generated</c>, which the base class cannot name.</summary>
+        /// <remarks>
+        /// Every voltage and current here is <b>zero</b>, and that is the point: these are the fields a
+        /// working session uses to tell the car what the cable is doing, and a refused one is not doing
+        /// anything. The two that are built in kind instead — the charge-parameter mode and the charge-loop
+        /// control mode — are the two the schema will not let this station leave out or guess at; see
+        /// <see cref="CpdModeInKind"/> and <see cref="ClResInKind"/>.
+        /// </remarks>
+        protected override (MessageSet Set, object Response) RefuseInEnergyTransferSet(MessageSet set, object request, Refusal reason)
+        {
+
+            var code = reason == Refusal.UnknownSession
+                           ? Dc20.ResponseCode.FAILED_UnknownSession
+                           : Dc20.ResponseCode.FAILED_SequenceError;
+
+            var hdr = SessionCtx.ToDcHeader();
+
+            return request switch
+            {
+                Dc20.DC_ChargeParameterDiscoveryReq r => (MessageSet.Iso20DC, new Dc20.DC_ChargeParameterDiscoveryRes(hdr, code,
+                                                             CpdModeInKind(r.DC_CPDReqEnergyTransferMode is Dc20.BPT_DC_CPDReqEnergyTransferModeType))),
+
+                Dc20.DC_CableCheckReq                 => (MessageSet.Iso20DC, new Dc20.DC_CableCheckRes(hdr, code, Dc20.Processing.Finished)),
+
+                Dc20.DC_PreChargeReq                  => (MessageSet.Iso20DC, new Dc20.DC_PreChargeRes(hdr, code, Rat(0))),
+
+                // No meter reading and no receipt: nothing was delivered, and Deliver() is deliberately not
+                // called — a refused loop iteration must not book energy onto the meter.
+                Dc20.DC_ChargeLoopReq r               => (MessageSet.Iso20DC, new Dc20.DC_ChargeLoopRes(hdr, code,
+                                                             EVSEStatus: null, MeterInfo: null, Receipt: null,
+                                                             EVSEPresentCurrent: Rat(0), EVSEPresentVoltage: Rat(0),
+                                                             EVSEPowerLimitAchieved: false, EVSECurrentLimitAchieved: false,
+                                                             EVSEVoltageLimitAchieved: false,
+                                                             CLResControlMode: ClResInKind(r.CLReqControlMode))),
+
+                Dc20.DC_WeldingDetectionReq           => (MessageSet.Iso20DC, new Dc20.DC_WeldingDetectionRes(hdr, code, Rat(0))),
+
+                _                                     => base.RefuseInEnergyTransferSet(set, request, reason),
+            };
+
         }
 
         protected override int EncodeAny(MessageSet set, object message, byte[] dest)

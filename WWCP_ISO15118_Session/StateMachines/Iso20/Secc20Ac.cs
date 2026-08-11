@@ -54,8 +54,22 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             var req = (Ac20.AC_ChargeParameterDiscoveryReq)request;
             bool bidirectionalRequest = req.AC_CPDReqEnergyTransferMode is Ac20.BPT_AC_CPDReqEnergyTransferModeType;
 
+            var mode = CpdModeInKind(bidirectionalRequest);
+
+            var responseCode = bidirectionalRequest == BidirectionalServiceSelected
+                                   ? Ac20.ResponseCode.OK
+                                   : Ac20.ResponseCode.FAILED_WrongChargeParameter;
+
+            return (MessageSet.Iso20AC, new Ac20.AC_ChargeParameterDiscoveryRes(SessionCtx.ToAcHeader(), responseCode, mode));
+        }
+
+        /// <summary>This station's charge-parameter mode, built in kind with the request. Shared with
+        /// <see cref="RefuseInEnergyTransferSet"/> — see <see cref="Secc20Dc.CpdModeInKind"/> for why a
+        /// refusal carries one at all.</summary>
+        private Ac20.AC_CPDResEnergyTransferModeType CpdModeInKind(bool bidirectionalRequest)
+
             // Bidirectional (BPT) EV → advertise discharge power too; else the charge-only mode.
-            Ac20.AC_CPDResEnergyTransferModeType mode = bidirectionalRequest
+            => bidirectionalRequest
                 ? new Ac20.BPT_AC_CPDResEnergyTransferModeType(
                     EVSEMaximumChargePower: Rat(2_200, exponent: 1), EVSEMaximumChargePower_L2: null, EVSEMaximumChargePower_L3: null,
                     EVSEMinimumChargePower: Rat(0), EVSEMinimumChargePower_L2: null, EVSEMinimumChargePower_L3: null,
@@ -69,21 +83,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     EVSENominalFrequency: Rat(50), MaximumPowerAsymmetry: null, EVSEPowerRampLimitation: null,
                     EVSEPresentActivePower: null, EVSEPresentActivePower_L2: null, EVSEPresentActivePower_L3: null);
 
-            var responseCode = bidirectionalRequest == BidirectionalServiceSelected
-                                   ? Ac20.ResponseCode.OK
-                                   : Ac20.ResponseCode.FAILED_WrongChargeParameter;
+        /// <summary>The charge-loop response control mode that pairs with <paramref name="reqMode"/>.
+        /// Answer strictly in kind ([V2G20-1600]); Dynamic res carries a *mandatory* EVSETargetActivePower
+        /// (in dynamic mode the SECC dictates the operating point). BPT_Dynamic derives from Dynamic — match
+        /// the BPT subtypes first. Shared with <see cref="RefuseInEnergyTransferSet"/>, for the reason at
+        /// <see cref="Secc20Dc.ClResInKind"/>.</summary>
+        private Ac20.CLResControlModeType ClResInKind(Ac20.CLReqControlModeType reqMode)
 
-            return (MessageSet.Iso20AC, new Ac20.AC_ChargeParameterDiscoveryRes(SessionCtx.ToAcHeader(), responseCode, mode));
-        }
-
-        protected override (MessageSet Set, object Response) HandleChargeLoop(object request)
-        {
-            var req = (Ac20.AC_ChargeLoopReq)request;
-            // Answer strictly in kind: the res control mode must be the same variant (Scheduled/Dynamic,
-            // BPT or not) as the req's ([V2G20-1600]). Dynamic res carries a *mandatory* EVSETargetActivePower
-            // (in dynamic mode the SECC dictates the operating point). BPT_Dynamic derives from Dynamic —
-            // match the BPT subtypes first.
-            Ac20.CLResControlModeType clRes = req.CLReqControlMode switch
+            => reqMode switch
             {
                 Ac20.BPT_Dynamic_AC_CLReqControlModeType => new Ac20.BPT_Dynamic_AC_CLResControlModeType(
                     DepartureTime: null, MinimumSOC: null, TargetSOC: null, AckMaxDelay: null,
@@ -98,6 +105,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 Ac20.BPT_Scheduled_AC_CLReqControlModeType => new Ac20.BPT_Scheduled_AC_CLResControlModeType(null, null, null, null, null, null, null, null, null),
                 _ => new Ac20.Scheduled_AC_CLResControlModeType(null, null, null, null, null, null, null, null, null),
             };
+
+        protected override (MessageSet Set, object Response) HandleChargeLoop(object request)
+        {
+            var req   = (Ac20.AC_ChargeLoopReq)request;
+            var clRes = ClResInKind(req.CLReqControlMode);
+
             // The station meters what the car said it is drawing, up to what this outlet can supply.
             // That is AC's control model rather than a concession: the station offers an envelope
             // (EVSETargetActivePower, announced above) and the vehicle decides what to take inside it, which
@@ -125,6 +138,35 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     : null, Receipt: null, EVSETargetFrequency: null,
                 CLResControlMode: clRes);
             return (MessageSet.Iso20AC, res);
+        }
+
+        /// <summary>The AC half of <see cref="Secc20Base.Refuse"/> — the two requests whose response types
+        /// live in <c>AC.Generated</c>. <see cref="Secc20Dc.RefuseInEnergyTransferSet"/> carries the
+        /// reasoning; AC has no CableCheck/PreCharge/WeldingDetection to refuse.</summary>
+        protected override (MessageSet Set, object Response) RefuseInEnergyTransferSet(MessageSet set, object request, Refusal reason)
+        {
+
+            var code = reason == Refusal.UnknownSession
+                           ? Ac20.ResponseCode.FAILED_UnknownSession
+                           : Ac20.ResponseCode.FAILED_SequenceError;
+
+            var hdr = SessionCtx.ToAcHeader();
+
+            return request switch
+            {
+                Ac20.AC_ChargeParameterDiscoveryReq r => (MessageSet.Iso20AC, new Ac20.AC_ChargeParameterDiscoveryRes(hdr, code,
+                                                             CpdModeInKind(r.AC_CPDReqEnergyTransferMode is Ac20.BPT_AC_CPDReqEnergyTransferModeType))),
+
+                // No meter reading and no receipt, and Deliver() is deliberately not called: a refused loop
+                // iteration must not book energy onto the meter.
+                Ac20.AC_ChargeLoopReq r               => (MessageSet.Iso20AC, new Ac20.AC_ChargeLoopRes(hdr, code,
+                                                             EVSEStatus: null, MeterInfo: null, Receipt: null,
+                                                             EVSETargetFrequency: null,
+                                                             CLResControlMode: ClResInKind(r.CLReqControlMode))),
+
+                _                                     => base.RefuseInEnergyTransferSet(set, request, reason),
+            };
+
         }
 
         protected override int EncodeAny(MessageSet set, object message, byte[] dest)

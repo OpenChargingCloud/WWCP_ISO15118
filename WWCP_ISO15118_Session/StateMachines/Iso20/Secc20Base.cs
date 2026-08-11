@@ -353,6 +353,30 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     (_lastResponseWasChargeLoop ? " in the charge loop" : ""));
             _lastSeen = now;
 
+            // [V2G20-460]: any request except SessionSetupReq whose SessionID is not the one stored for the
+            // active session is answered FAILED_UnknownSession. Ahead of everything else, the SessionStop
+            // arm below included — the requirement excepts exactly one message type, and a stop is not it.
+            //
+            // Confined to a session that exists. Before SessionSetup there is no stored id to be wrong
+            // against, and a request arriving there is out of *sequence* rather than out of session, which
+            // is the sequence guard's case and the more accurate of the two answers.
+            //
+            // Unlike -2, this ends the session: a FAILED response is terminal in -20 (§8.6), so there is no
+            // "echo the right id next time" here. Handle's own IsFailure does it; nothing is set here.
+            if (Phase is not Phase20.SessionSetup &&
+                request is not SessionSetupReq &&
+                SessionIdOf(request) is { } incoming &&
+                !incoming.AsSpan().SequenceEqual(SessionId))
+            {
+                UnknownSessionAt = request.GetType().Name;
+                UnknownSessionRefusals++;
+
+                var refusal = Refuse(set, request, Refusal.UnknownSession);
+                Phase = Phase20.Done;
+                _lastResponseWasChargeLoop = false;
+                return refusal;
+            }
+
             // A SessionStopReq is legal in *any* phase (ISO 15118-20 §7.9.2.4): the EV may abort the session at
             // any time, and the SECC answers gracefully and ends the session rather than raising the sequence
             // guard. Handled ahead of the phase switch so it wins over the wildcard poll / charge-loop arms
@@ -459,9 +483,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 // SessionStopReq (in the normal SessionStop phase *and* any early-abort phase) is handled
                 // ahead of this switch — see the top of Handle.
 
-                _ => throw new SessionAborted(
-                    $"SECC sequence guard: {request.GetType().Name} not allowed in phase {Phase} " +
-                    "(would be ResponseCode.FAILED_SequenceError)"),
+                // [V2G20-459]: not a request this phase permits, so it is answered with the corresponding
+                // response carrying FAILED_SequenceError. Until 2026-08-11 this arm *threw* — the session
+                // died without an answer, and the comment here said what the code would have sent if it
+                // could. The -2 twin of that defect is the one tux-evse's VW capture found in us on
+                // 2026-08-06 and that was fixed the same day; this is the half that never was.
+                _ => RefuseStep(set, request, Refusal.SequenceError),
             };
 
             // A response from the FAILED family ends the session, whichever handler produced it: the station
@@ -488,6 +515,186 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             Dc20.V2GResponseType r => r.ResponseCode >= Dc20.ResponseCode.FAILED,
             _                      => false,
         };
+
+        // ── Refusals: the response that pairs with a request ────────────────────────────────────────
+
+        /// <summary>Why a request is being refused — one reason per requirement, and the only two this
+        /// station can raise before it has looked at the request's contents at all.</summary>
+        /// <remarks>
+        /// A reason rather than a <c>ResponseCode</c>, because there is no such thing as *the* -20 response
+        /// code: CommonMessages, AC and DC each generate their own enum (the same three
+        /// <see cref="IsFailure"/> has to switch over), and a value from one will not compile against
+        /// another. Each arm of <see cref="Refuse"/> maps the reason into its own set's enum, where the two
+        /// members happen to carry the same numbers in all three (34 and 38).
+        /// </remarks>
+        protected enum Refusal
+        {
+            /// <summary>`[V2G20-459]`: the request is not one this phase permits.</summary>
+            SequenceError,
+
+            /// <summary>`[V2G20-460]`: the request's SessionID is not the one this session was given.</summary>
+            UnknownSession,
+        }
+
+        /// <summary>The name of the last request refused with <c>FAILED_UnknownSession</c> ([V2G20-460]), or
+        /// null. The -20 twin of <c>Secc2.UnknownSessionAt</c>, and there for the same reason: a refusal is
+        /// otherwise invisible from a run.</summary>
+        public string? UnknownSessionAt { get; private set; }
+
+        /// <summary>How many requests this session refused with <c>FAILED_UnknownSession</c>.</summary>
+        public int UnknownSessionRefusals { get; private set; }
+
+        /// <summary>The name of the last request refused with <c>FAILED_SequenceError</c> ([V2G20-459]), or
+        /// null. Until 2026-08-11 this station <em>threw</em> instead of answering, so the only record of an
+        /// out-of-sequence request was an aborted session.</summary>
+        public string? SequenceErrorAt { get; private set; }
+
+        /// <summary>How many requests this session refused with <c>FAILED_SequenceError</c>.</summary>
+        public int SequenceErrorRefusals { get; private set; }
+
+        /// <summary>The SessionID in <paramref name="request"/>'s header, or null when it is not a request
+        /// of any of the three -20 sets — in which case there is nothing to compare and the
+        /// <c>[V2G20-460]</c> guard stands down rather than refusing what it cannot read.</summary>
+        private static byte[]? SessionIdOf(object request) => request switch
+        {
+            V2GRequestType      r => r.Header.SessionID,
+            Ac20.V2GRequestType r => r.Header.SessionID,
+            Dc20.V2GRequestType r => r.Header.SessionID,
+            _                     => null,
+        };
+
+        /// <summary>
+        /// The response that <b>pairs with</b> <paramref name="request"/>, carrying the code
+        /// <paramref name="reason"/> names and nothing this station cannot mean.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The -20 counterpart of <c>Secc2.Refuse</c>, and the thing whose absence kept <c>[V2G20-459]</c>
+        /// and <c>[V2G20-460]</c> open here long after the <c>-2</c> half was closed: this station used to
+        /// <c>throw SessionAborted</c> on an out-of-sequence request — killing the connection without
+        /// answering — because there was no table of corresponding responses to answer *from*. EVerest's
+        /// <c>d20/context_helper.cpp</c> is the same table in C++, dispatched across all sixteen of their
+        /// -20 message types, and is the worked example this was written against.
+        /// </para>
+        /// <para>
+        /// <b>Every mandatory element is filled with something schema-conformant and meaningless</b>, which
+        /// is <c>-20</c>'s equivalent of what <c>[V2G2-736]</c> spells out for <c>-2</c>: a refusal must
+        /// still be a valid message. Where the schema forces content that would otherwise be a promise —
+        /// the contract chain of a <c>CertificateInstallationRes</c>, the challenge of an
+        /// <c>AuthorizationSetupRes</c> — it is filled with empty or zero material and never with a real
+        /// credential. A refusal hands nothing out.
+        /// </para>
+        /// <para>
+        /// <b>The phase is not this method's business.</b> <see cref="Handle"/> ends the session on any
+        /// response from the FAILED family, so every refusal here is terminal — the opposite of
+        /// <c>-2</c>, where a refusal leaves the phase alone and a car that corrects itself charges. The
+        /// asymmetry is the two standards' (<c>-20</c> §8.6 against <c>-2</c> §8.8.2); the citations are at
+        /// <c>Secc2.Dispatch</c>.
+        /// </para>
+        /// </remarks>
+        protected (MessageSet Set, object Response) Refuse(MessageSet set, object request, Refusal reason)
+        {
+
+            var code = reason == Refusal.UnknownSession
+                           ? ResponseCode.FAILED_UnknownSession
+                           : ResponseCode.FAILED_SequenceError;
+
+            var hdr = SessionCtx.ToCommonHeader();
+
+            return request switch
+            {
+                SessionSetupReq             => (MessageSet.Iso20CommonMessages, new SessionSetupRes(hdr, code, "DE*ABC*E1")),
+
+                // EIM with an empty mode block: the schema's choice is mandatory, and the PnC alternative
+                // is the one that would carry a GenChallenge. A refusal issues no challenge — the same
+                // reasoning as the 16 zero bytes in Secc2.Refuse's PaymentDetails arm — and advertises no
+                // certificate installation, since it is not going to install one.
+                AuthorizationSetupReq       => (MessageSet.Iso20CommonMessages, new AuthorizationSetupRes(hdr, code,
+                                                   new[] { Authorization.EIM }, CertificateInstallationService: false,
+                                                   new EIM_ASResAuthorizationModeType(), PnC_ASResAuthorizationMode: null)),
+
+                AuthorizationReq            => (MessageSet.Iso20CommonMessages, new AuthorizationRes(hdr, code, Processing.Finished)),
+
+                // The service list is what this station serves either way, so stating it costs nothing and
+                // an empty EnergyTransferServiceList would not be schema-conformant (minOccurs is 1).
+                ServiceDiscoveryReq         => (MessageSet.Iso20CommonMessages, new ServiceDiscoveryRes(hdr, code,
+                                                   ServiceRenegotiationSupported: true,
+                                                   new ServiceListType(EnergyServiceIds.Select(id => new ServiceType(id, FreeService: true)).ToArray()),
+                                                   VASList: null)),
+
+                // ServiceParameterList is mandatory and needs at least one ParameterSet, so the refusal
+                // carries the Scheduled set this station really offers. Deliberately *not* recorded in
+                // offeredParameterSets: [V2G20-433] holds a later selection against what was offered, and
+                // nothing was offered here — the session is over.
+                ServiceDetailReq r          => (MessageSet.Iso20CommonMessages, new ServiceDetailRes(hdr, code, r.ServiceID,
+                                                   new ServiceParameterListType(new[] { ParamSet(1, controlMode: 1) }))),
+
+                ServiceSelectionReq         => (MessageSet.Iso20CommonMessages, new ServiceSelectionRes(hdr, code)),
+
+                // The one response whose mandatory payload would otherwise be a contract. Empty certificate
+                // material and a SECP521 curve label satisfy the schema without issuing anything; the EV
+                // aborts on the code and never reads it. Nothing here is signed, and nothing here is a key.
+                CertificateInstallationReq  => (MessageSet.Iso20CommonMessages, new CertificateInstallationRes(hdr, code,
+                                                   Processing.Finished,
+                                                   new CertificateChainType([], SubCertificates: null),
+                                                   new SignedInstallationDataType("refused",
+                                                       new ContractCertificateChainType([], new SubCertificatesType([[]])),
+                                                       EcdhCurve.SECP521, DHPublicKey: [],
+                                                       SECP521_EncryptedPrivateKey: [], X448_EncryptedPrivateKey: null,
+                                                       TPM_EncryptedPrivateKey: null),
+                                                   RemainingContractCertificateChains: 0)),
+
+                // The control-mode choice is mandatory; Dynamic is the one whose every element is optional,
+                // so an empty one is the least this station can legally say. No schedule goes out with a
+                // refusal — a ScheduleTuple is an offer.
+                ScheduleExchangeReq         => (MessageSet.Iso20CommonMessages, new ScheduleExchangeRes(hdr, code,
+                                                   Processing.Finished, GoToPause: null,
+                                                   new Dynamic_SEResControlModeType(null, null, null, null, null),
+                                                   Scheduled_SEResControlMode: null)),
+
+                PowerDeliveryReq            => (MessageSet.Iso20CommonMessages, new PowerDeliveryRes(hdr, code, EVSEStatus: null)),
+                SessionStopReq              => (MessageSet.Iso20CommonMessages, new SessionStopRes(hdr, code)),
+                MeteringConfirmationReq     => (MessageSet.Iso20CommonMessages, new MeteringConfirmationRes(hdr, code)),
+
+                // WPT/ACDP. This station runs no session state machine for either, so these only ever
+                // arrive out of sequence — but they are CommonMessages requests, they decode, and a table
+                // that answered every type except two would be the gap this one exists to close.
+                VehicleCheckInReq           => (MessageSet.Iso20CommonMessages, new VehicleCheckInRes(hdr, code,
+                                                   ParkingSpace: null, DeviceLocation: null, TargetDistance: null)),
+                VehicleCheckOutReq          => (MessageSet.Iso20CommonMessages, new VehicleCheckOutRes(hdr, code,
+                                                   EvseCheckOutStatus.Completed)),
+
+                _                           => RefuseInEnergyTransferSet(set, request, reason),
+            };
+
+        }
+
+        /// <summary>
+        /// The AC/DC half of <see cref="Refuse"/>: the seven energy-transfer requests whose response types
+        /// live in a message set this base class cannot name.
+        /// </summary>
+        /// <remarks>
+        /// Same seam, and the same reason, as <see cref="HandleChargeLoop"/> and its siblings —
+        /// <c>AC.Generated</c> and <c>DC.Generated</c> redeclare <c>ResponseCode</c>,
+        /// <c>MessageHeaderType</c> and the rest as distinct CLR types, so only the subclass that owns a
+        /// set can build a response in it. Throwing here rather than returning something is right: a base
+        /// with no energy-transfer set has no answer to give, and a subclass that forgot to override this
+        /// should fail loudly rather than silently drop a request type.
+        /// </remarks>
+        protected virtual (MessageSet Set, object Response) RefuseInEnergyTransferSet(MessageSet set, object request, Refusal reason) =>
+            throw new NotSupportedException(
+                $"no refusal response for {request.GetType().Name} — {GetType().Name} names no energy-transfer message set for it.");
+
+        /// <summary>A refusal, plus the bookkeeping that makes it visible from a run and the phase the
+        /// switch in <see cref="Handle"/> has to be handed. The phase is nominal: <see cref="Handle"/>
+        /// re-decides it from <see cref="IsFailure"/> and lands on <see cref="Phase20.Done"/>.</summary>
+        private (MessageSet, object, Phase20) RefuseStep(MessageSet set, object request, Refusal reason)
+        {
+            SequenceErrorAt = request.GetType().Name;
+            SequenceErrorRefusals++;
+            var (s, r) = Refuse(set, request, reason);
+            return (s, r, Phase20.Done);
+        }
 
         /// <summary>Reads/handles/replies over <paramref name="stream"/> until the session reaches <see cref="Phase20.Done"/>.</summary>
         public async Task RunAsync(Stream stream, CancellationToken ct = default)
@@ -833,21 +1040,32 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             new(SessionCtx.ToCommonHeader(), ResponseCode.OK, ServiceRenegotiationSupported: true,
                 new ServiceListType(EnergyServiceIds.Select(id => new ServiceType(id, FreeService: true)).ToArray()), VASList: null);
 
+        /// <summary>
+        /// The standard -20 energy-transfer parameter sets. A live Josev EVCC requires at least the
+        /// ControlMode parameter ("Control mode parameter missing" otherwise). MobilityNeedsMode=1
+        /// (mobility needs provided by the EVCC) is legal for both modes ([V2G20-2663] only restricts
+        /// MobilityNeedsMode=2 to Dynamic).
+        /// </summary>
+        /// <remarks>
+        /// Lifted out of <see cref="SvcDetail"/> on 2026-08-11 because <see cref="Refuse"/> needs one too:
+        /// -20 makes <c>ServiceParameterList</c> mandatory with at least one <c>ParameterSet</c>, so even a
+        /// refusal has to carry a set — and it should carry one this station actually offers rather than an
+        /// invented number. What the refusal does *not* do is record it: see the note at
+        /// <see cref="offeredParameterSets"/>.
+        /// </remarks>
+        private ParameterSetType ParamSet(ushort id, int controlMode) => new(id, new[]
+        {
+            new ParameterType("Connector", null, null, null, IntValue: ConnectorParameter, null, null),
+            new ParameterType("ControlMode", null, null, null, IntValue: controlMode, null, null),
+            new ParameterType("MobilityNeedsMode", null, null, null, IntValue: 1, null, null),
+            new ParameterType("Pricing", null, null, null, IntValue: 0, null, null),
+        });
+
         private ServiceDetailRes SvcDetail(ServiceDetailReq req)
         {
-            // The standard -20 energy-transfer parameter sets. A live Josev EVCC requires at least the
-            // ControlMode parameter ("Control mode parameter missing" otherwise). We offer both control
-            // modes — set 1: Scheduled (ControlMode=1), set 2: Dynamic (ControlMode=2) — ordered by
-            // PreferDynamicControlMode, since a Josev EVCC adopts the *first* offered set's ControlMode.
-            // MobilityNeedsMode=1 (mobility needs provided by the EVCC) is legal for both modes
-            // ([V2G20-2663] only restricts MobilityNeedsMode=2 to Dynamic).
-            ParameterSetType ParamSet(ushort id, int controlMode) => new(id, new[]
-            {
-                new ParameterType("Connector", null, null, null, IntValue: ConnectorParameter, null, null),
-                new ParameterType("ControlMode", null, null, null, IntValue: controlMode, null, null),
-                new ParameterType("MobilityNeedsMode", null, null, null, IntValue: 1, null, null),
-                new ParameterType("Pricing", null, null, null, IntValue: 0, null, null),
-            });
+            // We offer both control modes — set 1: Scheduled (ControlMode=1), set 2: Dynamic
+            // (ControlMode=2) — ordered by PreferDynamicControlMode, since a Josev EVCC adopts the *first*
+            // offered set's ControlMode.
             var scheduled = ParamSet(1, controlMode: 1);
             var dynamic   = ParamSet(2, controlMode: 2);
             var res = new ServiceDetailRes(SessionCtx.ToCommonHeader(), ResponseCode.OK, req.ServiceID,

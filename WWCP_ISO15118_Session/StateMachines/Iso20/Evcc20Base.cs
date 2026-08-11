@@ -182,6 +182,32 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// resume <c>OK_OldSessionJoined</c>.</summary>
         public ResponseCode SessionSetupCode { get; private set; }
 
+        /// <summary>
+        /// Stop sending after the first charge-loop iteration and wait, with the connection <b>open</b>,
+        /// for the station to end the session on its own — up to this budget. Null (the default) charges
+        /// normally. <see cref="SilenceEndedAfter"/> carries the answer.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A car that hangs up is an EOF and tells you nothing about a timer; a car that goes quiet while
+        /// holding the socket is what <c>V2G_SECC_Sequence_Timeout</c> is defined against. Nothing in this
+        /// suite could do the second until 2026-08-11, so no run had ever measured any station's sequence
+        /// timeout — the same shape as the SessionID override added the day before, and as
+        /// <see cref="RequestMeterInfo"/> before that.
+        /// </para>
+        /// <para>
+        /// The charge loop is the interesting place to do it: `[V2G20-1500]` and `[V2G20-1502]` give the
+        /// SECC <b>0,5 s</b> there (Tables 216 and 217) against the 60 s of Table 215 everywhere else, and
+        /// it is the phase in which the contactor is closed.
+        /// </para>
+        /// </remarks>
+        public TimeSpan? GoSilentInChargeLoop { get; set; }
+
+        /// <summary>How long the station kept the session after this car stopped sending, or null when it
+        /// was still open at the end of <see cref="GoSilentInChargeLoop"/>. Measured from the moment our
+        /// last charge-loop response was read.</summary>
+        public TimeSpan? SilenceEndedAfter { get; private set; }
+
         /// <summary>What to carry into the next connection after ending with <c>ChargingSession.Pause</c>.</summary>
         public ResumableSession PausedSession
 
@@ -565,6 +591,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // With one it is a charging session, and it ends when the car is done rather than when a
             // counter runs out. The battery is fed from the meter's own increment, so it fills with what
             // the station actually delivered and not with what the car asked for.
+            if (GoSilentInChargeLoop is { } budget)
+            {
+                // One iteration, so the station has answered inside the charge loop and armed the timer
+                // this measures; then nothing at all, with the socket held open.
+                await RunChargeLoopIterationAsync(ct);
+                SilenceEndedAfter = await WaitForPeerToEndSessionAsync(budget, ct);
+                return;
+            }
+
             if (Battery is null)
                 for (int cycle = 0; cycle < 3; cycle++)
                 {
@@ -698,6 +733,42 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <summary>Same as <see cref="Exchange{TRes}"/> but returns the undiscriminated <see cref="MessageSet"/>/object pair — for DC/AC-specific exchanges.</summary>
         /// <summary>A deadline for one 'Ongoing' phase, for the subclasses' own poll loops.</summary>
         protected OngoingGuard Ongoing(String phase) => new(clock, OngoingTimeout, phase);
+
+        /// <summary>
+        /// Say nothing, keep the connection open, and time how long the station leaves the session
+        /// standing. Returns null if it was still open when <paramref name="budget"/> ran out.
+        /// </summary>
+        /// <remarks>
+        /// Anything the peer sends while we are silent counts as the session still being alive and is
+        /// discarded — the question is when the socket ends, not what arrives on it. A read of zero bytes
+        /// is the peer's close; a reset is the same answer by a blunter route, so both stop the clock.
+        /// </remarks>
+        private async Task<TimeSpan?> WaitForPeerToEndSessionAsync(TimeSpan budget, CancellationToken ct)
+        {
+            var start = clock.GetUtcNow();
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(budget);
+
+            var scratch = new byte[256];
+            try
+            {
+                while (true)
+                {
+                    int n = await stream.ReadAsync(scratch, cts.Token).ConfigureAwait(false);
+                    if (n == 0)
+                        return clock.GetUtcNow() - start;   // EOF: the station ended it
+                }
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                return null;                                 // still open when the budget ran out
+            }
+            catch (IOException)
+            {
+                return clock.GetUtcNow() - start;            // reset rather than a clean close
+            }
+        }
+
 
         protected async Task<(MessageSet Set, object Message)> ExchangeRaw(MessageSet expectedSet, Func<byte[], int> encode, CancellationToken ct)
         {

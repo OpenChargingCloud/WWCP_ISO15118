@@ -374,8 +374,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 (Phase20.Authorization, MessageSet.Iso20CommonMessages, CertificateInstallationReq r) =>
                     Step(MessageSet.Iso20CommonMessages, CertInstallation(r), Phase20.Authorization),
 
+                // Self-looping poll phase, like PowerOn below. Two things bring an EV back here: an
+                // Ongoing answer, which it polls on, and a WARNING — the family that says *this*
+                // credential did not work rather than that the session is over, so the car may offer
+                // another contract or fall back to EIM. Advancing on either answered its next message
+                // with FAILED_SequenceError.
                 (Phase20.Authorization, MessageSet.Iso20CommonMessages, AuthorizationReq r) =>
-                    Step(MessageSet.Iso20CommonMessages, Auth(r), Phase20.ServiceDiscovery),
+                    AuthStep(r),
 
                 (Phase20.ServiceDiscovery, MessageSet.Iso20CommonMessages, ServiceDiscoveryReq r) =>
                     Step(MessageSet.Iso20CommonMessages, SvcDiscovery(r), Phase20.ServiceDetail),
@@ -650,7 +655,37 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 new PnC_ASResAuthorizationModeType(_genChallenge, SupportedProviders: null));
         }
 
-        private AuthorizationRes Auth(AuthorizationReq req)
+        /// <summary>
+        /// One AuthorizationReq, and the phase that follows it: <see cref="Phase20.ServiceDiscovery"/>
+        /// only once the station has actually granted — an <c>OK</c>-family code together with
+        /// <see cref="Processing.Finished"/> — and this phase again otherwise.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <see cref="Auth"/> itself always grants, so nothing changes for a station that does not
+        /// override it. What this opens is the two answers -20 provides and the machine could not
+        /// previously survive: <c>Ongoing</c>, for a station waiting on something slow, and the
+        /// <c>WARNING_*</c> family, which exists so a car whose credential was refused can try another
+        /// one — <c>WARNING_AuthorizationSelectionInvalid</c> only means anything if it may choose
+        /// again. A <c>FAILED</c> code still ends the session, decided after this returns.
+        /// </para>
+        /// <para>
+        /// The family comparison is the one <see cref="IsFailure"/> uses, from the other end: the schema
+        /// orders the enumeration OK (0–4), WARNING (5–20), FAILED (21 and up), which
+        /// <c>Evcc20FailureHandlingTests.TheResponseCodeFamiliesAreContiguousAndOrdered</c> pins.
+        /// </para>
+        /// </remarks>
+        private (MessageSet, object, Phase20) AuthStep(AuthorizationReq request)
+        {
+            var response = Auth(request);
+            var granted = response.ResponseCode < ResponseCode.WARNING_AuthorizationSelectionInvalid
+                          && response.EVSEProcessing == Processing.Finished;
+
+            return Step(MessageSet.Iso20CommonMessages, response,
+                        granted ? Phase20.ServiceDiscovery : Phase20.Authorization);
+        }
+
+        protected virtual AuthorizationRes Auth(AuthorizationReq req)
         {
             // Plug & Charge: validate the EV's signed AuthorizationReq (challenge echo + reference digest +
             // ECDSA signature over the contract leaf). We record the outcome rather than aborting, so a live

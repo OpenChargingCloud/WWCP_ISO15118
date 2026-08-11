@@ -244,8 +244,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             (Phase.PaymentDetails, PaymentDetailsReqType r) =>
                 (PaymentDetails(r), Phase.Authorization),
 
+            // Self-looping poll phase, the same shape as PowerOn below: while the station answers
+            // Ongoing the EV repeats its AuthorizationReq, and real ones do — the tux-evse replay in
+            // SequenceError's remarks is exactly that, a VW polling twice at a charger answering
+            // Ongoing_WaitingForCustomerInteraction. Answering Finished at once was the only reason the
+            // second poll ever arrived a phase late. Advance only when we have actually finished.
             (Phase.Authorization, AuthorizationReqType r) =>
-                (Authorize(r), Phase.ChargeParams),
+                AuthorizeStep(r),
 
             // After a renegotiation the cable is already checked — the EV proceeds straight from the new
             // ChargeParameterDiscovery to PowerDelivery(Start), DC included (a Josev EVCC does exactly that).
@@ -766,10 +771,29 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             return new PaymentDetailsResType(ResponseCode.OK, _genChallenge, Now());
         }
 
+        /// <summary>
+        /// One AuthorizationReq, and the phase that follows it: <see cref="Phase.ChargeParams"/> once the
+        /// station reports <see cref="EVSEProcessing.Finished"/>, otherwise this phase again so the EV's
+        /// next poll is answered rather than met with FAILED_SequenceError.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Authorize"/> itself always finishes, so nothing changes for a station that does not
+        /// override it. A station that has to wait on something slow — an operator's confirmation, a
+        /// backend round trip — can now answer Ongoing without the session falling apart on the next
+        /// message.
+        /// </remarks>
+        private (BodyBaseType Body, Phase Next) AuthorizeStep(AuthorizationReqType request)
+        {
+            var response = Authorize(request);
+            return (response, response is AuthorizationResType { EVSEProcessing: EVSEProcessing.Finished }
+                                  ? Phase.ChargeParams
+                                  : Phase.Authorization);
+        }
+
         /// <summary>EIM: plain OK. Contract: validate the <b>signed</b> AuthorizationReq — challenge echo,
         /// reference digest over the re-encoded body-element fragment, and the ECDSA signature under our
         /// combined -2 grammar or (Josev) the standalone-xmldsig one.</summary>
-        private BodyBaseType Authorize(AuthorizationReqType req)
+        protected virtual BodyBaseType Authorize(AuthorizationReqType req)
         {
             if (_contract)
             {

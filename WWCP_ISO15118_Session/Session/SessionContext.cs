@@ -33,10 +33,31 @@ namespace cloud.charging.open.protocols.ISO15118.Session
     {
         public byte[] SessionId { get; set; } = new byte[8];
 
+        /// <summary>
+        /// When set, outgoing headers carry <b>this</b> SessionID instead of <see cref="SessionId"/>.
+        /// Null (the default) is what every conformant peer does and what every recorded session holds.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Only the <b>car</b> ever sets it — <c>Evcc20Base.SendSessionId</c>, applied after SessionSetup
+        /// so the opening request still carries the "new session" or resume id that `[V2G20-460]` excludes
+        /// from the rule. No station of ours touches it, which is why it lives here rather than being
+        /// duplicated across the three header shapes at every call site.
+        /// </para>
+        /// <para>
+        /// It exists so a station's duty to refuse a foreign SessionID is reachable from a session at all.
+        /// The `-2` twin (<c>Evcc2.SendSessionId</c>) was added on 2026-08-11 and immediately found a
+        /// station that serves the all-zero id; this is the same instrument for `-20`.
+        /// </para>
+        /// </remarks>
+        public byte[]? SendSessionIdOverride { get; set; }
+
+        private byte[] OutgoingId => SendSessionIdOverride ?? SessionId;
+
         private ulong NextTimeStamp() => (ulong)clock.GetUtcNow().ToUnixTimeSeconds();
 
-        public CommonHeader ToCommonHeader() => new(SessionId, NextTimeStamp(), Signature: null);
-        public DcHeader ToDcHeader() => new(SessionId, NextTimeStamp(), Signature: null);
-        public AcHeader ToAcHeader() => new(SessionId, NextTimeStamp(), Signature: null);
+        public CommonHeader ToCommonHeader() => new(OutgoingId, NextTimeStamp(), Signature: null);
+        public DcHeader ToDcHeader() => new(OutgoingId, NextTimeStamp(), Signature: null);
+        public AcHeader ToAcHeader() => new(OutgoingId, NextTimeStamp(), Signature: null);
     }
 }

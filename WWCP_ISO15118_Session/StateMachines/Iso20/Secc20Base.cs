@@ -79,6 +79,32 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         protected readonly SessionContext SessionCtx = new(clock);
         private DateTimeOffset _lastSeen = clock.GetUtcNow();
 
+        // True once the last response this station sent was a charge-loop response, so the *next* request
+        // is governed by the tight charge-loop sequence timeout rather than the 60 s baseline. Reset every
+        // Handle from the phase it actually dispatched in, so it cannot go stale across a phase change.
+        private bool _lastResponseWasChargeLoop;
+
+        /// <summary>
+        /// How long the SECC waits for the next request once it has answered a charge-loop response — the
+        /// phase in which the contactor is closed. ISO 15118-20 Tables 216 (AC) and 217 (DC), obliged by
+        /// <c>[V2G20-1500]</c> and <c>[V2G20-1502]</c>, put <c>V2G_SECC_Sequence_Timeout</c> at <b>0,5 s</b>
+        /// after <c>AC_ChargeLoopRes</c>/<c>DC_ChargeLoopRes</c>, where Table 215's baseline (the
+        /// <c>sequenceTimeout</c> constructor argument) is 60 s for every other message.
+        /// </summary>
+        /// <remarks>
+        /// The whole point of the 0,5 s is safety: a silent EV must not hold a closed contactor for a
+        /// minute. This is the value we <i>measured EVerest's <c>libiso15118</c> flatten to 60 s</i>
+        /// (<c>docs/reports/everest-d20-sequence-timeout.md</c>) — and until now our own station flattened
+        /// it too. Settable (init-only) so a test can restore the old flat behaviour and watch this fail.
+        /// Only the charge loop is tightened here; the DC-only CableCheck/PreCharge/WeldingDetection
+        /// sub-timeouts of Table 217 remain at the baseline (noted in <c>docs/open-work.md</c>).
+        /// </remarks>
+        public TimeSpan ChargeLoopSequenceTimeout { get; init; } = TimeSpan.FromMilliseconds(500);
+
+        /// <summary>The sequence timeout that governs the wait for the next request right now: the tight
+        /// charge-loop value once a charge-loop response has gone out, the baseline otherwise.</summary>
+        private TimeSpan CurrentSequenceTimeout => _lastResponseWasChargeLoop ? ChargeLoopSequenceTimeout : sequenceTimeout;
+
         /// <summary>When set, the EV's contract chain (at AuthorizationReq) and OEM provisioning chain (at
         /// CertificateInstallationReq) are validated against these roots, and the verdicts ride in
         /// <see cref="PnCAuth"/> and <see cref="CertInstall"/>. Unset means the signatures still verify
@@ -320,8 +346,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public virtual (MessageSet Set, object Response) Handle(MessageSet set, object request)
         {
             var now = clock.GetUtcNow();
-            if (Phase is not Phase20.SessionSetup && now - _lastSeen > sequenceTimeout)
-                throw new SessionAborted($"SECC sequence timeout: EV silent for > {sequenceTimeout.TotalSeconds:0}s");
+            var budget = CurrentSequenceTimeout;
+            if (Phase is not Phase20.SessionSetup && now - _lastSeen > budget)
+                throw new SessionAborted(
+                    $"SECC sequence timeout: EV silent for > {budget.TotalMilliseconds:0} ms" +
+                    (_lastResponseWasChargeLoop ? " in the charge loop" : ""));
             _lastSeen = now;
 
             // A SessionStopReq is legal in *any* phase (ISO 15118-20 §7.9.2.4): the EV may abort the session at
@@ -359,6 +388,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // by the PreCharge phase, and PowerDeliveryReq(Start) ends PreCharge and is handled by PowerOn.
             while (IsSelfLoopPhase(Phase) && !IsPollFor(Phase, request))
                 Phase = NextAfter(Phase);
+
+            // The phase the switch below actually dispatches in — captured after the self-loop advance, so
+            // the first ChargeLoopReq (which advances PowerOn→Charging here) is seen as Charging. A response
+            // is a charge-loop response exactly when we dispatch in Charging on something other than the
+            // PowerDeliveryReq(Stop) that ends the loop; that is what arms the tight next-request timeout.
+            var dispatchPhase = Phase;
 
             var (respSet, response, next) = (Phase, set, request) switch
             {
@@ -435,6 +470,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // actually answer FAILED — until then no station of ours ever sent one, so the rule had nothing
             // to govern. Same >= FAILED family comparison, over all three generated ResponseCode enums.
             Phase = IsFailure(response) ? Phase20.Done : next;
+
+            // After a charge-loop response the contactor is closed, so the next request must come inside
+            // the tight ChargeLoopSequenceTimeout — Tables 216/217. Any other response leaves the baseline.
+            _lastResponseWasChargeLoop = dispatchPhase == Phase20.Charging && request is not PowerDeliveryReq;
+
             return (respSet, response);
         }
 
@@ -463,7 +503,28 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             var buf = new byte[8192];
             while (!IsDone)
             {
-                var (set, message) = await ReadFrame20Async(stream, ct).ConfigureAwait(false);
+                // Bound the wait for the next request by the sequence timeout that applies right now — 0,5 s
+                // once a charge-loop response is out (contactor closed), the baseline otherwise. A silent EV
+                // sends nothing, so this is what actually enforces the timeout; the reactive check in Handle
+                // only catches a request that arrives late. Mirrors the EVCC's own read-timeout pattern.
+                var readBudget = CurrentSequenceTimeout;
+                MessageSet set;
+                object message;
+                using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+                {
+                    readCts.CancelAfter(readBudget);
+                    try
+                    {
+                        (set, message) = await ReadFrame20Async(stream, readCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (readCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                    {
+                        throw new SessionAborted(
+                            $"SECC sequence timeout: EV silent for > {readBudget.TotalMilliseconds:0} ms" +
+                            (_lastResponseWasChargeLoop ? " in the charge loop" : ""));
+                    }
+                }
+
                 var (replySet, reply) = Handle(set, message);
 
                 int n = EncodeAny(replySet, reply, buf);

@@ -179,8 +179,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             var req = new Ac20.AC_ChargeLoopReq(SessionCtx.ToAcHeader(), DisplayParameters: null,
                 MeterInfoRequested: RequestMeterInfo, CLReqControlMode: controlMode);
 
+            // Table 216 gives AC_ChargeLoopReq 0,5 s where the ordinary message gets 2 s — see
+            // Evcc20Dc.ChargeLoopAsync for the DC twin and Evcc20Base.ChargeLoopMsgTimeout for the rule.
             var (set, message) = await ExchangeRaw(MessageSet.Iso20AC,
-                dest => Ac20.AcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct);
+                dest => Ac20.AcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct,
+                ChargeLoopMsgTimeout);
             var response = Expect<Ac20.AC_ChargeLoopRes>(set, message, MessageSet.Iso20AC);
 
             NoteMeterInfo(response.MeterInfo is not null);

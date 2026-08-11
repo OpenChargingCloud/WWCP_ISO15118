@@ -16,6 +16,12 @@
 
   <ItemGroup>
     <ProjectReference Include="../WWCP_ISO15118_Session/WWCP_ISO15118_Session.csproj" />
+
+    <!-- The two DER message sets, which the session project does not reference and which therefore have
+         no test coverage at all through it. They each carry their own copy of V2GSignature, so
+         SignedInfoFragmentTests needs them to be able to say it checked all six. -->
+    <ProjectReference Include="../WWCP_ISO15118_20.AC_DER_IEC/WWCP_ISO15118_20.AC_DER_IEC.csproj" />
+    <ProjectReference Include="../WWCP_ISO15118_20.AC_DER_SAE/WWCP_ISO15118_20.AC_DER_SAE.csproj" />
   </ItemGroup>
 
 </Project>

@@ -83,15 +83,32 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
         private static byte[]? EncodeStandalone(I2.SignedInfoType signedInfo)
         {
+
             var mapped = Map(signedInfo);
-            var buf = new byte[512];
-            while (!X.XmlDsigCodec.EncodeFragment_SignedInfo(mapped, buf, out _))
+            var buf    = new byte[1024];
+
+            while (true)
             {
-                if (buf.Length >= 1 << 20) return null; // guard; a SignedInfo never approaches 1 MiB
+
+                // Catching rather than testing, and encoding once rather than twice. A generated
+                // EncodeFragment_* signals a full buffer by letting BitWriter throw, and returns false
+                // only when the destination cannot hold even the EXI header byte — so the old
+                // `while (!Encode(...))` never saw false, threw instead of doubling, and then encoded a
+                // second time on the way out. A four-reference SignedInfo is the first thing that does
+                // not fit, and this is the fallback path a -2 CertificateInstallationRes verifies on.
+                try
+                {
+                    if (X.XmlDsigCodec.EncodeFragment_SignedInfo(mapped, buf, out int n))
+                        return buf.AsSpan(0, n).ToArray();
+                }
+                catch (IndexOutOfRangeException)
+                { /* too small */ }
+
+                if (buf.Length >= 1 << 20) return null;   // guard; a SignedInfo never approaches 1 MiB
                 buf = new byte[buf.Length * 2];
+
             }
-            X.XmlDsigCodec.EncodeFragment_SignedInfo(mapped, buf, out int n);
-            return buf.AsSpan(0, n).ToArray();
+
         }
 
         // Same xmldsig-core-schema.xsd on both sides — a straight structural copy (-2 record → XmlDsig record).

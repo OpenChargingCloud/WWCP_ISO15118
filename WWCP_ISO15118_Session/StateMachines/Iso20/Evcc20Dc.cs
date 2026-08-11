@@ -243,8 +243,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 MeterInfoRequested: RequestMeterInfo,
                 EVPresentVoltage: Rat(LoopNominalVolts), CLReqControlMode: controlMode);
 
+            // Table 217 gives DC_ChargeLoopReq 0,5 s where the ordinary message gets 2 s — the contactor
+            // is closed, and this is the one message pair the standard tightens on the EVCC's side too.
             var (set, message) = await ExchangeRaw(MessageSet.Iso20DC,
-                dest => Dc20.DcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct);
+                dest => Dc20.DcCodec.TryEncode(req, dest, out int n) ? n : throw EncodeFailed(), ct,
+                ChargeLoopMsgTimeout);
             var response = Expect<Dc20.DC_ChargeLoopRes>(set, message, MessageSet.Iso20DC);
 
             NoteMeterInfo(response.MeterInfo is not null);

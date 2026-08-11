@@ -183,6 +183,53 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public ResponseCode SessionSetupCode { get; private set; }
 
         /// <summary>
+        /// The SessionID this car puts in every request <b>after</b> SessionSetup, instead of the one the
+        /// station issued. Null (the default) is what a conformant car does and what every recorded
+        /// session contains. The `-20` twin of <c>Evcc2.SendSessionId</c>.
+        /// </summary>
+        /// <remarks>
+        /// `[V2G20-460]` — any request except <c>SessionSetupReq</c> whose SessionID is not the stored one
+        /// shall be answered <c>FAILED_UnknownSession</c> — is unreachable from a session unless a car can
+        /// send a wrong one, which is why nothing here had ever exercised it. Eight zero bytes are the
+        /// interesting value: that is what ISO reserves for *"I have no session"*, and what a station's
+        /// decoder is likeliest to special-case.
+        /// </remarks>
+        public byte[]? SendSessionId { get; set; }
+
+        /// <summary>
+        /// <c>V2G_EVCC_Msg_Timeout</c> for a charge-loop request — how long this car waits for the
+        /// station's answer once the contactor is closed. Tables 216, 217 and 218 all put it at
+        /// <b>0,5 s</b> for <c>{AC,DC,WPT}_ChargeLoopReq</c>, against Table 215's 2 s for ordinary
+        /// messages (<c>[V2G20-1499]</c>, <c>[V2G20-1501]</c>, <c>[V2G20-5069]</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The car-side twin of <see cref="Secc20Base.ChargeLoopSequenceTimeout"/>, added the same day and
+        /// for the same reason: this class applied the single <c>perMessageTimeout</c> to every exchange,
+        /// so the one message pair the standard tightens was as slack as session setup.
+        /// </para>
+        /// <para>
+        /// Init-only so a test can put the flat behaviour back and watch the tight one fail. It carries
+        /// the same residual risk the station side already took on: a loopback under load has been
+        /// measured at 2 140–3 564 ms for its heaviest single exchange
+        /// (<c>LoopbackTimeouts</c>), which is why the *baseline* there is 10 s rather than 2 s. Charge-loop
+        /// exchanges are late and cheap, and the SECC has enforced its own 0,5 s across the whole suite
+        /// since 2026-08-11 without flaking — but if this one ever does, that is where the answer is.
+        /// </para>
+        /// </remarks>
+        public TimeSpan ChargeLoopMsgTimeout { get; init; } = TimeSpan.FromMilliseconds(500);
+
+        /// <summary>
+        /// <c>V2G_EVCC_Msg_Timeout</c> for the two messages Table 215 gives <b>5 s</b> rather than 2 —
+        /// <c>CertificateInstallationReq</c> and <c>ServiceDetailReq</c>, both of which make the station do
+        /// real work (a contract to mint, a catalogue to assemble) before it can answer.
+        /// </summary>
+        /// <remarks>Cutting these off at the ordinary 2 s would abort sessions the standard expects to
+        /// complete, so the deviation runs the other way from <see cref="ChargeLoopMsgTimeout"/>: it is
+        /// there to stop us being wrong about a slow peer, not to catch one.</remarks>
+        public TimeSpan SlowMsgTimeout { get; init; } = TimeSpan.FromSeconds(5);
+
+        /// <summary>
         /// Stop sending after the first charge-loop iteration and wait, with the connection <b>open</b>,
         /// for the station to end the session on its own — up to this budget. Null (the default) charges
         /// normally. <see cref="SilenceEndedAfter"/> carries the answer.
@@ -200,21 +247,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// SECC <b>0,5 s</b> there (Tables 216 and 217) against the 60 s of Table 215 everywhere else, and
         /// it is the phase in which the contactor is closed.
         /// </para>
+        /// <para>
+        /// This doc block sat on <see cref="SendSessionId"/> until 2026-08-11 — two <c>&lt;summary&gt;</c>
+        /// tags in a row, so the compiler took the second and this one documented nothing. Moved when the
+        /// station-side mirror (<see cref="Secc20Base.GoSilentInChargeLoop"/>) went in beside it.
+        /// </para>
         /// </remarks>
-        /// <summary>
-        /// The SessionID this car puts in every request <b>after</b> SessionSetup, instead of the one the
-        /// station issued. Null (the default) is what a conformant car does and what every recorded
-        /// session contains. The `-20` twin of <c>Evcc2.SendSessionId</c>.
-        /// </summary>
-        /// <remarks>
-        /// `[V2G20-460]` — any request except <c>SessionSetupReq</c> whose SessionID is not the stored one
-        /// shall be answered <c>FAILED_UnknownSession</c> — is unreachable from a session unless a car can
-        /// send a wrong one, which is why nothing here had ever exercised it. Eight zero bytes are the
-        /// interesting value: that is what ISO reserves for *"I have no session"*, and what a station's
-        /// decoder is likeliest to special-case.
-        /// </remarks>
-        public byte[]? SendSessionId { get; set; }
-
         public TimeSpan? GoSilentInChargeLoop { get; set; }
 
         /// <summary>How long the station kept the session after this car stopped sending, or null when it
@@ -537,7 +575,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             SelectedEnergyServiceId = serviceId;
 
             var detail = await Exchange<ServiceDetailRes>(MessageSet.Iso20CommonMessages,
-                dest => new ServiceDetailReq(SessionCtx.ToCommonHeader(), serviceId).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+                dest => new ServiceDetailReq(SessionCtx.ToCommonHeader(), serviceId).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct,
+                SlowMsgTimeout);
             ushort parameterSetId = SelectParameterSet(detail);
 
             await Exchange<ServiceSelectionRes>(MessageSet.Iso20CommonMessages,
@@ -669,7 +708,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     chain,
                     new ListOfRootCertificateIDsType(new[] { new X509IssuerSerialType("CN=V2GRootCA (dev)", 1) }),
                     MaximumContractCertificateChains: 1,
-                    PrioritizedEMAIDs: null).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+                    PrioritizedEMAIDs: null).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct,
+                SlowMsgTimeout);
 
             // Verify the CPS signature over the SignedInstallationData fragment (our production form:
             // combined grammar, P-521/SHA-512), then unwrap the contract key.
@@ -739,9 +779,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// and <see cref="perMessageTimeout"/>. Used directly by the CommonMessages phases above; DC/AC
         /// subclasses call <see cref="ExchangeRaw"/> instead since they need a different result type.
         /// </summary>
-        private async Task<TRes> Exchange<TRes>(MessageSet expectedSet, Func<byte[], int> encode, CancellationToken ct)
+        private async Task<TRes> Exchange<TRes>(MessageSet expectedSet, Func<byte[], int> encode, CancellationToken ct,
+                                                TimeSpan? budget = null)
         {
-            var (set, message) = await ExchangeRaw(expectedSet, encode, ct).ConfigureAwait(false);
+            var (set, message) = await ExchangeRaw(expectedSet, encode, ct, budget).ConfigureAwait(false);
             if (message is not TRes reply)
                 throw new SessionAborted($"expected a {typeof(TRes).Name} on {expectedSet}, got {message.GetType().Name} on {set}.");
             return reply;
@@ -787,16 +828,42 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         }
 
 
-        protected async Task<(MessageSet Set, object Message)> ExchangeRaw(MessageSet expectedSet, Func<byte[], int> encode, CancellationToken ct)
+        /// <param name="budget">The <c>V2G_EVCC_Msg_Timeout</c> this exchange is governed by, or null for
+        /// the ordinary one. See <see cref="ChargeLoopMsgTimeout"/> for which messages deviate and why.</param>
+        protected async Task<(MessageSet Set, object Message)> ExchangeRaw(MessageSet expectedSet, Func<byte[], int> encode,
+                                                                           CancellationToken ct, TimeSpan? budget = null)
         {
             int reqLen = encode(_buf);
             var start = clock.GetUtcNow();
+            var wait  = budget ?? perMessageTimeout;
             await V2GTPStream.WriteFrameAsync(stream, expectedSet, _buf.AsMemory(0, reqLen), ct).ConfigureAwait(false);
-            var (set, message) = await V2GTPStream.ReadFrameAsync(stream, ct).ConfigureAwait(false);
+
+            // Bound the read itself rather than measuring afterwards. Until 2026-08-11 this awaited
+            // ReadFrameAsync with no budget and *then* compared the elapsed time, so the timeout caught an
+            // answer that arrived late and never a station that simply stopped answering — that one held
+            // the car until the session-level token fired, minutes in a live run. Same defect and same fix
+            // as Secc20Base.RunAsync's read budget, one side of the wire over.
+            MessageSet set;
+            object message;
+            using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+            {
+                readCts.CancelAfter(wait);
+                try
+                {
+                    (set, message) = await V2GTPStream.ReadFrameAsync(stream, readCts.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) when (readCts.IsCancellationRequested && !ct.IsCancellationRequested)
+                {
+                    throw new SessionAborted($"no response within {wait.TotalMilliseconds:0} ms.");
+                }
+            }
+
             var elapsed = clock.GetUtcNow() - start;
 
-            if (elapsed > perMessageTimeout)
-                throw new SessionAborted($"no response within {perMessageTimeout.TotalMilliseconds:0} ms (took {elapsed.TotalMilliseconds:0} ms).");
+            // Kept as well: a clock the read budget cannot see (a ManualTimeProvider in the timing tests)
+            // still has to be able to fail an over-long exchange.
+            if (elapsed > wait)
+                throw new SessionAborted($"no response within {wait.TotalMilliseconds:0} ms (took {elapsed.TotalMilliseconds:0} ms).");
 
             RefuseOnFailure(message);
 

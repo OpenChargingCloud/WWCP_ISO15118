@@ -201,6 +201,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// it is the phase in which the contactor is closed.
         /// </para>
         /// </remarks>
+        /// <summary>
+        /// The SessionID this car puts in every request <b>after</b> SessionSetup, instead of the one the
+        /// station issued. Null (the default) is what a conformant car does and what every recorded
+        /// session contains. The `-20` twin of <c>Evcc2.SendSessionId</c>.
+        /// </summary>
+        /// <remarks>
+        /// `[V2G20-460]` — any request except <c>SessionSetupReq</c> whose SessionID is not the stored one
+        /// shall be answered <c>FAILED_UnknownSession</c> — is unreachable from a session unless a car can
+        /// send a wrong one, which is why nothing here had ever exercised it. Eight zero bytes are the
+        /// interesting value: that is what ISO reserves for *"I have no session"*, and what a station's
+        /// decoder is likeliest to special-case.
+        /// </remarks>
+        public byte[]? SendSessionId { get; set; }
+
         public TimeSpan? GoSilentInChargeLoop { get; set; }
 
         /// <summary>How long the station kept the session after this car stopped sending, or null when it
@@ -552,6 +566,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // all-zero id the EVCC opens SessionSetup with (ISO 15118-20 §7.9.2.4). A live Josev interop run
             // caught this — Josev's SECC strictly rejects a mismatched session id (our loopback SECC did not).
             SessionCtx.SessionId = setupRes.Header.SessionID;
+
+            // …and only now, so SessionSetupReq itself keeps the id [V2G20-460] excludes from the rule.
+            SessionCtx.SendSessionIdOverride = SendSessionId;
 
             if (SessionSetupCode == ResponseCode.OK_OldSessionJoined)
                 JoinOldSession();

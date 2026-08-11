@@ -94,6 +94,28 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         public byte[]? ResumeSessionId { get; set; }
 
         /// <summary>
+        /// The SessionID this car puts in every request <b>after</b> SessionSetup, instead of the one the
+        /// station issued. Null (the default) means "the one we were given", which is what a conformant car
+        /// does and what every recorded session contains.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// This exists so a station's `[V2G2-460]` handling is reachable from a session at all. Until
+        /// 2026-08-11 no test or interop run of this suite could send a wrong SessionID, so **no run had ever
+        /// exercised any station's duty to refuse one** — ours included, which turned out not to implement it.
+        /// The same shape as <c>Evcc20Base.RequestMeterInfo</c> and the running-limit clamp before it: a
+        /// question the car could not ask, hiding an answer nobody checked.
+        /// </para>
+        /// <para>
+        /// Eight zero bytes are the interesting value rather than a random one — that is what ISO reserves
+        /// for *"I have no session"*, what a station's decoder is likeliest to special-case, and what
+        /// EVerest's `EvseV2G` was measured serving as if it were the session owner
+        /// (<c>docs/reports/everest-evsev2g-session-id-zero.md</c>).
+        /// </para>
+        /// </remarks>
+        public byte[]? SendSessionId { get; set; }
+
+        /// <summary>
         /// What a paused predecessor already charged, so this session asks for the remainder:
         /// <c>[V2G2-743]</c> requires <c>EAmount</c> on a resume to be reduced by the energy already
         /// charged.
@@ -463,7 +485,16 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
         private async Task<T> Send<T>(BodyBaseType requestBody, CancellationToken ct, SignatureType? signature = null) where T : BodyBaseType
         {
-            var header = new MessageHeaderType(_sid, Notification: null, Signature: signature);
+            // Opt-in, and the default (null) is the id the station gave us — so every recorded session and
+            // every vector keeps the bytes it was recorded with, the shape of Battery and
+            // TransportSecurity.Unknown. SessionSetupReq is deliberately exempt: that is the one message
+            // [V2G2-460] excludes, where the id means "new" or "resume" rather than "mine", and overriding
+            // it there would open a different session instead of testing this one.
+            var sid = SendSessionId is not null && requestBody is not SessionSetupReqType
+                          ? SendSessionId
+                          : _sid;
+
+            var header = new MessageHeaderType(sid, Notification: null, Signature: signature);
             var request = new V2G_Message(header, new BodyType(requestBody));
             if (!request.TryEncode(_buf, out int reqLen))
                 throw new InvalidOperationException("EXI encode failed (buffer too small?).");

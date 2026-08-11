@@ -49,6 +49,26 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
     public sealed record Iso2ProfileResult(bool TupleIdOk, bool WithinPMax, byte TupleId, int ProfileEntries);
 
     /// <summary>
+    /// Outcome of a live -2 contract-provisioning exchange (§7.9.2.4): whether the EV's signature over its
+    /// own request verified (and under which <c>SignedInfo</c> grammar — see <see cref="Iso2PnCResult"/>),
+    /// whose certificate signed it, and whether the issued contract key could be <b>encrypted for</b> that
+    /// certificate's key.
+    /// </summary>
+    /// <param name="ReceiverSubject">
+    /// The subject of the certificate the answer is wrapped for: the OEM provisioning certificate for an
+    /// installation, the <em>expiring contract certificate</em> for an update. That difference is what
+    /// makes an update self-authenticating — only the holder of the old contract key can open the new one.
+    /// </param>
+    /// <param name="Chain">How that certificate fared against the configured V2G roots, or
+    /// <c>ChainResult.NotConfigured</c> when none were given. Note that -2 sends the OEM certificate
+    /// <b>alone</b>, with no sub-certificates, where -20 sends a chain — so there is less to validate here
+    /// and a station without the exact issuing CA cannot build a path at all.</param>
+    /// <param name="IsUpdate">Whether this was a <c>CertificateUpdateReq</c> rather than an installation.</param>
+    public sealed record Iso2CertInstallResult(bool DigestOk, bool SignatureOk, string SignatureGrammar,
+                                               string ReceiverSubject, bool EncryptedForReceiver,
+                                               ChainResult Chain, bool IsUpdate);
+
+    /// <summary>
     /// The charge point (SECC) side of an ISO 15118-2 session — a <b>sequence-guarded</b> responder. It
     /// advances through the charging state machine and only accepts the request expected next; anything
     /// out of order is answered with <c>ResponseCode.FAILED_SequenceError</c> in that request's own
@@ -71,7 +91,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
     {
         private enum Phase
         {
-            SessionSetup, ServiceDiscovery, PaymentSelection, PaymentDetails, Authorization, ChargeParams,
+            SessionSetup, ServiceDiscovery, PaymentSelection, CertificateProvisioning, PaymentDetails,
+            Authorization, ChargeParams,
             CableCheck, PreCharge, PowerOn, Charging, WeldingDetection, SessionStop, Done,
         }
 
@@ -170,6 +191,38 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// against PMax); null until the EV sends one.</summary>
         public Iso2ProfileResult? ChargingProfileCheck { get; private set; }
 
+        // ── contract provisioning (§7.9.2.4) ──
+
+        /// <summary>The ServiceID this station gives its certificate service. 2 by convention — 1 is the
+        /// charge service — and the number the EV names again in its PaymentServiceSelection.</summary>
+        public const ushort CertificateServiceId = 2;
+
+        /// <summary>Parameter set 1 of the certificate service: <c>Installation</c>, for a car with no
+        /// contract yet.</summary>
+        public const short CertificateInstallationParameterSetId = 1;
+
+        /// <summary>Parameter set 2: <c>Update</c>, for a car whose contract is running out.</summary>
+        public const short CertificateUpdateParameterSetId = 2;
+
+        /// <summary>
+        /// Whether this station offers contract provisioning at all — <b>off by default</b>.
+        /// </summary>
+        /// <remarks>
+        /// Opt-in for two reasons. A station that advertises a certificate service it cannot fulfil is
+        /// lying to every car that reads its ServiceDiscoveryRes, and the base implementation here issues a
+        /// throwaway dev contract, which is a demo answer rather than a real one. And left off, the wire
+        /// output is byte-for-byte what it always was: the ServiceList stays absent, so nothing that
+        /// records or replays a -2 session has to be regenerated for a feature it does not use.
+        /// </remarks>
+        public bool OfferCertificateService { get; set; }
+
+        /// <summary>Whether the EV took the certificate service up in its PaymentServiceSelection.</summary>
+        public bool CertificateServiceSelected { get; private set; }
+
+        /// <summary>The result of handling a <c>CertificateInstallationReq</c> or <c>CertificateUpdateReq</c>,
+        /// if the EV sent one; null otherwise.</summary>
+        public Iso2CertInstallResult? CertInstall { get; private set; }
+
         /// <summary>Virtual for the same reason <see cref="Iso20.Secc20Base.Handle"/> is: a test that has to
         /// assert on what the car <em>sent</em>, rather than on the session merely completing, needs a
         /// station that keeps its requests. The -20 side has had one since 2026-08-03; -2 had no way to
@@ -265,11 +318,32 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             (Phase.ServiceDiscovery, ServiceDiscoveryReqType) =>
                 (Discovery(), Phase.PaymentSelection),
 
+            // ServiceDetail is optional and repeatable, and it is how an EV learns what a value-added
+            // service offers before selecting it — here, that parameter set 1 installs a contract and 2
+            // updates one. It answers without moving: the EV may ask about several services, or none.
+            (Phase.PaymentSelection, ServiceDetailReqType r) =>
+                (ServiceDetail(r), Phase.PaymentSelection),
+
             // Contract (Plug & Charge) inserts the PaymentDetails exchange before Authorization;
-            // ExternalPayment (EIM) goes straight to Authorization.
+            // ExternalPayment (EIM) goes straight to Authorization. A car that also took up the
+            // certificate service provisions first — it has no contract to present until it has.
             (Phase.PaymentSelection, PaymentServiceSelectionReqType r) =>
-                (new PaymentServiceSelectionResType(ResponseCode.OK),
-                 (_contract = r.SelectedPaymentOption == PaymentOption.Contract) ? Phase.PaymentDetails : Phase.Authorization),
+                PaymentSelection(r),
+
+            // §7.9.2.4: the two provisioning messages are alternatives, sent once, between the service
+            // selection and PaymentDetails. Installation is for a car that has no contract; Update renews
+            // one that is running out.
+            (Phase.CertificateProvisioning, CertificateInstallationReqType r) =>
+                (CertificateInstallation(r), AfterProvisioning()),
+
+            (Phase.CertificateProvisioning, CertificateUpdateReqType r) =>
+                (CertificateUpdate(r), AfterProvisioning()),
+
+            // A car that asked for the service and then changed its mind is not out of sequence: the
+            // service is an offer, not an obligation ([V2G2-680] makes the exchange optional even once
+            // selected). Let it carry on with the contract it already had.
+            (Phase.CertificateProvisioning, PaymentDetailsReqType r) =>
+                (PaymentDetails(r), Phase.Authorization),
 
             (Phase.PaymentDetails, PaymentDetailsReqType r) =>
                 (PaymentDetails(r), Phase.Authorization),
@@ -404,12 +478,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 WeldingDetectionReqType         => new WeldingDetectionResType(code, DcEvseStatus(), Volt(0)),
 
                 // The two certificate messages are the exception, and the reason is their content rather
-                // than their sequence: a CertificateInstallationRes/CertificateUpdateRes is a contract chain,
-                // an encrypted private key, a DH public key and an eMAID, none of which can be fabricated to
-                // carry a refusal. This station advertises no certificate service either (ServiceList is
-                // null in Discovery), so an EV asking for one is outside what it was offered — which is a
-                // stronger objection than "not now" and is raised as one. Anything else reaching here is not
-                // a request at all.
+                // than their sequence: a CertificateInstallationRes/CertificateUpdateRes is a contract
+                // chain, an encrypted private key, a DH public key and an eMAID, none of which can be
+                // fabricated to carry a refusal — the schema makes all four mandatory. So a provisioning
+                // message that arrives in the wrong phase, or at a station not offering the service, ends
+                // the session rather than being answered with something untrue. Anything else reaching
+                // here is not a request at all.
                 _ => throw new SessionAborted(
                          $"SECC refusal guard: {req.GetType().Name.Replace("Type", "")} cannot be answered " +
                          $"in phase {_phase}, because no response of its own type can be built to carry {code}."),
@@ -468,7 +542,301 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     {
                         mode == PowerMode.Dc ? EnergyTransferMode.DC_extended : EnergyTransferMode.AC_three_phase_core,
                     })),
-                ServiceList: null);
+                // Contract provisioning is a *value-added service* in -2, not part of the charge service —
+                // which is why offering it takes a ServiceList entry the EV then selects by id, where -20
+                // simply sets a boolean in its AuthorizationSetupRes. Absent unless switched on, so the
+                // frame is byte-identical to every session this station answered before.
+                ServiceList: OfferCertificateService
+                                 ? new ServiceListType(new[]
+                                   {
+                                       new ServiceType(CertificateServiceId, "Certificate",
+                                                       ServiceCategory.ContractCertificate,
+                                                       ServiceScope: null, FreeService: true),
+                                   })
+                                 : null);
+
+        /// <summary>
+        /// What the certificate service offers, as the two parameter sets §7.9.2.4 names: 1 installs a
+        /// contract, 2 updates one. Any other service id is answered <c>FAILED_ServiceIDInvalid</c> —
+        /// the EV asked about something this station never listed.
+        /// </summary>
+        private BodyBaseType ServiceDetail(ServiceDetailReqType request)
+        {
+
+            if (!OfferCertificateService || request.ServiceID != CertificateServiceId)
+                return new ServiceDetailResType(ResponseCode.FAILED_ServiceIDInvalid, request.ServiceID,
+                                                ServiceParameterList: null);
+
+            return new ServiceDetailResType(ResponseCode.OK, request.ServiceID,
+                new ServiceParameterListType(new[]
+                {
+                    new ParameterSetType(CertificateInstallationParameterSetId, new[] { ServiceParameter("Installation") }),
+                    new ParameterSetType(CertificateUpdateParameterSetId,       new[] { ServiceParameter("Update") }),
+                }));
+
+            static ParameterType ServiceParameter(string value) =>
+                new("Service", BoolValue: null, ByteValue: null, ShortValue: null, IntValue: null,
+                    PhysicalValue: null, StringValue: value);
+
+        }
+
+        /// <summary>
+        /// The payment option and, with it, whether this car is going to provision a contract first.
+        /// </summary>
+        private (BodyBaseType, Phase) PaymentSelection(PaymentServiceSelectionReqType request)
+        {
+
+            _contract = request.SelectedPaymentOption == PaymentOption.Contract;
+
+            CertificateServiceSelected =
+                OfferCertificateService &&
+                request.SelectedServiceList.SelectedService.Any(s => s.ServiceID == CertificateServiceId);
+
+            return (new PaymentServiceSelectionResType(ResponseCode.OK),
+                    CertificateServiceSelected ? Phase.CertificateProvisioning
+                  : _contract                  ? Phase.PaymentDetails
+                                               : Phase.Authorization);
+
+        }
+
+        /// <summary>Where a provisioned car goes next — the same place it would have gone without the
+        /// detour, since provisioning replaces no step, it only precedes one.</summary>
+        private Phase AfterProvisioning() => _contract ? Phase.PaymentDetails : Phase.Authorization;
+
+        /// <summary>
+        /// One <c>CertificateInstallationReq</c>: verify that the car is the car its manufacturer built,
+        /// then hand out a contract wrapped for that car's OEM key.
+        /// </summary>
+        private BodyBaseType CertificateInstallation(CertificateInstallationReqType request)
+        {
+
+            using var oemLeaf = LoadOrNull(request.OEMProvisioningCert);
+            using var verifyKey = oemLeaf?.GetECDsaPublicKey();
+
+            var buf = new byte[4096];
+            bool fragOk = Iso2Codec.EncodeFragment_CertificateInstallationReq(request, buf, out int n);
+            var (digestOk, signatureOk, grammar) = VerifyBodySignature(fragOk ? buf.AsSpan(0, n) : default, verifyKey);
+
+            // -2 sends the OEM certificate alone — there are no sub-certificates in the message — so the
+            // most a validator can do is check that leaf against the configured roots directly.
+            var chain = oemLeaf is not null && ContractChainValidator is not null
+                            ? ContractChainValidator.Validate(oemLeaf, null)
+                            : ChainResult.NotConfigured;
+
+            // Recorded before the seam is asked, not after: what an override most needs to know is whether
+            // the car proved anything, and a backend that only learns it afterwards has already answered.
+            CertInstall = new Iso2CertInstallResult(digestOk, signatureOk, grammar,
+                                                    oemLeaf?.Subject ?? "?",
+                                                    EncryptedForReceiver(oemLeaf),
+                                                    chain, IsUpdate: false);
+
+            var (response, signature) = IssueContract(request, oemLeaf);
+            _responseSignature = signature;
+            return response;
+
+        }
+
+        /// <summary>
+        /// One <c>CertificateUpdateReq</c>: the same shape, with the expiring contract in place of the OEM
+        /// certificate. That substitution is the whole security argument for an update — the answer is
+        /// wrapped for the old contract's key, so only the car that already held that contract can open it.
+        /// </summary>
+        private BodyBaseType CertificateUpdate(CertificateUpdateReqType request)
+        {
+
+            using var contractLeaf = LoadOrNull(request.ContractSignatureCertChain.Certificate);
+            using var verifyKey = contractLeaf?.GetECDsaPublicKey();
+
+            var buf = new byte[4096];
+            bool fragOk = Iso2Codec.EncodeFragment_CertificateUpdateReq(request, buf, out int n);
+            var (digestOk, signatureOk, grammar) = VerifyBodySignature(fragOk ? buf.AsSpan(0, n) : default, verifyKey);
+
+            var chain = contractLeaf is not null && ContractChainValidator is not null
+                            ? ContractChainValidator.Validate(contractLeaf, request.ContractSignatureCertChain.SubCertificates?.Certificate)
+                            : ChainResult.NotConfigured;
+
+            CertInstall = new Iso2CertInstallResult(digestOk, signatureOk, grammar,
+                                                    contractLeaf?.Subject ?? "?",
+                                                    EncryptedForReceiver(contractLeaf),
+                                                    chain, IsUpdate: true);
+
+            var (response, signature) = RenewContract(request, contractLeaf);
+            _responseSignature = signature;
+            return response;
+
+        }
+
+        /// <summary>
+        /// The contract a <c>CertificateInstallationReq</c> is answered with, and the header signature that
+        /// goes with it — <b>override to let a backend issue it</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// A charging station has no business minting contract certificates: a contract belongs to a
+        /// Mobility Operator, and the answer is really assembled by a Certificate Provisioning Service on
+        /// the far side of the operator's backend. The station is in the path only because it is the one
+        /// thing the car can reach. What this class does by default is therefore a <em>dev</em> contract —
+        /// fresh keys, self-signed — which is right for a loopback demo and right for nothing else.
+        /// </para>
+        /// <para>
+        /// Response and signature together, because they cannot be produced apart: the signature covers
+        /// four elements <em>of the response</em> (§7.9.2.4.2), so whoever builds the one has to build the
+        /// other. An override returning a backend's message brings the backend's signature with it.
+        /// </para>
+        /// </remarks>
+        /// <param name="receiverCertificate">The OEM provisioning certificate the answer must be wrapped
+        /// for, or <c>null</c> if it could not be read — in which case an implementation has nobody to wrap
+        /// for and can only fill the mandatory fields.</param>
+        protected virtual (CertificateInstallationResType Response, SignatureType Signature) IssueContract(
+            CertificateInstallationReqType request, X509Certificate2? receiverCertificate)
+        {
+            var (chain, encryptedKey, dhPublicKey, emaid) = DevContract(receiverCertificate);
+            return SignInstallation(new CertificateInstallationResType(
+                       ResponseCode.OK, ProvisioningCertificateChain(), chain, encryptedKey, dhPublicKey, emaid));
+        }
+
+        /// <summary>The renewal counterpart of <see cref="IssueContract"/>; see there for why this is a
+        /// seam at all.</summary>
+        /// <param name="receiverCertificate">The <em>expiring contract</em> certificate — an update is
+        /// wrapped for the credential it replaces.</param>
+        protected virtual (CertificateUpdateResType Response, SignatureType Signature) RenewContract(
+            CertificateUpdateReqType request, X509Certificate2? receiverCertificate)
+        {
+            var (chain, encryptedKey, dhPublicKey, emaid) = DevContract(receiverCertificate, request.EMAID);
+            return SignUpdate(new CertificateUpdateResType(
+                       ResponseCode.OK, ProvisioningCertificateChain(), chain, encryptedKey, dhPublicKey, emaid,
+                       // Nothing here tracks how often a car has renewed, and inventing a countdown would
+                       // be inventing a policy. Absent says "no opinion", which is the truth.
+                       RetryCounter: null));
+        }
+
+        /// <summary>
+        /// Mints a throwaway contract and wraps its private key for <paramref name="receiverCertificate"/>.
+        /// The four signed elements of either response, in the order §7.9.2.4.2 signs them.
+        /// </summary>
+        private (CertificateChainType Chain, ContractSignatureEncryptedPrivateKeyType Key,
+                 DiffieHellmanPublickeyType DhPublicKey, EMAIDType Emaid) DevContract(
+            X509Certificate2? receiverCertificate, string? emaid = null)
+        {
+
+            emaid ??= "DE-VAN-C00000001-6";
+
+            using var contractKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            using var contractCert = new CertificateRequest($"CN={emaid}, O=Vanaheimr (dev)", contractKey,
+                                                            HashAlgorithmName.SHA256)
+                                         .CreateSelfSigned(clock.GetUtcNow().AddMinutes(-5),
+                                                           clock.GetUtcNow().AddYears(2));
+
+            byte[] dhPublicKey, wrapped;
+            var receiverAgreement = ReceiverAgreement(receiverCertificate);
+            if (receiverAgreement is not null)
+            {
+                using (receiverAgreement)
+                    (dhPublicKey, wrapped) = ContractProvisioning.EncryptContractKey(receiverAgreement.PublicKey, contractKey);
+            }
+            else
+            {
+                // No usable P-256 key agreement on the receiving certificate. The fields are mandatory, so
+                // they are filled for a throwaway recipient and the car cannot open them — recorded in
+                // CertInstall.EncryptedForReceiver rather than left for it to discover.
+                using var throwaway = ECDiffieHellman.Create(ECCurve.NamedCurves.nistP256);
+                (dhPublicKey, wrapped) = ContractProvisioning.EncryptContractKey(throwaway.PublicKey, contractKey);
+            }
+
+            return (new CertificateChainType("id1", contractCert.RawData, SubCertificates: null),
+                    new ContractSignatureEncryptedPrivateKeyType("id2", wrapped),
+                    new DiffieHellmanPublickeyType("id3", dhPublicKey),
+                    new EMAIDType("id4", emaid));
+
+        }
+
+        /// <summary>
+        /// The Secondary Actor's own chain, which the car checks the response's signature against. Self-signed
+        /// here for the same reason the contract is: a real one belongs to a provisioning service.
+        /// </summary>
+        private CertificateChainType ProvisioningCertificateChain()
+        {
+            _provisioningKey ??= ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            _provisioningCert ??= new CertificateRequest("CN=Vanaheimr SA (dev)", _provisioningKey,
+                                                         HashAlgorithmName.SHA256)
+                                      .CreateSelfSigned(clock.GetUtcNow().AddMinutes(-5),
+                                                        clock.GetUtcNow().AddYears(2));
+            return new CertificateChainType(Id: null, _provisioningCert.RawData, SubCertificates: null);
+        }
+
+        private ECDsa? _provisioningKey;
+        private X509Certificate2? _provisioningCert;
+
+        /// <summary>Signs the four elements of a CertificateInstallationRes with the provisioning key.</summary>
+        private (CertificateInstallationResType, SignatureType) SignInstallation(CertificateInstallationResType response) =>
+            (response, SignProvisioning(response.ContractSignatureCertChain,
+                                        response.ContractSignatureEncryptedPrivateKey,
+                                        response.DHpublickey, response.EMAID));
+
+        private (CertificateUpdateResType, SignatureType) SignUpdate(CertificateUpdateResType response) =>
+            (response, SignProvisioning(response.ContractSignatureCertChain,
+                                        response.ContractSignatureEncryptedPrivateKey,
+                                        response.DHpublickey, response.EMAID));
+
+        /// <summary>
+        /// The provisioning signature: one header signature over <b>four</b> references — the contract
+        /// chain, the encrypted key, the DH public key and the eMAID (§7.9.2.4.2). Four, where every other
+        /// signed message in -2 has one, and each element carries its own <c>Id</c> for the reference URI.
+        /// </summary>
+        private SignatureType SignProvisioning(CertificateChainType chain,
+                                               ContractSignatureEncryptedPrivateKeyType key,
+                                               DiffieHellmanPublickeyType dhPublicKey,
+                                               EMAIDType emaid)
+        {
+
+            _provisioningKey ??= ECDsa.Create(ECCurve.NamedCurves.nistP256);
+
+            var buf = new byte[4096];
+            var references = new List<(string, byte[])>();
+
+            if (Iso2Codec.EncodeFragment_ContractSignatureCertChain(chain, buf, out int n1))
+                references.Add((chain.Id!, V2GSignature.Digest(buf.AsSpan(0, n1))));
+            if (Iso2Codec.EncodeFragment_ContractSignatureEncryptedPrivateKey(key, buf, out int n2))
+                references.Add((key.Id, V2GSignature.Digest(buf.AsSpan(0, n2))));
+            if (Iso2Codec.EncodeFragment_DHpublickey(dhPublicKey, buf, out int n3))
+                references.Add((dhPublicKey.Id, V2GSignature.Digest(buf.AsSpan(0, n3))));
+            if (Iso2Codec.EncodeFragment_eMAID(emaid, buf, out int n4))
+                references.Add((emaid.Id, V2GSignature.Digest(buf.AsSpan(0, n4))));
+
+            if (references.Count != 4)
+                throw new InvalidOperationException("provisioning response: not all four signed elements encoded.");
+
+            var signedInfo = V2GSignature.BuildSignedInfo(references, includeExiTransform: true);
+            return V2GSignature.BuildSignature(signedInfo, V2GSignature.Sign(signedInfo, _provisioningKey));
+
+        }
+
+        /// <summary>The receiving certificate's key-agreement handle, but only on the curve -2 provisioning
+        /// uses; <c>null</c> for any other curve, a non-EC key, or a certificate that would not load.</summary>
+        private static ECDiffieHellman? ReceiverAgreement(X509Certificate2? certificate)
+        {
+            var agreement = certificate?.GetECDiffieHellmanPublicKey();
+            if (agreement is null)
+                return null;
+            if (agreement.KeySize == 256)
+                return agreement;
+
+            agreement.Dispose();
+            return null;
+        }
+
+        private static bool EncryptedForReceiver(X509Certificate2? certificate)
+        {
+            var agreement = ReceiverAgreement(certificate);
+            agreement?.Dispose();
+            return agreement is not null;
+        }
+
+        private static X509Certificate2? LoadOrNull(byte[] der)
+        {
+            try { return X509CertificateLoader.LoadCertificate(der); }
+            catch (CryptographicException) { return null; }
+        }
 
         private BodyBaseType ChargeParams() =>
             new ChargeParameterDiscoveryResType(ResponseCode.OK, EVSEProcessing.Finished,
@@ -886,17 +1254,27 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>The shared verify half: reference digest of <paramref name="fragment"/> against the
         /// request header's signature, then ECDSA over the SignedInfo — first our combined -2 grammar
         /// (<c>V2GSignature</c>), then the Josev standalone-xmldsig fallback.</summary>
-        private (bool DigestOk, bool SignatureOk, string Grammar) VerifyBodySignature(ReadOnlySpan<byte> fragment)
+        private (bool DigestOk, bool SignatureOk, string Grammar) VerifyBodySignature(ReadOnlySpan<byte> fragment) =>
+            VerifyBodySignature(fragment, _contractKey);
+
+        /// <summary>
+        /// The same check against a key that is not the contract's. Contract provisioning needs it: a car
+        /// asking for its first contract signs with the <em>OEM</em> key, and one asking for a renewal signs
+        /// with the expiring contract's — neither of which is <c>_contractKey</c>, which is only stored at
+        /// PaymentDetails and so does not exist yet at that point in the session.
+        /// </summary>
+        private (bool DigestOk, bool SignatureOk, string Grammar) VerifyBodySignature(ReadOnlySpan<byte> fragment,
+                                                                                      ECDsa? verifyKey)
         {
             if (fragment.IsEmpty || _requestHeader?.Signature is not { } sig
-                || sig.SignedInfo.Reference.Count == 0 || _contractKey is null)
+                || sig.SignedInfo.Reference.Count == 0 || verifyKey is null)
                 return (false, false, "none");
 
             bool digestOk = V2GSignature.VerifyReference(sig.SignedInfo.Reference[0], fragment);
 
-            if (V2GSignature.Verify(sig.SignedInfo, sig.SignatureValue.Value, _contractKey))
+            if (V2GSignature.Verify(sig.SignedInfo, sig.SignatureValue.Value, verifyKey))
                 return (digestOk, true, "iso2-msgdef");
-            if (XmlDsigInterop2.VerifyStandaloneXmldsig(sig.SignedInfo, sig.SignatureValue.Value, _contractKey))
+            if (XmlDsigInterop2.VerifyStandaloneXmldsig(sig.SignedInfo, sig.SignatureValue.Value, verifyKey))
                 return (digestOk, true, "xmldsig-standalone");
             return (digestOk, false, "none");
         }

@@ -104,13 +104,30 @@ namespace cloud.charging.open.protocols.ISO15118_2
 
         /// <summary>Encodes a <see cref="SignedInfoType"/> as its EXI fragment — the exact octets that are
         /// SHA-256'd and signed (or verified).</summary>
+        /// <remarks>
+        /// The growth loop catches rather than tests, and that is not belt-and-braces: a generated
+        /// <c>EncodeFragment_*</c> signals a full buffer by letting <c>BitWriter</c> throw
+        /// <see cref="IndexOutOfRangeException"/>, and returns <c>false</c> only for a destination too
+        /// small to hold even the EXI header byte. So the <c>if</c> this loop used to spin on never came
+        /// back false and the doubling was unreachable — 512 bytes was in truth a hard limit that threw.
+        /// Nothing noticed while every signed -2 message had a single Reference; the first four-reference
+        /// SignedInfo (a CertificateInstallationRes, §7.9.2.4.2) does not fit and found it.
+        /// </remarks>
         public static byte[] SignedInfoFragment(SignedInfoType signedInfo)
         {
-            var buf = new byte[512];
+            var buf = new byte[1024];
             while (true)
             {
-                if (Iso2Codec.EncodeFragment_SignedInfo(signedInfo, buf, out int n))
-                    return buf.AsSpan(0, n).ToArray();
+                try
+                {
+                    if (Iso2Codec.EncodeFragment_SignedInfo(signedInfo, buf, out int n))
+                        return buf.AsSpan(0, n).ToArray();
+                }
+                catch (IndexOutOfRangeException)
+                { /* the buffer was too small; the only way the encoder says so */ }
+
+                if (buf.Length >= 1 << 20)
+                    throw new InvalidOperationException("SignedInfo fragment: encode failed even at 1 MiB.");
                 buf = new byte[buf.Length * 2];
             }
         }

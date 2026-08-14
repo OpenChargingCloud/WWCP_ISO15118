@@ -313,6 +313,24 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// the SECC itself answers whatever control mode the EV's requests carry, in kind.</summary>
         public bool PreferDynamicControlMode { get; set; }
 
+        /// <summary>Which control mode the EV actually ran — <c>true</c> Dynamic, <c>false</c> Scheduled,
+        /// <c>null</c> until its <c>ScheduleExchangeReq</c> has arrived.</summary>
+        /// <remarks>
+        /// <para>
+        /// <see cref="PreferDynamicControlMode"/> decides what this station <i>offers first</i>; this is what
+        /// the car did with the offer, and the two are different facts. Both modes are always advertised
+        /// (<c>[V2G20-2656]</c>), so an EV is free to take either — which means a session configured for
+        /// Dynamic completes exactly as happily when the peer runs Scheduled, and nothing on the wire
+        /// afterwards distinguishes the two. This station branched on the answer already
+        /// (<c>ScheduleExchange</c>, answering in kind per <c>[V2G20-1600]</c>) and had no way to say so.
+        /// </para>
+        /// <para>
+        /// Added 2026-08-14 for the first reverse Dynamic run, and it is the fourth instance that week of one
+        /// shape: <i>a value this side already held that no caller could reach</i>.
+        /// </para>
+        /// </remarks>
+        public bool? EvControlModeIsDynamic { get; private set; }
+
         public bool IsDone => Phase == Phase20.Done;
 
         /// <summary>DC: CableCheck+PreCharge run between ScheduleExchange and PowerDelivery(Start). AC: skipped.</summary>
@@ -1283,6 +1301,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // Answer in kind ([V2G20-1600]): a Dynamic-mode EV sends Dynamic_SEReqControlMode and must get a
             // Dynamic res (all fields optional — Processing=Finished is the actual signal); a Scheduled-mode
             // EV gets the schedule-tuple offer below.
+            // What the car chose, recorded before it is answered — see EvControlModeIsDynamic. This is the
+            // one message that carries the decision, so it is the only place it can be read.
+            EvControlModeIsDynamic = req.Dynamic_SEReqControlMode is not null;
+
             if (req.Dynamic_SEReqControlMode is not null)
                 return new(SessionCtx.ToCommonHeader(), ResponseCode.OK, Processing.Finished, GoToPause: false,
                     Dynamic_SEResControlMode: new Dynamic_SEResControlModeType(

@@ -1121,9 +1121,31 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// default suits AC, DC and MCS alike; override for the reduced/extended MCS variants.</summary>
         protected virtual int ConnectorParameter => 1;
 
-        private ServiceDiscoveryRes SvcDiscovery(ServiceDiscoveryReq req) =>
-            new(SessionCtx.ToCommonHeader(), ResponseCode.OK, ServiceRenegotiationSupported: true,
-                new ServiceListType(EnergyServiceIds.Select(id => new ServiceType(id, FreeService: true)).ToArray()), VASList: null);
+        /// <summary>The <c>SupportedServiceIDs</c> the EV sent in <c>ServiceDiscoveryReq</c>, or <c>null</c>
+        /// when it sent none — which Table 38 of `[V2G20-1248]` makes the ordinary case and defines as
+        /// *"send me everything"*.</summary>
+        /// <remarks>
+        /// Recorded rather than acted on, and the requirement side says that is right: Table 38 describes
+        /// the element as a filter the EV <i>can</i> use, and the sentence about returning a filtered list
+        /// sits on <c>VASList</c> in Table 39 (`[V2G20-1249]`) rather than on
+        /// <c>EnergyTransferServiceList</c> — and this station sends no VAS list at all. So answering with
+        /// the full energy-transfer catalogue is conformant with or without a filter.
+        /// <para>The same shape and the same reason as <see cref="MeterInfoRequestedByEv"/>: an optional
+        /// request field is invisible from both ends of a loopback unless the station writes down that it
+        /// arrived.</para>
+        /// </remarks>
+        public IReadOnlyList<ushort>? SupportedServiceIdsRequestedByEv { get; protected set; }
+
+        private ServiceDiscoveryRes SvcDiscovery(ServiceDiscoveryReq req)
+        {
+
+            SupportedServiceIdsRequestedByEv = req.SupportedServiceIDs?.ServiceID;
+
+            return new(SessionCtx.ToCommonHeader(), ResponseCode.OK, ServiceRenegotiationSupported: true,
+                       new ServiceListType(EnergyServiceIds.Select(id => new ServiceType(id, FreeService: true)).ToArray()),
+                       VASList: null);
+
+        }
 
         /// <summary>
         /// The standard -20 energy-transfer parameter sets. A live Josev EVCC requires at least the

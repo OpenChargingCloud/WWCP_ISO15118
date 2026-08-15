@@ -174,8 +174,43 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>How many renegotiation cycles this session ran (EV-initiated or SECC-requested).</summary>
         public int Renegotiations { get; private set; }
 
+        /// <summary>DC only: how many times this session ran <c>CableCheck</c>. One on the way in, and one
+        /// more per renegotiation — which is the whole of what
+        /// <see cref="RenegotiationNeedsIsolationSequence"/> changes, made visible, since a refusal that
+        /// never happens and a phase that is never entered look identical from outside.</summary>
+        public int IsolationSequences { get; private set; }
+
+        /// <summary>
+        /// DC only: after a renegotiation's <c>ChargeParameterDiscoveryRes</c>, expect
+        /// <c>CableCheckReq</c> and then <c>PreChargeReq</c> before <c>PowerDeliveryReq</c> — the same
+        /// path as on the way in. <b>True</b> by default, which is what the standard's DC state table
+        /// says; set false to restore the behaviour this station had until 2026-08-15.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// ISO 15118-2's SECC state table for DC gives <c>Process ChargeParameterDiscoveryReq</c> exactly
+        /// one successor — *Wait for CableCheckReq*, `[V2G2-565]` and `[V2G2-582]` — and carries no
+        /// renegotiation exception. This station used to hand a renegotiated session straight to
+        /// <c>PowerOn</c>, and <see cref="Evcc2"/> used to send exactly that, so the loopback agreed with
+        /// itself and neither side was ever asked the question.
+        /// </para>
+        /// <para>
+        /// <b>It took a counterparty being right to find it.</b> EVerest's <c>EvseV2G</c> answered our
+        /// short sequence <c>FAILED_SequenceError</c> on 2026-08-11; that was written up as their defect
+        /// and withdrawn on 2026-08-15 when the filing's own document gate was worked — see
+        /// <c>docs/reports/everest-evsev2g-renegotiation-cablecheck.md</c> and
+        /// <c>docs/normative-basis.md</c>. Their station had been conformant the whole time.
+        /// </para>
+        /// <para>
+        /// The switch exists so a test can put the old behaviour back and watch the new one fail, which is
+        /// the only way to know a guard is load-bearing. It is <b>not</b> a leniency knob for interop: a
+        /// station that accepts the short sequence is accepting a message its state table cannot admit.
+        /// </para>
+        /// </remarks>
+        public bool RenegotiationNeedsIsolationSequence { get; init; } = true;
+
         private bool _renegotiationSignalled;   // the notification is sent exactly once
-        private bool _renegotiated;             // post-renegotiation: CPD hands to PowerOn (no new CableCheck)
+        private bool _renegotiated;             // set by Renegotiate(); only RenegotiationNeedsIsolationSequence=false reads it
 
         // ── smart-charging state (see Schedules()) ──
         private SAScheduleListType? _offeredSchedules;   // what ChargeParameterDiscoveryRes offered
@@ -356,14 +391,19 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             (Phase.Authorization, AuthorizationReqType r) =>
                 AuthorizeStep(r),
 
-            // After a renegotiation the cable is already checked — the EV proceeds straight from the new
-            // ChargeParameterDiscovery to PowerDelivery(Start), DC included (a Josev EVCC does exactly that).
+            // DC goes to CableCheck after ChargeParameterDiscovery — after a renegotiation too, since
+            // 2026-08-15. The comment that stood here said "after a renegotiation the cable is already
+            // checked … a Josev EVCC does exactly that", and both halves were wrong: the state table has
+            // no such exception, and the Josev runs it appealed to were AC. See
+            // RenegotiationNeedsIsolationSequence.
             (Phase.ChargeParams, ChargeParameterDiscoveryReqType) =>
-                (ChargeParams(), mode == PowerMode.Dc && !_renegotiated ? Phase.CableCheck : Phase.PowerOn),
+                (ChargeParams(), mode == PowerMode.Dc && (RenegotiationNeedsIsolationSequence || !_renegotiated)
+                                     ? Phase.CableCheck
+                                     : Phase.PowerOn),
 
             // ── DC-only pre-charge sequence ──
             (Phase.CableCheck, CableCheckReqType) =>
-                (new CableCheckResType(ResponseCode.OK, DcEvseStatus(), EVSEProcessing.Finished), Phase.PreCharge),
+                (CableCheck(), Phase.PreCharge),
             (Phase.PreCharge, PreChargeReqType) =>
                 (new PreChargeResType(ResponseCode.OK, DcEvseStatus(), Volt(390)), Phase.PowerOn),
 
@@ -1174,6 +1214,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             _renegotiated = true;
             Renegotiations++;
             return PowerOnOrOff();
+        }
+
+        /// <summary>The DC isolation test, answered <c>Finished</c> in one step by this simulated station,
+        /// and counted — a second one in a session is the renegotiation return path having been walked.</summary>
+        private BodyBaseType CableCheck()
+        {
+            IsolationSequences++;
+            return new CableCheckResType(ResponseCode.OK, DcEvseStatus(), EVSEProcessing.Finished);
         }
 
         // ── Plug & Charge handlers ────────────────────────────────────────────

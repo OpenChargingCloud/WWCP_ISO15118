@@ -197,6 +197,27 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public byte[]? SendSessionId { get; set; }
 
         /// <summary>
+        /// The <c>SupportedServiceIDs</c> filter this car puts in <c>ServiceDiscoveryReq</c>. Null (the
+        /// default) omits the element, which asks the station to list <b>everything</b> — the ordinary
+        /// behaviour, and what every recorded session contains.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The element is optional and naming ids in it is exactly what it is for, so both settings are
+        /// conformant; this is a filter, not a deviation. Added 2026-08-15 for a station that cannot be
+        /// asked the ordinary question: eVDriveFlow's <c>process_service_discovery_request.py</c>
+        /// dereferences the optional element unconditionally and dies on <c>None</c>, so <b>every</b>
+        /// session this project ever drove against their SECC ended at the fifth message — see
+        /// <c>docs/reports/evdriveflow-service-discovery-filter.md</c>, which is filed about exactly that.
+        /// </para>
+        /// <para>
+        /// It is worth having beyond that one peer: a filter is the only way to ask a station what it
+        /// offers <i>within</i> a set, and nothing here could send one.
+        /// </para>
+        /// </remarks>
+        public IReadOnlyList<ushort>? SupportedServiceIds { get; set; }
+
+        /// <summary>
         /// <c>V2G_EVCC_Msg_Timeout</c> for a charge-loop request — how long this car waits for the
         /// station's answer once the contactor is closed. Tables 216, 217 and 218 all put it at
         /// <b>0,5 s</b> for <c>{AC,DC,WPT}_ChargeLoopReq</c>, against Table 215's 2 s for ordinary
@@ -570,7 +591,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // hardcoded ServiceID=1/ParameterSetID=1 (Josev's DC catalog offers neither) — our loopback SECC
             // happened to advertise exactly those, which masked it.
             var discovery = await Exchange<ServiceDiscoveryRes>(MessageSet.Iso20CommonMessages,
-                dest => new ServiceDiscoveryReq(SessionCtx.ToCommonHeader(), null).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+                dest => new ServiceDiscoveryReq(SessionCtx.ToCommonHeader(),
+                                                SupportedServiceIds is { Count: > 0 } ids
+                                                    ? new ServiceIDListType(ids)
+                                                    : null).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
             ushort serviceId = SelectEnergyTransferService(discovery);
             SelectedEnergyServiceId = serviceId;
 

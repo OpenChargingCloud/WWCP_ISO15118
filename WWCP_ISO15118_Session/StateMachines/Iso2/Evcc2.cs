@@ -172,9 +172,22 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         public byte[] SessionId => _sid;
 
         /// <summary>When set, the EV initiates one renegotiation on its own after the first charging-status
-        /// cycle (<c>PowerDeliveryReq(Renegotiate)</c> → new ChargeParameterDiscovery → PowerDelivery(Start)).
-        /// Independent of that, the EV always reacts to a SECC-side <c>EVSENotification.ReNegotiation</c>.</summary>
+        /// cycle (<c>PowerDeliveryReq(Renegotiate)</c> → new ChargeParameterDiscovery → the DC isolation
+        /// sequence → PowerDelivery(Start)). Independent of that, the EV always reacts to a SECC-side
+        /// <c>EVSENotification.ReNegotiation</c>.</summary>
         public bool Renegotiate { get; set; }
+
+        /// <summary>DC only: renegotiate the way this car did until 2026-08-15 — straight from the new
+        /// <c>ChargeParameterDiscovery</c> to <c>PowerDelivery(Start)</c>, skipping <c>CableCheck</c> and
+        /// <c>PreCharge</c>. <b>Off</b> by default, because it is the non-conformant sequence.</summary>
+        /// <remarks>
+        /// It exists to point a car that skips the isolation sequence at a station and see what the station
+        /// does — which is how the fix on both sides is shown to be load-bearing, and how the answer
+        /// EVerest's <c>EvseV2G</c> gave us on 2026-08-11 is reproduced against our own station. A run that
+        /// sets this is measuring a refusal, not charging: expect <c>FAILED_SequenceError</c> from any
+        /// station that implements the DC state table.
+        /// </remarks>
+        public bool RenegotiationSkipsIsolationSequence { get; set; }
 
         /// <summary>How many renegotiation cycles this session ran (own + SECC-requested).</summary>
         public int Renegotiations { get; private set; }
@@ -279,17 +292,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             await RunChargeParameterDiscovery(ct);
 
             if (mode == PowerMode.Dc)
-            {
-                var cableGuard = new OngoingGuard(clock, OngoingTimeout, "CableCheck");
-                while ((await Send<CableCheckResType>(new CableCheckReqType(EvStatus()), ct))
-                           .EVSEProcessing != EVSEProcessing.Finished)
-                {
-                    cableGuard.Tick();
-                    await pollDelay.Wait(PollInterval, ct);
-                }
-                await Send<PreChargeResType>(new PreChargeReqType(EvStatus(),
-                    EVTargetVoltage: Volt(400), EVTargetCurrent: Amp(2)), ct);
-            }
+                await RunDcIsolationSequence(ct);
 
             // ── CHARGE ─────────────────────────────────────────────────────────
             await Send<PowerDeliveryResType>(PowerDelivery(ChargeProgress.Start), ct);
@@ -347,6 +350,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     Renegotiations++;
                     await Send<PowerDeliveryResType>(PowerDelivery(ChargeProgress.Renegotiate), ct);
                     await RunChargeParameterDiscovery(ct);
+
+                    // DC returns through the isolation sequence, exactly as it did on the way in: the
+                    // SECC state table admits CableCheckReq after ChargeParameterDiscoveryReq and nothing
+                    // else ([V2G2-565], [V2G2-582]), with no renegotiation exception. Until 2026-08-15
+                    // this line was missing and the car went straight to PowerDelivery(Start) — which a
+                    // conformant station refuses, and EVerest's did. AC has no such phase and skips it.
+                    if (mode == PowerMode.Dc && !RenegotiationSkipsIsolationSequence)
+                        await RunDcIsolationSequence(ct);
+
                     await Send<PowerDeliveryResType>(PowerDelivery(ChargeProgress.Start), ct);
                 }
 
@@ -382,6 +394,42 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 await pollDelay.Wait(PollInterval, ct);
             }
             EvaluateSchedules(cpd);
+        }
+
+        /// <summary>DC only: the isolation sequence between <c>ChargeParameterDiscovery</c> and
+        /// <c>PowerDelivery</c> — <c>CableCheckReq</c> polled to <c>Finished</c>, then one
+        /// <c>PreChargeReq</c>.</summary>
+        /// <remarks>
+        /// <para>
+        /// A method rather than two inline blocks since 2026-08-15, because it is needed **twice**: on the
+        /// way in, and again after a renegotiation. ISO 15118-2's SECC state table for DC has exactly one
+        /// successor to <c>Process ChargeParameterDiscoveryReq</c> — *Wait for CableCheckReq*,
+        /// `[V2G2-565]` and `[V2G2-582]` — and no renegotiation exception, so the return path is the same
+        /// path.
+        /// </para>
+        /// <para>
+        /// <b>This was filed against somebody else first.</b> EVerest's <c>EvseV2G</c> answered our
+        /// short renegotiation <c>FAILED_SequenceError</c> on 2026-08-11 and that was written up as their
+        /// defect; working the filing's own document gate four days later refuted it. Their station was
+        /// right, our car was not, and our own station accepted the short sequence too — see
+        /// <c>Secc2.RenegotiationNeedsIsolationSequence</c>, added with this.
+        /// </para>
+        /// </remarks>
+        private async Task RunDcIsolationSequence(CancellationToken ct)
+        {
+
+            var cableGuard = new OngoingGuard(clock, OngoingTimeout, "CableCheck");
+
+            while ((await Send<CableCheckResType>(new CableCheckReqType(EvStatus()), ct))
+                       .EVSEProcessing != EVSEProcessing.Finished)
+            {
+                cableGuard.Tick();
+                await pollDelay.Wait(PollInterval, ct);
+            }
+
+            await Send<PreChargeResType>(new PreChargeReqType(EvStatus(),
+                EVTargetVoltage: Volt(400), EVTargetCurrent: Amp(2)), ct);
+
         }
 
         /// <summary>The EV-side smart-charging step over a finished ChargeParameterDiscoveryRes:

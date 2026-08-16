@@ -58,6 +58,34 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
     {
         private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(50);
 
+        /// <summary>
+        /// What the car waits between charge-loop iterations. Null (default) uses the same 50 ms as every
+        /// other poll in this class, which is what every recorded run was taken at.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Separate from <c>PollInterval</c> on purpose.</b> That one also paces the authorization poll,
+        /// <c>ChargeParameterDiscovery</c> and <c>CableCheck</c>, and those intervals are *measured against*
+        /// in this project — a counterparty's pacing is judged by how fast our side asks. Raising the shared
+        /// constant to make a session last longer would silently move the yardstick of every one of those
+        /// findings.
+        /// </para>
+        /// <para>
+        /// <b>What it is for.</b> One charge-loop iteration stands for
+        /// <see cref="Metering.ChargeLoopSample.Period"/> — one minute of simulated charging — so a
+        /// physically sensible charge is tens of iterations and, at 50 ms apart, is over in a second of wall
+        /// clock. A session somebody wants to *watch* against a live station needs the two clocks pulled
+        /// apart: this sets the real one, <see cref="Battery"/> sets how many iterations there are.
+        /// </para>
+        /// <para>
+        /// It cannot make a session non-conformant by being too slow in any interesting range:
+        /// ISO 15118-2 gives the SECC <c>V2G_SECC_SequenceTimeout</c> = 60 s, so seconds between requests
+        /// are ordinary. A value above that is the caller measuring a station's timeout, which is a
+        /// different run and has its own knob.
+        /// </para>
+        /// </remarks>
+        public TimeSpan? ChargeLoopInterval { get; set; }
+
         // 8 KiB: a PaymentDetailsReq carries the full 3-cert contract chain (~2 KiB).
         private readonly byte[] _buf = new byte[8192];
         private byte[] _sid = new byte[8];   // 0 until SessionSetupRes assigns one
@@ -394,7 +422,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                         BatteryStop = stop;
                 }
 
-                await pollDelay.Wait(PollInterval, ct);
+                await pollDelay.Wait(ChargeLoopInterval ?? PollInterval, ct);
             }
 
             await Send<PowerDeliveryResType>(PowerDelivery(ChargeProgress.Stop), ct);

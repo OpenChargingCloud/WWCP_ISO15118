@@ -82,14 +82,29 @@ public class TlsBackendSelectionTests
                     Is.EqualTo(TlsBackend.BouncyCastle));
     }
 
-    // BcV2GTlsClient/Server offer TLS 1.3 and nothing else, so a set without it would be answered with a
-    // version nobody asked for. Refused up front rather than negotiated behind the caller's back.
+    // This backend serves the two profiles pki-model.md defines and nothing else, so a set that is
+    // neither would be answered with a version nobody asked for. Refused up front rather than negotiated
+    // behind the caller's back.
+    //
+    // SslProtocols.Tls12 used to be a case of this test and is now the -2 profile: the backend grew
+    // TLS 1.2 on 2026-08-16 so our EV could send trusted_ca_keys ([V2G2-651]), which SslStream cannot.
+    // Updated rather than deleted — this is the third test that caught that widening, after
+    // TlsOptionsBridgeTests and TlsProfilesTests, and all three were right to.
     [Test]
-    public void TheManagedBackendRefusesASessionThatRulesOutTls13(
-        [Values(SslProtocols.Tls12, SslProtocols.None)] SslProtocols protocols)
+    public void TheManagedBackendRefusesASessionThatIsNeitherProfile(
+        [Values(SslProtocols.None, SslProtocols.Tls11)] SslProtocols protocols)
     {
         Assert.That(() => TlsPlatform.ResolveBackend(Options(protocols, TlsBackend.BouncyCastle)),
-                    Throws.TypeOf<NotSupportedException>().With.Message.Contains("TLS 1.3"));
+                    Throws.TypeOf<NotSupportedException>().With.Message.Contains("TLS 1.2"));
+    }
+
+
+    // ...and ISO 15118-2's own set is served rather than refused.
+    [Test]
+    public void TheManagedBackendAcceptsTheIso2Profile()
+    {
+        Assert.That(TlsPlatform.ResolveBackend(Options(SslProtocols.Tls12, TlsBackend.BouncyCastle)),
+                    Is.EqualTo(TlsBackend.BouncyCastle));
     }
 
     [Test]

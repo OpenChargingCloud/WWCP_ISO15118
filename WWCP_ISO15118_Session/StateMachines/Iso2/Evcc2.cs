@@ -189,6 +189,31 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// </remarks>
         public bool RenegotiationSkipsIsolationSequence { get; set; }
 
+        /// <summary>DC only: declare <c>EVReady = false</c> in the <c>DC_EVStatus</c> of the isolation
+        /// sequence — <c>CableCheckReq</c> and <c>PreChargeReq</c> — instead of the <c>true</c> this car
+        /// sends everywhere. <b>Off</b> by default, so every recorded session keeps its bytes.</summary>
+        /// <remarks>
+        /// <para>
+        /// An instrument, not a conformance claim. `EVReady` is a status flag — Table E.1 maps
+        /// <c>false</c> to SAE J2847/2's *vehicle not ready* and <c>true</c> to *vehicle charging or
+        /// energy transfer* — and no `[V2G2-…]` this project can read ties it to the isolation phase. So
+        /// which value belongs in a <c>CableCheckReq</c> is, as far as the document goes, open.
+        /// </para>
+        /// <para>
+        /// What is not open is the question this exists to ask. On 2026-08-15 a renegotiated
+        /// <c>CableCheckReq</c> was accepted by EVerest's station and then failed inside their
+        /// <c>EvseManager</c>, which waits for the DC link to fall below 60 V; our car was announcing that
+        /// it was ready to charge at that moment. Whether their supply ramps down once the car says
+        /// otherwise is a measurement, and this is the one knob it needs
+        /// (<c>docs/interop-runs/2026-08-15-everest-iso2-renegotiation-rerun/</c>).
+        /// </para>
+        /// </remarks>
+        public bool IsolationDeclaresNotReady { get; set; }
+
+        /// <summary>True while <see cref="RunDcIsolationSequence"/> is running, so <c>EvStatus()</c> can
+        /// answer differently there without every caller having to know about the phase.</summary>
+        private bool _inIsolationSequence;
+
         /// <summary>How many renegotiation cycles this session ran (own + SECC-requested).</summary>
         public int Renegotiations { get; private set; }
 
@@ -418,17 +443,27 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         private async Task RunDcIsolationSequence(CancellationToken ct)
         {
 
-            var cableGuard = new OngoingGuard(clock, OngoingTimeout, "CableCheck");
-
-            while ((await Send<CableCheckResType>(new CableCheckReqType(EvStatus()), ct))
-                       .EVSEProcessing != EVSEProcessing.Finished)
+            _inIsolationSequence = true;
+            try
             {
-                cableGuard.Tick();
-                await pollDelay.Wait(PollInterval, ct);
-            }
 
-            await Send<PreChargeResType>(new PreChargeReqType(EvStatus(),
-                EVTargetVoltage: Volt(400), EVTargetCurrent: Amp(2)), ct);
+                var cableGuard = new OngoingGuard(clock, OngoingTimeout, "CableCheck");
+
+                while ((await Send<CableCheckResType>(new CableCheckReqType(EvStatus()), ct))
+                           .EVSEProcessing != EVSEProcessing.Finished)
+                {
+                    cableGuard.Tick();
+                    await pollDelay.Wait(PollInterval, ct);
+                }
+
+                await Send<PreChargeResType>(new PreChargeReqType(EvStatus(),
+                    EVTargetVoltage: Volt(400), EVTargetCurrent: Amp(2)), ct);
+
+            }
+            finally
+            {
+                _inIsolationSequence = false;
+            }
 
         }
 
@@ -1081,7 +1116,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// vehicle's own state while charging.
         /// </remarks>
         private DC_EVStatusType EvStatus()
-            => new(EVReady: true, DC_EVErrorCode.NO_ERROR,
+            => new(EVReady: !(_inIsolationSequence && IsolationDeclaresNotReady), DC_EVErrorCode.NO_ERROR,
                    EVRESSSOC: Battery is { } b ? (sbyte) Math.Clamp(Math.Round(b.SoC), 0, 100) : (sbyte) 50);
         private static PhysicalValueType Volt(short v) => new(0, UnitSymbol.V, v);
         private static PhysicalValueType Amp(short a)  => new(0, UnitSymbol.A, a);

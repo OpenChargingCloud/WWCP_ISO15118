@@ -46,6 +46,16 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
             if (TlsPlatform.ResolveBackend(tls) == TlsBackend.BouncyCastle)
                 return await BcTlsTransport.AuthenticateClientAsync(stream, TlsPlatform.ToBcClientOptions(tls), ct).ConfigureAwait(false);
 
+            // Refused rather than dropped. SslStream cannot add a ClientHello extension on any platform, so a
+            // -2 session that was configured to name its roots ([V2G2-651]) would otherwise run without them
+            // and look exactly like a conformant one — the failure mode this project has spent a week finding
+            // in other people's code.
+            if (tls.TrustedCaKeys is { Count: > 0 })
+                throw new NotSupportedException(
+                    "TlsOptions.TrustedCaKeys is set, but this session runs on SslStream, which cannot send "
+                  + "RFC 6066's trusted_ca_keys extension. Set TlsOptions.Backend = TlsBackend.BouncyCastle "
+                  + "(or V2G_TLS_BACKEND=bc) for a -2 session that must satisfy [V2G2-651].");
+
             var ssl = new SslStream(stream, leaveInnerStreamOpen: false, tls.ServerCertificateValidation);
             var options = new SslClientAuthenticationOptions
             {

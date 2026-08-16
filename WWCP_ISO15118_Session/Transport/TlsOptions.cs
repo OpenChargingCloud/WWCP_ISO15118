@@ -57,6 +57,28 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         /// <summary>SECC side: require a TLS client certificate from the EVCC (mutual TLS). Off for plain server-side TLS.</summary>
         public bool RequireClientCertificate { get; init; }
 
+        /// <summary>
+        /// EVCC side, ISO 15118-<b>2</b> only: the V2G <b>root</b> certificates this car holds, named to the
+        /// station in RFC 6066's <c>trusted_ca_keys</c> ClientHello extension — `[V2G2-651]`, which is a
+        /// *shall* on every `-2` EV.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Requires <see cref="TlsBackend.BouncyCastle"/>, and says so rather than pretending.</b>
+        /// <c>SslStream</c> exposes no way to add a client extension on any platform, so a `-2` session on
+        /// the default backend cannot carry this. Set the backend explicitly when the extension matters;
+        /// <see cref="TlsPlatform.ToBcClientOptions"/> carries it across, and the SslStream path throws
+        /// rather than dropping it, because a requirement that silently does not happen is the failure
+        /// mode this repository keeps finding in other people's code.
+        /// </para>
+        /// <para>
+        /// `-20` uses <c>certificate_authorities</c> instead and this option does not apply there —
+        /// see <c>docs/normative-basis.md</c> for why the two are different extensions rather than two
+        /// names for one.
+        /// </para>
+        /// </remarks>
+        public IReadOnlyList<X509Certificate2>? TrustedCaKeys { get; init; }
+
         /// <summary>SECC side: how to validate the EVCC's client certificate. Defaults to the platform's normal chain validation if not set.</summary>
         public RemoteCertificateValidationCallback? ClientCertificateValidation { get; init; }
 

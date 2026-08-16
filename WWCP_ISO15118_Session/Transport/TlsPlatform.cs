@@ -178,13 +178,26 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
             if (tls.CipherSuites is not { Count: > 0 } requested)
                 return;
 
+            // The -2 pair is admissible since 2026-08-16: this backend serves TLS 1.2 too, because
+            // trusted_ca_keys ([V2G2-651]) is an RFC 6066 extension SslStream cannot send.
+            if (requested.Order().SequenceEqual(TlsProfiles.Iso2CipherSuites.Order()))
+                return;
+
             if (!requested.Order().SequenceEqual(TlsProfiles.Iso20CipherSuites.Order()))
                 throw new NotSupportedException(
                     $"TlsOptions.CipherSuites requests [{string.Join(", ", requested)}], but this session runs on " +
-                    "the BouncyCastle backend, which pins ISO 15118-20's " +
+                    "the BouncyCastle backend, which pins ISO 15118-2's " +
+                    $"[{string.Join(", ", TlsProfiles.Iso2CipherSuites)}] and ISO 15118-20's " +
                     $"[{string.Join(", ", TlsProfiles.Iso20CipherSuites)}] and cannot negotiate anything else. " +
-                    "Request the -20 suites, or drop the pin.");
+                    "Request one of those pairs, or drop the pin.");
         }
+
+        /// <summary>Whether this session is ISO 15118-2's transport: TLS 1.2 and nothing above it.</summary>
+        /// <remarks>Read from the version rather than from a separate flag, because
+        /// <c>EVSimulatorApp/docs/pki-model.md</c> pins -2 ↔ TLS 1.2 and -20 ↔ TLS 1.3 — a second switch
+        /// could disagree with the first, and then one of them would be the lie.</remarks>
+        private static bool IsIso2Transport(TlsOptions tls)
+            => tls.EnabledSslProtocols == SslProtocols.Tls12;
 
         /// <summary>EVCC side: translate client-side <see cref="TlsOptions"/> into <see cref="BcTlsOptions"/>.</summary>
         public static BcTlsOptions ToBcClientOptions(TlsOptions tls)
@@ -198,6 +211,10 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
                                        ? BcCredentialBridge.FromX509(leaf, tls.ClientCertificateChain)
                                        : null,
                 ValidatePeerLeaf = Adapt(tls.ServerCertificateValidation),
+                Iso2Profile      = IsIso2Transport(tls),
+                TrustedCaKeys    = tls.TrustedCaKeys is { Count: > 0 } roots
+                                       ? roots.Select(root => root.RawData).ToArray()
+                                       : null,
             };
         }
 
@@ -215,6 +232,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
                 ValidatePeerLeaf               = Adapt(tls.ClientCertificateValidation),
                 RequireClientCertificate       = tls.RequireClientCertificate,
                 AcceptedClientSignatureSchemes = FallbackClientSignatureSchemes,
+                Iso2Profile                    = IsIso2Transport(tls),
             };
         }
 

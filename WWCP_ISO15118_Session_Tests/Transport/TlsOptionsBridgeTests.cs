@@ -176,7 +176,23 @@ public class TlsOptionsBridgeTests
                     Throws.Nothing);
     }
 
-    // ...and asking for suites it pins away from is refused rather than silently served with the -20 pair.
+    // The -2 pair is accepted too since 2026-08-16 — this backend grew a TLS 1.2 profile because
+    // trusted_ca_keys ([V2G2-651]) is an RFC 6066 extension SslStream cannot send. This assertion used to
+    // be the negative case below, and updating it rather than deleting it is the point: the test caught
+    // the widening, which is what it was for.
+    [Test]
+    public void PinningTheIso2SuitesIsAcceptedToo()
+    {
+        var (root, leaf) = Hierarchy(ECCurve.NamedCurves.nistP256, HashAlgorithmName.SHA256);
+        using var _1 = root;
+        using var _2 = leaf;
+
+        Assert.That(() => TlsPlatform.ToBcClientOptions(ClientOptions(leaf, suites: TlsProfiles.Iso2CipherSuites)),
+                    Throws.Nothing);
+    }
+
+    // ...and asking for suites it pins away from is still refused rather than silently served with a pair
+    // the caller did not ask for.
     [Test]
     public void PinningAnythingElseIsRefused()
     {
@@ -184,8 +200,49 @@ public class TlsOptionsBridgeTests
         using var _1 = root;
         using var _2 = leaf;
 
-        Assert.That(() => TlsPlatform.ToBcClientOptions(ClientOptions(leaf, suites: TlsProfiles.Iso2CipherSuites)),
+        Assert.That(() => TlsPlatform.ToBcClientOptions(
+                              ClientOptions(leaf, suites: [TlsCipherSuite.TLS_AES_128_GCM_SHA256])),
                     Throws.TypeOf<NotSupportedException>());
     }
+
+
+    #region trusted_ca_keys ([V2G2-651])
+
+    // The roots reach the managed backend as DER, which is what the extension names by hash.
+    [Test]
+    public void TheRootsACarHoldsAreCarriedToTheBackend()
+    {
+        var (root, leaf) = Hierarchy(ECCurve.NamedCurves.nistP256, HashAlgorithmName.SHA256);
+        using var _1 = root;
+        using var _2 = leaf;
+
+        var options = TlsPlatform.ToBcClientOptions(ClientOptions(leaf) with
+                          {
+                              EnabledSslProtocols = SslProtocols.Tls12,
+                              TrustedCaKeys       = [root]
+                          });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(options.TrustedCaKeys, Is.Not.Null);
+            Assert.That(options.TrustedCaKeys![0], Is.EqualTo(root.RawData));
+            Assert.That(options.Iso2Profile, Is.True,
+                        "TLS 1.2 alone is ISO 15118-2's transport, and the profile is read from the version "
+                      + "rather than from a second switch that could disagree with it");
+        });
+    }
+
+    // A -20 session is TLS 1.3 and uses certificate_authorities instead; the -2 profile must not leak in.
+    [Test]
+    public void ATls13SessionIsNotTheIso2Profile()
+    {
+        var (root, leaf) = Hierarchy(ECCurve.NamedCurves.nistP521, HashAlgorithmName.SHA512);
+        using var _1 = root;
+        using var _2 = leaf;
+
+        Assert.That(TlsPlatform.ToBcClientOptions(ClientOptions(leaf)).Iso2Profile, Is.False);
+    }
+
+    #endregion
 
 }

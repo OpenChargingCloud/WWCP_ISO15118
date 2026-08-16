@@ -100,6 +100,33 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// the EVCC asks for a contract before authorizing. <c>null</c> (default) skips it.</summary>
         public Iso2CertInstallOptions? CertInstallRequest { get; set; }
 
+        /// <summary>
+        /// The parameter-set ID this car names when it selects the certificate service, overriding the
+        /// conformant pairing — <b>Installation is set 1, Update is set 2</b>. Null (default) keeps the
+        /// pairing, which is what a real car does and what every recorded run used.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>A deliberately non-conformant probe, and it exists because a station's own state table said
+        /// so.</b> EVerest's <c>EvseV2G</c> advertises the certificate service with parameter-set 1 alone —
+        /// <c>Update</c> is an explicit <c>TODO</c> in <c>ISO15118_chargerImpl.cpp</c> — so a car pairing
+        /// <i>Update → set 2</i> is refused at <c>PaymentServiceSelection</c> with
+        /// <c>FAILED_ServiceSelectionInvalid</c> and never reaches their handler. Their sequence table
+        /// nonetheless admits <c>CertificateUpdateReq</c> in the state after a Contract selection — it is
+        /// named <c>WAIT_FOR_PAYMENTDETAILS_CERTINST_CERTUPD</c> — and the state is chosen by the payment
+        /// option, not by the parameter set. Selecting the set they offer and sending the other message
+        /// therefore reaches code their own dispatch says should handle it.
+        /// </para>
+        /// <para>
+        /// <b>It does not manufacture the defect it measures.</b> What the handler then does — answering
+        /// from the union slot the previous response left behind — is theirs and would happen identically
+        /// to a fully conformant car the moment they advertised set 2. Any run using this has to say so:
+        /// the car is off-profile here on purpose, and a report that hides that is refutable in one
+        /// sentence.
+        /// </para>
+        /// </remarks>
+        public short? CertificateParameterSetId { get; set; }
+
         /// <summary>The contract certificate (DER) installed via the provisioning exchange, once received —
         /// with <see cref="InstalledContractKey"/> proving the ECDH unwrap round-tripped.</summary>
         public byte[]? InstalledContractCertificate { get; private set; }
@@ -302,7 +329,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             var selected = new List<SelectedServiceType> { new(chargeServiceId, ParameterSetID: null) };
             if (certificateService is not null)
                 selected.Add(new SelectedServiceType(certificateService.ServiceID,
-                                                     (short) (CertInstallRequest!.Action == Iso2CertificateAction.Update ? 2 : 1)));
+                                                     CertificateParameterSetId
+                                                         ?? (short) (CertInstallRequest!.Action == Iso2CertificateAction.Update ? 2 : 1)));
 
             await Send<PaymentServiceSelectionResType>(new PaymentServiceSelectionReqType(
                 contract ? PaymentOption.Contract : PaymentOption.ExternalPayment,

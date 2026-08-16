@@ -254,6 +254,19 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>Whether the EV took the certificate service up in its PaymentServiceSelection.</summary>
         public bool CertificateServiceSelected { get; private set; }
 
+        /// <summary>
+        /// Which parameter set the EV named for the certificate service — 1 Installation, 2 Update — or
+        /// null when it selected the service without naming one.
+        /// </summary>
+        /// <remarks>
+        /// Recorded and never acted on, like <c>Secc20Base.MeterInfoRequestedByEv</c>: this station serves
+        /// both sets and does not police the pairing. It exists because a car naming one set and sending
+        /// the other message is otherwise invisible from here — which is exactly the case that reaches a
+        /// station advertising only one of them, and the shape
+        /// <c>ISO15118ConformanceTests/docs/reports/everest-evsev2g-certificate-update.md</c> is about.
+        /// </remarks>
+        public short? CertificateParameterSetSelected { get; private set; }
+
         /// <summary>The result of handling a <c>CertificateInstallationReq</c> or <c>CertificateUpdateReq</c>,
         /// if the EV sent one; null otherwise.</summary>
         public Iso2CertInstallResult? CertInstall { get; private set; }
@@ -628,9 +641,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
             _contract = request.SelectedPaymentOption == PaymentOption.Contract;
 
-            CertificateServiceSelected =
-                OfferCertificateService &&
-                request.SelectedServiceList.SelectedService.Any(s => s.ServiceID == CertificateServiceId);
+            var certificateEntry = request.SelectedServiceList.SelectedService
+                                          .FirstOrDefault(s => s.ServiceID == CertificateServiceId);
+
+            CertificateServiceSelected     = OfferCertificateService && certificateEntry is not null;
+            CertificateParameterSetSelected = certificateEntry?.ParameterSetID;
 
             return (new PaymentServiceSelectionResType(ResponseCode.OK),
                     CertificateServiceSelected ? Phase.CertificateProvisioning

@@ -130,13 +130,22 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
             switch (requested)
             {
 
-                // BcV2GTlsClient/Server offer TLS 1.3 and nothing else, so a protocol set without it would be
-                // answered with a version the caller did not ask for — refuse instead. Tls12|Tls13 is fine:
-                // 1.3 is inside the requested set, which is what a permissive set means.
-                case TlsBackend.BouncyCastle when (tls.EnabledSslProtocols & SslProtocols.Tls13) == 0:
+                // This backend speaks the two profiles pki-model.md defines and nothing between or beside
+                // them: TLS 1.3 for -20, and — since 2026-08-16, for trusted_ca_keys ([V2G2-651]) — TLS 1.2
+                // alone for -2. A set that is neither would be answered with a version the caller did not
+                // ask for, so it is refused here rather than at handshake time. Tls12|Tls13 is fine: 1.3 is
+                // inside the requested set, which is what a permissive set means.
+                //
+                // The TLS 1.2 case was found by a live run and not by the suite: BcTrustedCaKeysTests builds
+                // BcTlsOptions directly and never passes this gate, so the loopback was green while the
+                // interop path died in 39 ms with this exception. A guard one layer above the thing it
+                // guards is invisible to a test that starts below it.
+                case TlsBackend.BouncyCastle when (tls.EnabledSslProtocols & SslProtocols.Tls13) == 0
+                                               &&  tls.EnabledSslProtocols != SslProtocols.Tls12:
                     throw new NotSupportedException(
                         $"TlsOptions.EnabledSslProtocols is {tls.EnabledSslProtocols}, but the BouncyCastle " +
-                        "backend speaks TLS 1.3 only. Include Tls13, or use the SslStream backend.");
+                        "backend speaks ISO 15118-20's TLS 1.3 and ISO 15118-2's TLS 1.2, nothing else. " +
+                        "Request one of those, or use the SslStream backend.");
 
                 case TlsBackend.BouncyCastle:
                     return TlsBackend.BouncyCastle;

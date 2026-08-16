@@ -65,9 +65,11 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.SourceGenerator.Grammar
         ///
         /// <para>
         /// Opt in with <c>&lt;ExiDocumentElementOrder&gt;ExiSorted&lt;/ExiDocumentElementOrder&gt;</c>.
-        /// Nothing in this repository builds with it yet; it exists so the conformance question can be
-        /// answered by producing both encodings rather than by argument, and so a future decision to
-        /// switch is a one-line change rather than a rewrite.
+        /// <b>This is what everything here builds with since 2026-08-08</b> —
+        /// <c>Directory.Build.props</c> sets it for the C# codecs, and the three language ports pass
+        /// <c>--doc-order ExiSorted</c> to <c>EVSimulatorApp.Codegen</c>. The default below stays
+        /// cbexigen-compatible because it is the library's answer for a caller who has not decided;
+        /// this repository has.
         /// </para>
         /// </summary>
         ExiSorted

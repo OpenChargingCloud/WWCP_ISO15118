@@ -44,8 +44,9 @@ public class TlsOptionsBridgeTests
 {
 
     // A root that no trust store has ever heard of, plus a leaf it issued — the shape of every V2G test
-    // PKI, and the shape Schannel rejects.
-    private static (X509Certificate2 Root, X509Certificate2 Leaf) Hierarchy(ECCurve curve, HashAlgorithmName hash)
+    // PKI, and the shape Schannel rejects. Internal because TlsOptionsPeerChainBridgeTests below needs the
+    // same thing, private key included: duplicating it would duplicate the clock caveat with it.
+    internal static (X509Certificate2 Root, X509Certificate2 Leaf) Hierarchy(ECCurve curve, HashAlgorithmName hash)
     {
         // One clock reading for the whole hierarchy, and a root window that strictly contains the leaf's.
         // X.509 validity is truncated to whole seconds, so four separate UtcNow calls put the leaf's
@@ -244,5 +245,166 @@ public class TlsOptionsBridgeTests
     }
 
     #endregion
+
+}
+
+
+/// <summary>
+/// The other half of the same bridge: what a .NET <see cref="RemoteCertificateValidationCallback"/> gets to
+/// see once the session runs on the managed backend.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Until 2026-08-16 the answer was "the leaf, and a null chain". A callback asking <i>"is this the exact
+/// certificate I expect"</i> was satisfied by that; one asking <i>"does this reach a root I trust"</i> was
+/// not, and with a <b>root-only</b> trust store it refused every peer — including one serving exactly the
+/// chain it had been told to trust. A trust bundle carrying the intermediates hides it completely, which is
+/// how it survived a year of TLS runs and was found only by an arm designed with a single anchor.
+/// </para>
+/// <para>
+/// <b>Third costume of one defect.</b> The app's two runnable peers dropped the peer chain (fixed
+/// 2026-08-09), the interop fixture's own callback dropped it (fixed 2026-08-14), and neither time was the
+/// question <i>where do the intermediates come from</i> answered for this backend. The rule the tests below
+/// pin is the portable one: they arrive in <c>ChainPolicy.ExtraStore</c>, which is where <c>SslStream</c>
+/// puts them and where <c>TrustRoots.PeerIntermediates</c> looks.
+/// </para>
+/// </remarks>
+[TestFixture]
+public class TlsOptionsPeerChainBridgeTests
+{
+
+    // P-256 rather than the -20 curve: the station side of this bridge has to hand the leaf's key to the
+    // managed backend, and nothing here is about the profile.
+    private static (X509Certificate2 Root, X509Certificate2 Leaf) Hierarchy()
+        => TlsOptionsBridgeTests.Hierarchy(ECCurve.NamedCurves.nistP256, HashAlgorithmName.SHA256);
+
+    // What the callback saw, recorded rather than judged: these tests are about what reaches it.
+    private sealed record Seen(byte[]? Leaf, byte[][] Extra);
+
+    private static (RemoteCertificateValidationCallback Callback, Func<Seen?> Result) Recorder()
+    {
+        Seen? seen = null;
+
+        return ((_, presented, chain, _) =>
+                {
+                    seen = new Seen(presented?.GetRawCertData(),
+                                    chain is null
+                                        ? []
+                                        : [.. chain.ChainPolicy.ExtraStore
+                                                   .OfType<X509Certificate2>()
+                                                   .Select(c => c.RawData)]);
+                    return true;
+                },
+                () => seen);
+    }
+
+    private static TlsOptions ClientOptions(RemoteCertificateValidationCallback validate) => new()
+    {
+        EnabledSslProtocols         = SslProtocols.Tls13,
+        Backend                     = TlsBackend.BouncyCastle,
+        ServerCertificateValidation = validate
+    };
+
+    /// <summary>The EVCC side, and the assertion the fix exists for.</summary>
+    [Test]
+    public void TheStationsWholeChainReachesTheCallback()
+    {
+        var (root, leaf) = Hierarchy();
+        using var _1 = root;
+        using var _2 = leaf;
+
+        var (callback, result) = Recorder();
+        var options            = TlsPlatform.ToBcClientOptions(ClientOptions(callback));
+
+        Assert.That(options.ValidatePeerChain, Is.Not.Null, "the chain hook is the one a TlsOptions session bridges onto");
+
+        // The shape BcV2GTls.ValidatePeer hands over: the peer's certificate list, leaf first.
+        Assert.That(options.ValidatePeerChain!([leaf.RawData, root.RawData]), Is.True);
+
+        var seen = result();
+        Assert.That(seen, Is.Not.Null);
+        Assert.Multiple(() =>
+        {
+            Assert.That(seen!.Leaf,  Is.EqualTo(leaf.RawData), "the presented certificate is the leaf");
+            Assert.That(seen.Extra,  Has.Length.EqualTo(1),    "and everything past it is what the peer sent");
+            Assert.That(seen.Extra[0], Is.EqualTo(root.RawData));
+        });
+    }
+
+    /// <summary>
+    /// The leaf hook stays unset, and that is a decision rather than an omission: <c>ValidatePeer</c> runs
+    /// both when both are set and requires both to pass, so a leaf-only invocation of a chain-checking
+    /// callback would fail the handshake before the chain form ever ran — the exact failure being fixed.
+    /// </summary>
+    [Test]
+    public void TheLeafOnlyHookIsLeftUnsetOnPurpose()
+    {
+        var (root, leaf) = Hierarchy();
+        using var _1 = root;
+        using var _2 = leaf;
+
+        var (callback, _) = Recorder();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(TlsPlatform.ToBcClientOptions(ClientOptions(callback)).ValidatePeerLeaf,        Is.Null);
+            Assert.That(TlsPlatform.ToBcServerOptions(ServerOptions(leaf, callback)).ValidatePeerLeaf,  Is.Null);
+        });
+    }
+
+    /// <summary>
+    /// A peer that really does send a bare leaf must stay distinguishable from one whose chain we discarded
+    /// — that indistinguishability *was* the 2026-08-08 defect, written up as a property of a counterparty.
+    /// </summary>
+    [Test]
+    public void ABareLeafArrivesAsAnEmptyExtraStore()
+    {
+        var (root, leaf) = Hierarchy();
+        using var _1 = root;
+        using var _2 = leaf;
+
+        var (callback, result) = Recorder();
+
+        TlsPlatform.ToBcClientOptions(ClientOptions(callback)).ValidatePeerChain!([leaf.RawData]);
+
+        Assert.That(result()!.Extra, Is.Empty);
+    }
+
+    /// <summary>The SECC side bridges the same way — a station validating a car's chain has the same need.</summary>
+    [Test]
+    public void TheCarsWholeChainReachesTheStationsCallback()
+    {
+        var (root, leaf) = Hierarchy();
+        using var _1 = root;
+        using var _2 = leaf;
+
+        var (callback, result) = Recorder();
+        var options            = TlsPlatform.ToBcServerOptions(ServerOptions(leaf, callback));
+
+        Assert.That(options.ValidatePeerChain, Is.Not.Null);
+        Assert.That(options.ValidatePeerChain!([leaf.RawData, root.RawData]), Is.True);
+        Assert.That(result()!.Extra, Has.Length.EqualTo(1));
+    }
+
+    /// <summary>No callback configured stays no callback — this must not become "accept nothing".</summary>
+    [Test]
+    public void WithoutACallbackThereIsNoChainHook()
+    {
+        Assert.That(TlsPlatform.ToBcClientOptions(new TlsOptions
+                    {
+                        EnabledSslProtocols = SslProtocols.Tls13,
+                        Backend             = TlsBackend.BouncyCastle
+                    }).ValidatePeerChain,
+                    Is.Null);
+    }
+
+    private static TlsOptions ServerOptions(X509Certificate2 leaf, RemoteCertificateValidationCallback validate) => new()
+    {
+        EnabledSslProtocols         = SslProtocols.Tls13,
+        Backend                     = TlsBackend.BouncyCastle,
+        ServerCertificate           = leaf,
+        RequireClientCertificate    = true,
+        ClientCertificateValidation = validate
+    };
 
 }

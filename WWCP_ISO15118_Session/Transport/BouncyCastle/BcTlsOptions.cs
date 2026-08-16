@@ -58,6 +58,45 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
         /// </para></summary>
         public int[]? AcceptedClientSignatureSchemes { get; init; }
 
+        /// <summary>
+        /// Run ISO 15118-<b>2</b>'s transport instead of -20's: TLS <b>1.2</b> and the two `-2` cipher
+        /// suites, rather than TLS 1.3 and the `-20` pair. Both sides must agree.
+        /// </summary>
+        /// <remarks>
+        /// The BouncyCastle backend existed for the `-20` profile Schannel cannot do, so it was TLS
+        /// 1.3-only. `-2` needs it too since 2026-08-16, for one reason: <see cref="TrustedCaKeys"/> is an
+        /// RFC 6066 extension of the TLS 1.2 era, and <c>SslStream</c> cannot send arbitrary client
+        /// extensions on any platform.
+        /// </remarks>
+        public bool Iso2Profile { get; init; }
+
+        /// <summary>
+        /// EVCC side: the V2G <b>root</b> certificates (DER) this car holds, sent as RFC 6066's
+        /// <c>trusted_ca_keys</c> in the ClientHello. Null or empty omits the extension.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// `[V2G2-651]` makes this unconditional for every `-2` EV — *"shall send a list of V2G root
+        /// certificates it possesses"* — and it is what `[V2G2-871]`'s duty on the station is answerable
+        /// to: serve a chain up to one of the roots the car named. With a single root the two behaviours
+        /// are indistinguishable, which is why the requirement bites exactly where an operator holds two.
+        /// </para>
+        /// <para>
+        /// Until 2026-08-16 nothing in this stack could send it — <c>grep -rn trusted_ca_keys</c> matched
+        /// nothing — so this project could file
+        /// <c>docs/reports/everest-isomux.md</c> §4 about a station that disables it and never measure the
+        /// failing case. A gap of ours that was also the instrument for one of theirs.
+        /// </para>
+        /// </remarks>
+        public byte[][]? TrustedCaKeys { get; init; }
+
+        /// <summary>SECC side: called with the <c>cert_sha1_hash</c> entries of a client's
+        /// <c>trusted_ca_keys</c>, and how many entries of the other identifier types were skipped.
+        /// Observation only — this station serves the chain it was configured with either way.</summary>
+        /// <remarks>An extension a station receives and does not act on is invisible from both ends
+        /// otherwise, which is the same reason <c>Secc20Base.MeterInfoRequestedByEv</c> exists.</remarks>
+        public Action<IReadOnlyList<byte[]>, int>? OnTrustedCaKeys { get; init; }
+
         /// <summary><b>EXPERIMENTAL</b> (see <c>Vanaheimr.V2G.Experiments.Pqc</c>): override the TLS
         /// named groups this side offers/accepts for the key exchange — e.g.
         /// <c>Org.BouncyCastle.Tls.NamedGroup.MLKEM1024</c> for a post-quantum ML-KEM (FIPS 203) key

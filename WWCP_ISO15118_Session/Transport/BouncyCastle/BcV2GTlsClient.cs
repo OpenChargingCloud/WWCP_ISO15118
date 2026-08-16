@@ -36,9 +36,34 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
             _options = options;
         }
 
-        public override ProtocolVersion[] GetProtocolVersions() => BcV2GTls.Tls13Only;
+        public override ProtocolVersion[] GetProtocolVersions()
+            => _options.Iso2Profile ? BcV2GTls.Tls12Only : BcV2GTls.Tls13Only;
 
-        protected override int[] GetSupportedCipherSuites() => BcV2GTls.CipherSuites;
+        protected override int[] GetSupportedCipherSuites()
+            => _options.Iso2Profile ? BcV2GTls.Iso2CipherSuites : BcV2GTls.CipherSuites;
+
+        /// <summary>
+        /// Adds RFC 6066's <c>trusted_ca_keys</c> — `[V2G2-651]`, the roots this car holds — to everything
+        /// BouncyCastle already offers.
+        /// </summary>
+        /// <remarks>
+        /// The extension is TLS 1.2-era and belongs in a `-2` ClientHello; `-20` uses
+        /// <c>certificate_authorities</c> instead and this car sends neither there. Sent whenever roots are
+        /// configured rather than behind a switch, because the requirement is unconditional — a `-2` EV
+        /// that holds roots and does not name them is the non-conformant case, and it was ours until
+        /// 2026-08-16.
+        /// </remarks>
+        public override IDictionary<int, byte[]> GetClientExtensions()
+        {
+
+            var extensions = base.GetClientExtensions() ?? new Dictionary<int, byte[]>();
+
+            if (_options.TrustedCaKeys is { Length: > 0 } roots)
+                extensions[ExtensionType.trusted_ca_keys] = BcV2GTls.BuildTrustedCaKeys(roots);
+
+            return extensions;
+
+        }
 
         // EXPERIMENTAL seam (BcTlsOptions.ExperimentalNamedGroups): offer exactly the configured
         // key-exchange groups (e.g. ML-KEM) instead of BouncyCastle's default list, and send the
@@ -74,7 +99,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
             // sends an empty Certificate message, which a SECC requiring one rejects.
             public TlsCredentials GetClientCredentials(CertificateRequest certificateRequest)
                 => _options.OwnCredentials is { } own
-                       ? BcV2GTls.BuildSigner(_crypto, own, _context())
+                       ? BcV2GTls.BuildSigner(_crypto, own, _context(), _options.Iso2Profile)
                        : null!;
         }
     }

@@ -35,9 +35,35 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
             _options = options;
         }
 
-        public override ProtocolVersion[] GetProtocolVersions() => BcV2GTls.Tls13Only;
+        public override ProtocolVersion[] GetProtocolVersions()
+            => _options.Iso2Profile ? BcV2GTls.Tls12Only : BcV2GTls.Tls13Only;
 
-        protected override int[] GetSupportedCipherSuites() => BcV2GTls.CipherSuites;
+        protected override int[] GetSupportedCipherSuites()
+            => _options.Iso2Profile ? BcV2GTls.Iso2CipherSuites : BcV2GTls.CipherSuites;
+
+        /// <summary>Records the client's <c>trusted_ca_keys</c> if it sent one — `[V2G2-651]` on the car's
+        /// side, and the input `[V2G2-871]`'s selection duty is answerable to.</summary>
+        /// <remarks>
+        /// This station does not select on it: it serves the chain it was configured with, which is what
+        /// makes a one-root deployment indistinguishable from a station that ignores the extension
+        /// entirely — the very confusion that made <c>everest-isomux</c> §4 worth filing. Recorded rather
+        /// than acted on, and said out loud here so nobody reads the callback as compliance.
+        /// </remarks>
+        public override void ProcessClientExtensions(IDictionary<int, byte[]> clientExtensions)
+        {
+
+            base.ProcessClientExtensions(clientExtensions);
+
+            if (_options.OnTrustedCaKeys is { } observe &&
+                clientExtensions is not null &&
+                clientExtensions.TryGetValue(ExtensionType.trusted_ca_keys, out var raw) &&
+                raw is not null)
+            {
+                var hashes = BcV2GTls.ParseTrustedCaKeys(raw, out var otherTypes);
+                observe(hashes, otherTypes);
+            }
+
+        }
 
         // EXPERIMENTAL seam (BcTlsOptions.ExperimentalNamedGroups): accept exactly the configured
         // key-exchange groups (e.g. ML-KEM) — a client offering none of them fails the handshake.
@@ -50,7 +76,8 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
                                         ?? throw new InvalidOperationException(
                                                "BcTlsOptions.OwnCredentials is required on the SECC/server side — " +
                                                "the server must present a certificate."),
-                                    m_context);
+                                    m_context,
+                                    _options.Iso2Profile);
 
         public override CertificateRequest GetCertificateRequest()
             => _options.RequireClientCertificate

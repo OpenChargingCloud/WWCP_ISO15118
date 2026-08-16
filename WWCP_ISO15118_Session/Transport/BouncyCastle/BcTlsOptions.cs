@@ -42,6 +42,12 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
         /// exact certificate I was told to expect", which is what a dev loopback can check and a stranger
         /// cannot satisfy. This asks "does this reach a root I trust", which is the question a real V2G
         /// deployment asks and the only one that works against a peer whose material we did not mint.
+        /// <para>
+        /// A <c>TlsOptions</c> session bridges onto <b>this</b> one and not onto the leaf
+        /// (<c>TlsPlatform.ToBcClientOptions</c> / <c>ToBcServerOptions</c>, since 2026-08-16): a .NET
+        /// validation callback is handed an <c>X509Chain</c> and may ask either question, and until then the
+        /// chaining half of it silently had nothing to work with.
+        /// </para>
         /// </remarks>
         public Func<byte[][], bool>? ValidatePeerChain { get; init; }
 

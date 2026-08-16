@@ -216,14 +216,14 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
             // No client certificate = unilateral TLS; BouncyCastle then declines the CertificateRequest.
             return new BcTlsOptions
             {
-                OwnCredentials   = tls.ClientCertificate is { } leaf
-                                       ? BcCredentialBridge.FromX509(leaf, tls.ClientCertificateChain)
-                                       : null,
-                ValidatePeerLeaf = Adapt(tls.ServerCertificateValidation),
-                Iso2Profile      = IsIso2Transport(tls),
-                TrustedCaKeys    = tls.TrustedCaKeys is { Count: > 0 } roots
-                                       ? roots.Select(root => root.RawData).ToArray()
-                                       : null,
+                OwnCredentials    = tls.ClientCertificate is { } leaf
+                                        ? BcCredentialBridge.FromX509(leaf, tls.ClientCertificateChain)
+                                        : null,
+                ValidatePeerChain = Adapt(tls.ServerCertificateValidation),
+                Iso2Profile       = IsIso2Transport(tls),
+                TrustedCaKeys     = tls.TrustedCaKeys is { Count: > 0 } roots
+                                        ? roots.Select(root => root.RawData).ToArray()
+                                        : null,
             };
         }
 
@@ -238,20 +238,64 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
             return new BcTlsOptions
             {
                 OwnCredentials                 = BcCredentialBridge.FromX509(tls.ServerCertificate, tls.ServerCertificateChain),
-                ValidatePeerLeaf               = Adapt(tls.ClientCertificateValidation),
+                ValidatePeerChain              = Adapt(tls.ClientCertificateValidation),
                 RequireClientCertificate       = tls.RequireClientCertificate,
                 AcceptedClientSignatureSchemes = FallbackClientSignatureSchemes,
                 Iso2Profile                    = IsIso2Transport(tls),
             };
         }
 
-        // BouncyCastle hands us the peer's leaf as DER and performs no platform chain build, so the
-        // callback is invoked with no X509Chain and SslPolicyErrors.None — it must do its own checking
-        // (the loopback tests compare thumbprints, which is exactly that). A callback that relies on the
-        // platform having pre-validated the chain would be weaker here than on the SslStream path.
-        private static Func<byte[], bool>? Adapt(RemoteCertificateValidationCallback? validate)
+        /// <summary>
+        /// Bridges a .NET <see cref="RemoteCertificateValidationCallback"/> onto the managed backend, over the
+        /// <b>whole</b> certificate list the peer sent rather than its leaf alone.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// The peer's certificates beyond the leaf go into <c>ChainPolicy.ExtraStore</c> — which is where
+        /// <c>SslStream</c> puts them before it calls a validation callback, and where
+        /// <c>TrustRoots.PeerIntermediates</c> reads them. One callback therefore sees the same thing on both
+        /// backends, which is the whole purpose of this method.
+        /// </para>
+        /// <para>
+        /// Until 2026-08-16 this bridged onto <see cref="BcTlsOptions.ValidatePeerLeaf"/> and passed
+        /// <c>chain: null</c>, so a callback asking <i>"does this reach a root I trust"</i> was handed a bare
+        /// leaf: with a <b>root-only</b> trust store it then refused every station, including one serving
+        /// exactly the chain it had been told to trust. A wider bundle hides it, which is why it survived —
+        /// found by the isomux §4 attempt, whose <i>control</i> arm failed
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-08-16-everest-isomux-trusted-ca-keys/</c>).
+        /// </para>
+        /// <para>
+        /// <see cref="BcTlsOptions.ValidatePeerLeaf"/> is deliberately left <b>unset</b> rather than filled in
+        /// alongside: both must pass when both are set, so the leaf-only invocation would fail first for
+        /// precisely the case this fixes.
+        /// </para>
+        /// <para>
+        /// Two things this does not do, both by choice. It builds no path, so the callback is invoked with
+        /// <see cref="SslPolicyErrors.None"/> and must do its own checking (the loopback tests compare
+        /// thumbprints, which is exactly that) — a callback relying on the platform having pre-validated the
+        /// chain is weaker here than on the <c>SslStream</c> path. And because nothing built a path,
+        /// <c>ChainElements</c> is empty: a callback reading it instead of <c>ChainPolicy.ExtraStore</c> sees
+        /// nothing here, so <c>TrustRoots.PeerIntermediates</c> is the way to ask that works on both.
+        /// </para>
+        /// </remarks>
+        private static Func<byte[][], bool>? Adapt(RemoteCertificateValidationCallback? validate)
             => validate is null
                    ? null
-                   : der => validate(sender: null!, X509CertificateLoader.LoadCertificate(der), chain: null, SslPolicyErrors.None);
+                   : peer =>
+                     {
+                         // BcV2GTls.ValidatePeer rejects an empty certificate message before reaching us; a
+                         // verdict is still cheaper here than an IndexOutOfRange surfacing as internal_error.
+                         if (peer.Length == 0)
+                             return false;
+
+                         using var chain = new X509Chain();
+                         for (var i = 1; i < peer.Length; i++)
+                             chain.ChainPolicy.ExtraStore.Add(X509CertificateLoader.LoadCertificate(peer[i]));
+
+                         return validate(sender:  null!,
+                                         X509CertificateLoader.LoadCertificate(peer[0]),
+                                         chain,
+                                         SslPolicyErrors.None);
+                     };
     }
 }

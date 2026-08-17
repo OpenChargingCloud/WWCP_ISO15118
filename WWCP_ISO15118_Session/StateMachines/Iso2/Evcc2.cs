@@ -548,33 +548,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             }
 
             // (1) tariff signature: one header signature, one reference per SalesTariff Id.
-            var signedTariffs = offer.SAScheduleTuple
-                .Where(t => t.SalesTariff?.Id is not null)
-                .Select(t => t.SalesTariff!)
-                .ToList();
-            bool signaturePresent = _lastHeader?.Signature is not null && signedTariffs.Count > 0;
-            bool digestOk = signaturePresent;
-            if (signaturePresent)
-            {
-                var sig = _lastHeader!.Signature!;
-                var buf = new byte[2048];
-                foreach (var tariff in signedTariffs)
-                {
-                    var reference = sig.SignedInfo.Reference.FirstOrDefault(r => r.URI == "#" + tariff.Id);
-                    digestOk &= reference is not null
-                        && Iso2Codec.EncodeFragment_SalesTariff(tariff, buf, out int n)
-                        && V2GSignature.VerifyReference(reference, buf.AsSpan(0, n));
-                }
-            }
-            var (signatureOk, grammar) = (false, "none");
-            if (signaturePresent && TariffVerifyKey is not null)
-            {
-                var sig = _lastHeader!.Signature!;
-                if (V2GSignature.Verify(sig.SignedInfo, sig.SignatureValue.Value, TariffVerifyKey))
-                    (signatureOk, grammar) = (true, "iso2-msgdef");
-                else if (XmlDsigInterop2.VerifyStandaloneXmldsig(sig.SignedInfo, sig.SignatureValue.Value, TariffVerifyKey))
-                    (signatureOk, grammar) = (true, "xmldsig-standalone");
-            }
+            // Moved into Iso2TariffCheck 2026-08-17. It lived here, and the only way to exercise it was a
+            // whole session against a station configured to sign — which no recorded trace is, because the
+            // verdict never reaches the wire. Out here, TariffSignatureCorpusTests can hold this side to
+            // the same corpus the Swift and Kotlin ports are held to.
+            var (signaturePresent, digestOk, signatureOk, grammar) =
+                Iso2TariffCheck.Evaluate(offer, _lastHeader?.Signature, TariffVerifyKey);
 
             // (2) cheapest tuple: lowest average EPriceLevel; tariff-less tuples rank last, ties keep offer order.
             var chosen = offer.SAScheduleTuple.OrderBy(AveragePriceLevel).First();

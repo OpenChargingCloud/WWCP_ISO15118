@@ -125,8 +125,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <summary>The unwrapped contract private key (P-521); the caller owns disposal.</summary>
         public System.Security.Cryptography.ECDsa? InstalledContractKey { get; private set; }
 
+        /// <summary>The full verdict over the CertificateInstallationRes, once one has arrived — the
+        /// reference count included, which <see cref="InstalledContractSignatureOk"/> flattens away.</summary>
+        public Iso20ContractVerdict? InstalledContractVerdict { get; private set; }
+
         /// <summary>Whether the CertificateInstallationRes header signature (CPS leaf over the
-        /// SignedInstallationData fragment) verified.</summary>
+        /// SignedInstallationData fragment) verified. Both halves of <see cref="InstalledContractVerdict"/>:
+        /// a response whose digest does not hold is not signed for what it carries.</summary>
         public bool InstalledContractSignatureOk { get; private set; }
 
         /// <summary>How to end the session: <c>Terminate</c> (default) or <c>Pause</c> — after a pause the
@@ -809,17 +814,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             // Verify the CPS signature over the SignedInstallationData fragment (our production form:
             // combined grammar, P-521/SHA-512), then unwrap the contract key.
-            var dataBuf = new byte[8192];
-            if (CommonMessagesCodec.EncodeFragment_SignedInstallationData(res.SignedInstallationData, dataBuf, out int dataLen)
-                && res.Header.Signature is { } resSig
-                && resSig.SignedInfo.Reference.Count > 0
-                && V2GSignature.VerifyReference(resSig.SignedInfo.Reference[0], dataBuf.AsSpan(0, dataLen)))
-            {
-                using var cpsLeaf = X509CertificateLoader.LoadCertificate(res.CPSCertificateChain.Certificate);
-                using var cpsPub = cpsLeaf.GetECDsaPublicKey();
-                InstalledContractSignatureOk = cpsPub is not null
-                    && V2GSignature.Verify(resSig.SignedInfo, resSig.SignatureValue.Value, cpsPub);
-            }
+            InstalledContractVerdict     = Iso20ContractCheck.Evaluate(res, res.Header.Signature);
+            InstalledContractSignatureOk = InstalledContractVerdict.DigestOk && InstalledContractVerdict.SignatureOk;
 
             if (res.SignedInstallationData.SECP521_EncryptedPrivateKey is { } wrapped)
             {

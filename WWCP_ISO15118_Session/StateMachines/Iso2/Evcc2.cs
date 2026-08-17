@@ -134,8 +134,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>The unwrapped contract private key (P-256); the caller owns disposal.</summary>
         public ECDsa? InstalledContractKey { get; private set; }
 
+        /// <summary>The full §7.9.2.4.2 verdict over the provisioning response, once one has arrived — the
+        /// reference count included, which <see cref="InstalledContractSignatureOk"/> flattens away.</summary>
+        public Iso2ContractVerdict? InstalledContractVerdict { get; private set; }
+
         /// <summary>Whether the response's four-reference signature verified against the provisioning
-        /// certificate the station sent with it.</summary>
+        /// certificate the station sent with it. Both halves of <see cref="InstalledContractVerdict"/>, since
+        /// a response whose digests do not hold is not signed for what it carries.</summary>
         public bool InstalledContractSignatureOk { get; private set; }
 
         /// <summary>The eMAID the operator issued the contract under.</summary>
@@ -627,98 +632,35 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 request = install;
             }
 
-            // The two responses carry the same six fields in the same order, bar the update's trailing
-            // RetryCounter, so everything after this point is common.
-            var (code, provisioningChain, contractChain, encryptedKey, dhPublicKey, emaid) =
-                options.Action == Iso2CertificateAction.Update
-                    ? Unpack(await Send<CertificateUpdateResType>(request, ct, signature))
-                    : Unpack(await Send<CertificateInstallationResType>(request, ct, signature));
+            // The two responses carry the same fields in the same order, bar the update's trailing
+            // RetryCounter, so everything after this point is common — see Iso2ContractCheck.Unpack.
+            BodyBaseType response = options.Action == Iso2CertificateAction.Update
+                                        ? await Send<CertificateUpdateResType>(request, ct, signature)
+                                        : await Send<CertificateInstallationResType>(request, ct, signature);
 
-            if (code >= ResponseCode.FAILED)
-                throw new SessionAborted($"contract provisioning refused: {code}.");
+            var payload = Iso2ContractCheck.Unpack(response);
 
-            InstalledContractSignatureOk = VerifyProvisioningSignature(provisioningChain, contractChain,
-                                                                       encryptedKey, dhPublicKey, emaid);
+            if (payload.ResponseCode >= ResponseCode.FAILED)
+                throw new SessionAborted($"contract provisioning refused: {payload.ResponseCode}.");
 
-            InstalledContractCertificate = contractChain.Certificate;
-            InstalledEmaid               = emaid.Value;
+            InstalledContractVerdict     = Iso2ContractCheck.Evaluate(response, _lastHeader?.Signature);
+            InstalledContractSignatureOk = InstalledContractVerdict.DigestOk && InstalledContractVerdict.SignatureOk;
+
+            InstalledContractCertificate = payload.ContractChain.Certificate;
+            InstalledEmaid               = payload.Emaid.Value;
             InstalledContractKey         = ContractProvisioning.RecoverContractKey(
-                                               options.KeyAgreement, dhPublicKey.Value, encryptedKey.Value);
+                                               options.KeyAgreement, payload.DhPublicKey.Value, payload.EncryptedKey.Value);
 
             // CBC authenticates nothing, so an unwrap always "succeeds". The check that it succeeded with
             // the right key is that the key belongs to the certificate it arrived with — without this a
             // car would carry on and only find out at its next AuthorizationReq, one session later.
-            using var issued = X509CertificateLoader.LoadCertificate(contractChain.Certificate);
+            using var issued = X509CertificateLoader.LoadCertificate(payload.ContractChain.Certificate);
             using var issuedPublicKey = issued.GetECDsaPublicKey();
             if (issuedPublicKey is null || !ContractProvisioning.Matches(InstalledContractKey, issuedPublicKey))
             {
                 InstalledContractKey.Dispose();
                 InstalledContractKey = null;
                 throw new SessionAborted("contract provisioning: the unwrapped key does not belong to the issued certificate.");
-            }
-
-            static (ResponseCode, CertificateChainType, CertificateChainType,
-                    ContractSignatureEncryptedPrivateKeyType, DiffieHellmanPublickeyType, EMAIDType) Unpack(BodyBaseType body)
-                => body switch
-                {
-                    CertificateInstallationResType r => (r.ResponseCode, r.SAProvisioningCertificateChain,
-                                                         r.ContractSignatureCertChain, r.ContractSignatureEncryptedPrivateKey,
-                                                         r.DHpublickey, r.EMAID),
-                    CertificateUpdateResType r       => (r.ResponseCode, r.SAProvisioningCertificateChain,
-                                                         r.ContractSignatureCertChain, r.ContractSignatureEncryptedPrivateKey,
-                                                         r.DHpublickey, r.EMAID),
-                    _ => throw new SessionAborted($"contract provisioning: unexpected response {body.GetType().Name}."),
-                };
-
-        }
-
-        /// <summary>
-        /// Checks the response's header signature: four references — the contract chain, the encrypted key,
-        /// the DH public key and the eMAID — each digested over its own EXI fragment, then the ECDSA
-        /// signature against the provisioning certificate the station sent alongside.
-        /// </summary>
-        /// <remarks>
-        /// Four references where every other signed -2 message has one, and all four have to hold: a car
-        /// that checked only the chain would take an encrypted key nobody signed for.
-        /// </remarks>
-        private bool VerifyProvisioningSignature(CertificateChainType provisioningChain,
-                                                 CertificateChainType contractChain,
-                                                 ContractSignatureEncryptedPrivateKeyType encryptedKey,
-                                                 DiffieHellmanPublickeyType dhPublicKey,
-                                                 EMAIDType emaid)
-        {
-
-            if (_lastHeader?.Signature is not { } sig || sig.SignedInfo.Reference.Count != 4)
-                return false;
-
-            var buf = new byte[4096];
-            if (!Matches(contractChain.Id, Iso2Codec.EncodeFragment_ContractSignatureCertChain(contractChain, buf, out int n1), buf, n1) ||
-                !Matches(encryptedKey.Id, Iso2Codec.EncodeFragment_ContractSignatureEncryptedPrivateKey(encryptedKey, buf, out int n2), buf, n2) ||
-                !Matches(dhPublicKey.Id, Iso2Codec.EncodeFragment_DHpublickey(dhPublicKey, buf, out int n3), buf, n3) ||
-                !Matches(emaid.Id, Iso2Codec.EncodeFragment_eMAID(emaid, buf, out int n4), buf, n4))
-                return false;
-
-            try
-            {
-                using var provisioningLeaf = X509CertificateLoader.LoadCertificate(provisioningChain.Certificate);
-                using var verifyKey = provisioningLeaf.GetECDsaPublicKey();
-                if (verifyKey is null)
-                    return false;
-
-                return V2GSignature.Verify(sig.SignedInfo, sig.SignatureValue.Value, verifyKey)
-                    || XmlDsigInterop2.VerifyStandaloneXmldsig(sig.SignedInfo, sig.SignatureValue.Value, verifyKey);
-            }
-            catch (CryptographicException)
-            {
-                return false;
-            }
-
-            bool Matches(string? id, bool encoded, byte[] buffer, int length)
-            {
-                if (!encoded || id is null)
-                    return false;
-                var reference = sig.SignedInfo.Reference.FirstOrDefault(r => r.URI == "#" + id);
-                return reference is not null && V2GSignature.VerifyReference(reference, buffer.AsSpan(0, length));
             }
 
         }

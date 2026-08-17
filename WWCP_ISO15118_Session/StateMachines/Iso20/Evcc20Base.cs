@@ -407,6 +407,27 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 MeterInfoResponses++;
         }
 
+        /// <summary>How many service renegotiations this session ran ([V2G20-1477]).</summary>
+        public Int32 Renegotiations { get; private set; }
+
+        private Boolean _renegotiationRequested;
+
+        /// <summary>
+        /// Record that a charge-loop response asked for a <b>service renegotiation</b> — the station puts
+        /// <c>EvseNotification.ServiceRenegotiation</c> in its EVSEStatus ([V2G20-1477]).
+        /// </summary>
+        /// <remarks>
+        /// Called by the AC and DC loops for the same reason <see cref="NoteMeterInfo"/> is: the EVSEStatus
+        /// is a different generated type in each message set, and this class imports neither. The flag is
+        /// acted on where the charging phase ends, not here — a renegotiation has to finish the iteration
+        /// and open the contactor before it can go anywhere.
+        /// </remarks>
+        protected void NoteRenegotiationRequest(Boolean requested)
+        {
+            if (requested)
+                _renegotiationRequested = true;
+        }
+
         /// <summary>
         /// A battery that fills up, and the goal that ends the charge loop. Null — the default — keeps the
         /// fixed three iterations every recorded interop run was taken with.
@@ -586,10 +607,30 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 await pollDelay.Wait(PollInterval, ct);
             }
 
-            // Service negotiation is dynamic: select the energy-transfer service and parameter set the SECC
-            // actually advertises, rather than assuming fixed ids. A live Josev interop run caught the old
-            // hardcoded ServiceID=1/ParameterSetID=1 (Josev's DC catalog offers neither) — our loopback SECC
-            // happened to advertise exactly those, which masked it.
+            await RunServiceSelectionAsync(ct);
+
+            SessionBinding = SessionBinding20.Compute(SessionCtx.SessionId, SeccLeafCertificate);
+
+        }
+
+        /// <summary>
+        /// ServiceDiscovery → ServiceDetail → ServiceSelection.
+        /// </summary>
+        /// <remarks>
+        /// Its own method because a **service renegotiation** re-enters the session exactly here
+        /// ([V2G20-1477]) — the SECC puts the phase back to ServiceDiscovery, not to the top. Authorization
+        /// has already happened and is emphatically not repeated: a car that re-authorized mid-session would
+        /// be telling the station it might be a different car.
+        /// <para>
+        /// Service negotiation is dynamic: select the energy-transfer service and parameter set the SECC
+        /// actually advertises, rather than assuming fixed ids. A live Josev interop run caught the old
+        /// hardcoded ServiceID=1/ParameterSetID=1 (Josev's DC catalog offers neither) — our loopback SECC
+        /// happened to advertise exactly those, which masked it.
+        /// </para>
+        /// </remarks>
+        private async Task RunServiceSelectionAsync(CancellationToken ct)
+        {
+
             var discovery = await Exchange<ServiceDiscoveryRes>(MessageSet.Iso20CommonMessages,
                 dest => new ServiceDiscoveryReq(SessionCtx.ToCommonHeader(),
                                                 SupportedServiceIds is { Count: > 0 } ids
@@ -606,8 +647,6 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             await Exchange<ServiceSelectionRes>(MessageSet.Iso20CommonMessages,
                 dest => new ServiceSelectionReq(SessionCtx.ToCommonHeader(),
                     new SelectedServiceType(serviceId, parameterSetId), null).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
-
-            SessionBinding = SessionBinding20.Compute(SessionCtx.SessionId, SeccLeafCertificate);
 
         }
 
@@ -638,6 +677,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             else
                 await OpenNewSessionAsync(ct);
 
+            // ── the charging phase, which a service renegotiation sends round again ────────────────
+            //
+            // [V2G20-1477]: the station asks by putting EvseNotification.ServiceRenegotiation in a
+            // charge-loop response's EVSEStatus. The EV stops power delivery, sends
+            // SessionStopReq(ServiceRenegotiation) — which does NOT end the session — and the SECC puts the
+            // phase back to ServiceDiscovery. Everything from service selection down then runs again, with
+            // charge parameters and the schedule offer re-negotiated from scratch. That is the whole point:
+            // the station's constraints changed, and both sides need to agree on new ones.
+            //
+            // A `while` rather than a single re-entry: our SECC signals once, but nothing in the standard
+            // says a station may only ask once, and a loop that can only go round a fixed number of times is
+            // the kind of limit that is discovered in the field.
+            while (true)
+            {
             await RunChargeParameterDiscoveryAsync(ct);
 
             // MaximumSupportingPoints is schema-bounded to [12, 1024] (the encoder biases by 12); a smaller
@@ -700,9 +753,28 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 BatteryStop = stop;
             }
 
+            // Power off either way: a renegotiation stops delivery too, and the contactor must be open
+            // before the session goes back to talking about services.
             await Exchange<PowerDeliveryRes>(MessageSet.Iso20CommonMessages,
                 dest => new PowerDeliveryReq(SessionCtx.ToCommonHeader(), Processing.Finished, ChargeProgress.Stop, null, null)
                     .TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+
+            if (!_renegotiationRequested)
+                break;
+
+            _renegotiationRequested = false;
+            Renegotiations++;
+
+            // The one SessionStopReq that does not stop the session. The SECC answers it and re-enters
+            // ServiceDiscovery; sending StopMode here instead would end the session for real, which is the
+            // single most consequential thing to get wrong on this path.
+            await Exchange<SessionStopRes>(MessageSet.Iso20CommonMessages,
+                dest => new SessionStopReq(SessionCtx.ToCommonHeader(), ChargingSession.ServiceRenegotiation, null, null)
+                    .TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+
+            await RunServiceSelectionAsync(ct);
+
+            }
 
             await RunPostChargeSequenceAsync(ct);
 

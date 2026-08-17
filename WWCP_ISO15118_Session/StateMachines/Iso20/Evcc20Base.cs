@@ -1086,30 +1086,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// (Josev's SECC, for one, never signs its price schedules).</summary>
         private void VerifyPriceSchedule(ScheduleExchangeRes res)
         {
-            // Scheduled mode hangs the price schedule off each schedule tuple; Dynamic mode has no tuples and
-            // carries one directly on the control mode. Same verification either way.
-            var priceSchedule = res.Dynamic_SEResControlMode?.AbsolutePriceSchedule is { Id: not null } dynamicPrice
-                ? dynamicPrice
-                : res.Scheduled_SEResControlMode?.ScheduleTuple
-                    .Select(t => t.ChargingSchedule.AbsolutePriceSchedule)
-                    .FirstOrDefault(p => p?.Id is not null);
-            if (priceSchedule is null)
-                return;
-
-            bool signaturePresent = res.Header.Signature is not null;
-            bool digestOk = false, signatureOk = false;
-            if (signaturePresent)
-            {
-                var sig = res.Header.Signature!;
-                var buf = new byte[4096];
-                var reference = sig.SignedInfo.Reference.FirstOrDefault(r => r.URI == "#" + priceSchedule.Id);
-                digestOk = reference is not null
-                    && CommonMessagesCodec.EncodeFragment_AbsolutePriceSchedule(priceSchedule, buf, out int n)
-                    && V2GSignature.VerifyReference(reference, buf.AsSpan(0, n));
-                signatureOk = TariffVerifyKey is not null
-                    && V2GSignature.Verify(sig.SignedInfo, sig.SignatureValue.Value, TariffVerifyKey);
-            }
-            Tariff = new Iso20TariffResult(signaturePresent, digestOk, signatureOk);
+            // Moved into Iso20PriceScheduleCheck 2026-08-17, as the -2 tariff check was: the verdict never
+            // reaches the wire, so no recorded session can hold it, and inline it could not be reached
+            // without a socket. `null` back means the offer carried no signed schedule at all — not a
+            // failure, and Tariff stays null to say so rather than reporting three falses.
+            if (Iso20PriceScheduleCheck.Evaluate(res, res.Header.Signature, TariffVerifyKey) is { } verdict)
+                Tariff = verdict;
         }
 
         /// <summary>Builds the EVPowerProfile that <c>PowerDelivery(Start)</c> must carry. Scheduled mode

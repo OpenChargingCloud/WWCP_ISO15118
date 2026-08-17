@@ -188,6 +188,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             NoteMeterInfo(response.MeterInfo is not null);
 
+            // [V2G20-1477]: the station asks for a service renegotiation through the otherwise
+            // absent EVSEStatus. The base class acts on it once this iteration is finished and the
+            // contactor is open — it cannot see this type, which is why the loop reports it.
+            NoteRenegotiationRequest(response.EVSEStatus?.EVSENotification == Ac20.EvseNotification.ServiceRenegotiation);
+
             // The one place in this project where the EV's own inlet power is a field on the wire:
             // -20 AC has EVPresentActivePower in the request, so the vehicle's view needs no deriving
             // and nothing borrowed from the station. Read back off the rational it just sent, so the

@@ -57,7 +57,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                         DigestValue: SHA256.HashData(signedElementFragment)),
                 });
 
-            var octets = EncodeStandalone(signedInfo)
+            var octets = StandaloneOctets(signedInfo)
                 ?? throw new InvalidOperationException("standalone-xmldsig SignedInfo encode failed.");
             var rawSignature = contractKey.SignData(octets, HashAlgorithmName.SHA256,
                                                     DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
@@ -75,13 +75,23 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <c>false</c> (never throws) on encode failure or mismatch.</summary>
         public static bool VerifyStandaloneXmldsig(I2.SignedInfoType signedInfo, byte[] signatureValue, ECDsa publicKey)
         {
-            var octets = EncodeStandalone(signedInfo);
+            var octets = StandaloneOctets(signedInfo);
             return octets is not null
                 && publicKey.VerifyData(octets, signatureValue, HashAlgorithmName.SHA256,
                                         DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
 
-        private static byte[]? EncodeStandalone(I2.SignedInfoType signedInfo)
+        /// <summary>The octets a -2 signature is actually over: <paramref name="signedInfo"/> re-encoded
+        /// under the <b>standalone</b> xmldsig fragment grammar rather than its own message set's.
+        /// <c>null</c> on encode failure.
+        /// <para>
+        /// Public because signing and verifying must derive them the same way — deriving them twice is how
+        /// the two drift apart, and the Swift port shares one helper here for exactly that reason. It is
+        /// also what a corpus generator needs: a multi-reference SignedInfo (a signed SASchedule offer has
+        /// one reference per SalesTariff) cannot go through <see cref="Sign"/>, which builds a
+        /// single-reference one.
+        /// </para></summary>
+        public static byte[]? StandaloneOctets(I2.SignedInfoType signedInfo)
         {
 
             var mapped = Map(signedInfo);

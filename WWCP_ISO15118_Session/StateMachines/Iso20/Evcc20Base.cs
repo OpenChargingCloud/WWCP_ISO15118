@@ -125,8 +125,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <summary>The unwrapped contract private key (P-521); the caller owns disposal.</summary>
         public System.Security.Cryptography.ECDsa? InstalledContractKey { get; private set; }
 
+        /// <summary>The full verdict over the CertificateInstallationRes, once one has arrived — the
+        /// reference count included, which <see cref="InstalledContractSignatureOk"/> flattens away.</summary>
+        public Iso20ContractVerdict? InstalledContractVerdict { get; private set; }
+
         /// <summary>Whether the CertificateInstallationRes header signature (CPS leaf over the
-        /// SignedInstallationData fragment) verified.</summary>
+        /// SignedInstallationData fragment) verified. Both halves of <see cref="InstalledContractVerdict"/>:
+        /// a response whose digest does not hold is not signed for what it carries.</summary>
         public bool InstalledContractSignatureOk { get; private set; }
 
         /// <summary>How to end the session: <c>Terminate</c> (default) or <c>Pause</c> — after a pause the
@@ -407,6 +412,27 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 MeterInfoResponses++;
         }
 
+        /// <summary>How many service renegotiations this session ran ([V2G20-1477]).</summary>
+        public Int32 Renegotiations { get; private set; }
+
+        private Boolean _renegotiationRequested;
+
+        /// <summary>
+        /// Record that a charge-loop response asked for a <b>service renegotiation</b> — the station puts
+        /// <c>EvseNotification.ServiceRenegotiation</c> in its EVSEStatus ([V2G20-1477]).
+        /// </summary>
+        /// <remarks>
+        /// Called by the AC and DC loops for the same reason <see cref="NoteMeterInfo"/> is: the EVSEStatus
+        /// is a different generated type in each message set, and this class imports neither. The flag is
+        /// acted on where the charging phase ends, not here — a renegotiation has to finish the iteration
+        /// and open the contactor before it can go anywhere.
+        /// </remarks>
+        protected void NoteRenegotiationRequest(Boolean requested)
+        {
+            if (requested)
+                _renegotiationRequested = true;
+        }
+
         /// <summary>
         /// A battery that fills up, and the goal that ends the charge loop. Null — the default — keeps the
         /// fixed three iterations every recorded interop run was taken with.
@@ -586,10 +612,30 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 await pollDelay.Wait(PollInterval, ct);
             }
 
-            // Service negotiation is dynamic: select the energy-transfer service and parameter set the SECC
-            // actually advertises, rather than assuming fixed ids. A live Josev interop run caught the old
-            // hardcoded ServiceID=1/ParameterSetID=1 (Josev's DC catalog offers neither) — our loopback SECC
-            // happened to advertise exactly those, which masked it.
+            await RunServiceSelectionAsync(ct);
+
+            SessionBinding = SessionBinding20.Compute(SessionCtx.SessionId, SeccLeafCertificate);
+
+        }
+
+        /// <summary>
+        /// ServiceDiscovery → ServiceDetail → ServiceSelection.
+        /// </summary>
+        /// <remarks>
+        /// Its own method because a **service renegotiation** re-enters the session exactly here
+        /// ([V2G20-1477]) — the SECC puts the phase back to ServiceDiscovery, not to the top. Authorization
+        /// has already happened and is emphatically not repeated: a car that re-authorized mid-session would
+        /// be telling the station it might be a different car.
+        /// <para>
+        /// Service negotiation is dynamic: select the energy-transfer service and parameter set the SECC
+        /// actually advertises, rather than assuming fixed ids. A live Josev interop run caught the old
+        /// hardcoded ServiceID=1/ParameterSetID=1 (Josev's DC catalog offers neither) — our loopback SECC
+        /// happened to advertise exactly those, which masked it.
+        /// </para>
+        /// </remarks>
+        private async Task RunServiceSelectionAsync(CancellationToken ct)
+        {
+
             var discovery = await Exchange<ServiceDiscoveryRes>(MessageSet.Iso20CommonMessages,
                 dest => new ServiceDiscoveryReq(SessionCtx.ToCommonHeader(),
                                                 SupportedServiceIds is { Count: > 0 } ids
@@ -606,8 +652,6 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             await Exchange<ServiceSelectionRes>(MessageSet.Iso20CommonMessages,
                 dest => new ServiceSelectionReq(SessionCtx.ToCommonHeader(),
                     new SelectedServiceType(serviceId, parameterSetId), null).TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
-
-            SessionBinding = SessionBinding20.Compute(SessionCtx.SessionId, SeccLeafCertificate);
 
         }
 
@@ -638,6 +682,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             else
                 await OpenNewSessionAsync(ct);
 
+            // ── the charging phase, which a service renegotiation sends round again ────────────────
+            //
+            // [V2G20-1477]: the station asks by putting EvseNotification.ServiceRenegotiation in a
+            // charge-loop response's EVSEStatus. The EV stops power delivery, sends
+            // SessionStopReq(ServiceRenegotiation) — which does NOT end the session — and the SECC puts the
+            // phase back to ServiceDiscovery. Everything from service selection down then runs again, with
+            // charge parameters and the schedule offer re-negotiated from scratch. That is the whole point:
+            // the station's constraints changed, and both sides need to agree on new ones.
+            //
+            // A `while` rather than a single re-entry: our SECC signals once, but nothing in the standard
+            // says a station may only ask once, and a loop that can only go round a fixed number of times is
+            // the kind of limit that is discovered in the field.
+            while (true)
+            {
             await RunChargeParameterDiscoveryAsync(ct);
 
             // MaximumSupportingPoints is schema-bounded to [12, 1024] (the encoder biases by 12); a smaller
@@ -700,9 +758,28 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 BatteryStop = stop;
             }
 
+            // Power off either way: a renegotiation stops delivery too, and the contactor must be open
+            // before the session goes back to talking about services.
             await Exchange<PowerDeliveryRes>(MessageSet.Iso20CommonMessages,
                 dest => new PowerDeliveryReq(SessionCtx.ToCommonHeader(), Processing.Finished, ChargeProgress.Stop, null, null)
                     .TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+
+            if (!_renegotiationRequested)
+                break;
+
+            _renegotiationRequested = false;
+            Renegotiations++;
+
+            // The one SessionStopReq that does not stop the session. The SECC answers it and re-enters
+            // ServiceDiscovery; sending StopMode here instead would end the session for real, which is the
+            // single most consequential thing to get wrong on this path.
+            await Exchange<SessionStopRes>(MessageSet.Iso20CommonMessages,
+                dest => new SessionStopReq(SessionCtx.ToCommonHeader(), ChargingSession.ServiceRenegotiation, null, null)
+                    .TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
+
+            await RunServiceSelectionAsync(ct);
+
+            }
 
             await RunPostChargeSequenceAsync(ct);
 
@@ -737,17 +814,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             // Verify the CPS signature over the SignedInstallationData fragment (our production form:
             // combined grammar, P-521/SHA-512), then unwrap the contract key.
-            var dataBuf = new byte[8192];
-            if (CommonMessagesCodec.EncodeFragment_SignedInstallationData(res.SignedInstallationData, dataBuf, out int dataLen)
-                && res.Header.Signature is { } resSig
-                && resSig.SignedInfo.Reference.Count > 0
-                && V2GSignature.VerifyReference(resSig.SignedInfo.Reference[0], dataBuf.AsSpan(0, dataLen)))
-            {
-                using var cpsLeaf = X509CertificateLoader.LoadCertificate(res.CPSCertificateChain.Certificate);
-                using var cpsPub = cpsLeaf.GetECDsaPublicKey();
-                InstalledContractSignatureOk = cpsPub is not null
-                    && V2GSignature.Verify(resSig.SignedInfo, resSig.SignatureValue.Value, cpsPub);
-            }
+            InstalledContractVerdict     = Iso20ContractCheck.Evaluate(res, res.Header.Signature);
+            InstalledContractSignatureOk = InstalledContractVerdict.DigestOk && InstalledContractVerdict.SignatureOk;
 
             if (res.SignedInstallationData.SECP521_EncryptedPrivateKey is { } wrapped)
             {
@@ -1086,30 +1154,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// (Josev's SECC, for one, never signs its price schedules).</summary>
         private void VerifyPriceSchedule(ScheduleExchangeRes res)
         {
-            // Scheduled mode hangs the price schedule off each schedule tuple; Dynamic mode has no tuples and
-            // carries one directly on the control mode. Same verification either way.
-            var priceSchedule = res.Dynamic_SEResControlMode?.AbsolutePriceSchedule is { Id: not null } dynamicPrice
-                ? dynamicPrice
-                : res.Scheduled_SEResControlMode?.ScheduleTuple
-                    .Select(t => t.ChargingSchedule.AbsolutePriceSchedule)
-                    .FirstOrDefault(p => p?.Id is not null);
-            if (priceSchedule is null)
-                return;
-
-            bool signaturePresent = res.Header.Signature is not null;
-            bool digestOk = false, signatureOk = false;
-            if (signaturePresent)
-            {
-                var sig = res.Header.Signature!;
-                var buf = new byte[4096];
-                var reference = sig.SignedInfo.Reference.FirstOrDefault(r => r.URI == "#" + priceSchedule.Id);
-                digestOk = reference is not null
-                    && CommonMessagesCodec.EncodeFragment_AbsolutePriceSchedule(priceSchedule, buf, out int n)
-                    && V2GSignature.VerifyReference(reference, buf.AsSpan(0, n));
-                signatureOk = TariffVerifyKey is not null
-                    && V2GSignature.Verify(sig.SignedInfo, sig.SignatureValue.Value, TariffVerifyKey);
-            }
-            Tariff = new Iso20TariffResult(signaturePresent, digestOk, signatureOk);
+            // Moved into Iso20PriceScheduleCheck 2026-08-17, as the -2 tariff check was: the verdict never
+            // reaches the wire, so no recorded session can hold it, and inline it could not be reached
+            // without a socket. `null` back means the offer carried no signed schedule at all — not a
+            // failure, and Tariff stays null to say so rather than reporting three falses.
+            if (Iso20PriceScheduleCheck.Evaluate(res, res.Header.Signature, TariffVerifyKey) is { } verdict)
+                Tariff = verdict;
         }
 
         /// <summary>Builds the EVPowerProfile that <c>PowerDelivery(Start)</c> must carry. Scheduled mode

@@ -108,7 +108,12 @@ namespace cloud.charging.open.protocols.ISO15118.SLAC.Messages
 
         public static SetKeyReq Decode(ReadOnlySpan<Byte> body)
         {
-            if (body.Length < 39) throw new InvalidDataException("CM_SET_KEY.REQ truncated.");
+            // 40, not 39: Encode() produces 1+1+1+4+4+1+2+1+1+7+1+16 bytes and NewKey is read
+            // from 24..39 below. Guarding at 39 let a one-octet-short body past the check and
+            // then threw ArgumentOutOfRangeException out of the slice — which
+            // ManagementMessageEntry.TryDecode does not catch, so a truncated CM_SET_KEY.REQ
+            // off the wire took down the receive path instead of being dropped.
+            if (body.Length < 40) throw new InvalidDataException("CM_SET_KEY.REQ truncated.");
 
             return new SetKeyReq(
                 KeyType       : body[2],

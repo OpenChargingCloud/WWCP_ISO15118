@@ -39,7 +39,23 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.EVCC_SDP_Demo
         public static async Task<Int32> Main(String[] Arguments)
         {
 
-            var ifaceName = Arguments.FirstOrDefault() ?? "eth0";
+            // --loopback may stand anywhere; what is left over is the interface.
+            var loopback   = Arguments.Any(argument => argument.Equals("--loopback", StringComparison.OrdinalIgnoreCase));
+            var ifaceName  = Arguments.FirstOrDefault(argument => !argument.StartsWith("--")) ?? "eth0";
+
+            if (Arguments.Any(argument => argument is "-h" or "--help"))
+            {
+                Console.WriteLine("Usage: EVCC_SDP_Demo [<interface>] [--loopback]");
+                Console.WriteLine();
+                Console.WriteLine("  --loopback  let this request also reach a SECC on this same machine, for a");
+                Console.WriteLine("              bench where both run here. Off by default, because on real");
+                Console.WriteLine("              hardware a vehicle must not hear itself.");
+                Console.WriteLine();
+                Console.WriteLine("              Set it on the SECC too. The two platforms disagree about which");
+                Console.WriteLine("              socket this switch belongs to - POSIX the sender's, Windows the");
+                Console.WriteLine("              receiver's - so a bench needs both sides to say yes.");
+                return 0;
+            }
 
             using var loggerFactory = LoggerFactory.Create(
                                           loggingBuilder => loggingBuilder.
@@ -63,6 +79,9 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.EVCC_SDP_Demo
 
             Console.WriteLine($"Selected interface: {iface}");
 
+            if (loopback)
+                Console.WriteLine("Reaching a SECC on this machine as well (--loopback).");
+
             await using var client = new EVCC_SDPClient(
                                          new EVCC_SDPClientOptions {
                                              Interface                    = iface,
@@ -73,6 +92,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.EVCC_SDP_Demo
                                              TotalDeadline                = TimeSpan.FromSeconds(60),
                                              RejectNoTlsResponses         = true,
                                              RequireLinkLocalSeccAddress  = true,
+                                             MulticastLoopback            = loopback,
                                          },
                                          loggerFactory.CreateLogger<EVCC_SDPClient>()
                                      );

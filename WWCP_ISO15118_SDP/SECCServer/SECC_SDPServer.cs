@@ -107,8 +107,10 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Server
             // Pin outgoing multicast to our interface.
             sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastInterface, serverOptions.Interface.Index);
 
-            // We do not loopback our own multicasts.
-            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastLoopback, false);
+            // Whether we accept multicast sent from this same host. Off unless
+            // asked, which is what real hardware wants; see the option, which
+            // also says why the platforms disagree about whose socket this is.
+            sock.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.MulticastLoopback, serverOptions.MulticastLoopback);
 
             socket       = sock;
             cancellationTokenSource          = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);

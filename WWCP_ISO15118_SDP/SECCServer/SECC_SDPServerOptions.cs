@@ -126,4 +126,37 @@ public sealed record SECC_SDPServerOptions
     /// </summary>
     public Boolean                                 AnswerUnicastRequests    { get; init; } = false;
 
+    /// <summary>
+    /// Whether this socket accepts multicast that was sent from the same host
+    /// (<c>IPV6_MULTICAST_LOOP</c>). Off by default: on real hardware the SECC
+    /// and the EVCC are two nodes, and a SECC has no business hearing itself.
+    /// Turn it on for a bench where both run on one machine.
+    /// </summary>
+    /// <remarks>
+    /// The option name says "loopback" and the two families disagree about
+    /// which socket it belongs to. POSIX reads it as the sender's: whether a
+    /// datagram I send is also delivered locally. Windows reads it as the
+    /// receiver's: whether I am willing to be delivered one.
+    ///
+    /// Measured on Windows 11, two plain sockets on one interface sending to
+    /// ff02::1 - the receiver decides and the sender has no effect at all:
+    ///
+    ///   sender loop   receiver loop   received
+    ///   true          true            yes
+    ///   true          false           no
+    ///   false         true            yes
+    ///   false         false           no
+    ///
+    /// Which is why this exists. EVCC_SDPClientOptions.MulticastLoopback has
+    /// been there for a while and says it is what a single-host bench needs;
+    /// on Windows it cannot be, because the switch it sets is on the sending
+    /// socket and the receiving one here said no. A SECC and an EVCC on one
+    /// Windows machine could not see each other at all, whatever the client
+    /// did.
+    ///
+    /// Set both for such a bench: one of the two is the one that matters and
+    /// which one depends on the platform.
+    /// </remarks>
+    public Boolean                                 MulticastLoopback        { get; init; } = false;
+
 }

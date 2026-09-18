@@ -37,7 +37,20 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.SECC_SDP_Demo
         public static async Task<Int32> Main(String[] Arguments)
         {
 
-            var ifaceName = Arguments.FirstOrDefault() ?? "eth0";
+            // --loopback may stand anywhere; what is left over is the interface.
+            var loopback   = Arguments.Any(argument => argument.Equals("--loopback", StringComparison.OrdinalIgnoreCase));
+            var ifaceName  = Arguments.FirstOrDefault(argument => !argument.StartsWith("--")) ?? "eth0";
+
+            if (Arguments.Any(argument => argument is "-h" or "--help"))
+            {
+                Console.WriteLine("Usage: SECC_SDP_Demo [<interface>] [--loopback]");
+                Console.WriteLine();
+                Console.WriteLine("  --loopback  also accept SDP requests sent from this same machine, for a");
+                Console.WriteLine("              bench where the vehicle runs here too. Off by default, because");
+                Console.WriteLine("              on real hardware a SECC has no business hearing itself.");
+                Console.WriteLine("              On Windows this is the switch that decides - see the option.");
+                return 0;
+            }
 
             using var loggerFactory = LoggerFactory.Create(
                                           loggingBuilder => loggingBuilder.
@@ -61,12 +74,16 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.SECC_SDP_Demo
 
             Console.WriteLine($"Selected interface: {iface}");
 
+            if (loopback)
+                Console.WriteLine("Accepting SDP requests from this machine as well (--loopback).");
+
             var server = new SECC_SDPServer(
                              new SECC_SDPServerOptions {
                                  Interface            = iface,
                                  SeccPort             = 64109,  // typical 15118 TLS port
                                  OfferedSecurity      = Messages.SDP_Security.TLS,
                                  RejectNoTlsRequests  = true,
+                                 MulticastLoopback    = loopback,
                              },
                              loggerFactory.CreateLogger<SECC_SDPServer>()
                          );

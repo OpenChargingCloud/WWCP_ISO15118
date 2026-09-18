@@ -76,24 +76,32 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
                    ? new List<int> { groups[0] }
                    : base.GetEarlyKeyShareGroups();
 
+        /// <summary>
+        /// The station's leaf certificate (DER) from the handshake, for the `-20` session binding.
+        /// Null until the handshake has validated one.
+        /// </summary>
+        internal byte[]? PeerLeafCertificate { get; private set; }
+
         public override TlsAuthentication GetAuthentication()
-            => new V2GAuthentication(_crypto, _options, () => m_context);
+            => new V2GAuthentication(_crypto, _options, () => m_context, leaf => PeerLeafCertificate = leaf);
 
         private sealed class V2GAuthentication : TlsAuthentication
         {
             private readonly BcTlsCrypto _crypto;
             private readonly BcTlsOptions _options;
             private readonly Func<TlsContext> _context;
+            private readonly Action<byte[]> _remember;
 
-            public V2GAuthentication(BcTlsCrypto crypto, BcTlsOptions options, Func<TlsContext> context)
+            public V2GAuthentication(BcTlsCrypto crypto, BcTlsOptions options, Func<TlsContext> context, Action<byte[]> remember)
             {
-                _crypto  = crypto;
-                _options = options;
-                _context = context;
+                _crypto   = crypto;
+                _options  = options;
+                _context  = context;
+                _remember = remember;
             }
 
             public void NotifyServerCertificate(TlsServerCertificate serverCertificate)
-                => BcV2GTls.ValidatePeer(serverCertificate?.Certificate, _options.ValidatePeerLeaf, AlertDescription.bad_certificate, _options.ValidatePeerChain);
+                => _remember(BcV2GTls.ValidatePeer(serverCertificate?.Certificate, _options.ValidatePeerLeaf, AlertDescription.bad_certificate, _options.ValidatePeerChain));
 
             // Null credentials decline client authentication — the unilateral-TLS case. BouncyCastle then
             // sends an empty Certificate message, which a SECC requiring one rejects.

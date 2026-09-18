@@ -84,7 +84,13 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
                    ? new CertificateRequest(TlsUtilities.EmptyBytes, BcV2GTls.AcceptedClientSignatureAlgorithms(_options), null, null)
                    : null!;
 
+        /// <summary>
+        /// The vehicle's leaf certificate (DER) from the handshake, for the `-20` session binding.
+        /// Null when no client certificate was asked for, which is the unilateral-TLS case.
+        /// </summary>
+        internal byte[]? PeerLeafCertificate { get; private set; }
+
         public override void NotifyClientCertificate(Certificate clientCertificate)
-            => BcV2GTls.ValidatePeer(clientCertificate, _options.ValidatePeerLeaf, AlertDescription.certificate_required, _options.ValidatePeerChain);
+            => PeerLeafCertificate = BcV2GTls.ValidatePeer(clientCertificate, _options.ValidatePeerLeaf, AlertDescription.certificate_required, _options.ValidatePeerChain);
     }
 }

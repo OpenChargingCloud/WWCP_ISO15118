@@ -35,7 +35,9 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
             var protocol = new TlsServerProtocol(inner);
             var server   = new BcV2GTlsServer(new BcTlsCrypto(new SecureRandom()), options);
             await Task.Run(() => protocol.Accept(server), ct).ConfigureAwait(false);
-            return protocol.Stream;
+            // Read after the handshake, never before: this is the one place the peer's certificate is
+            // still known, and a `-20` session that cannot name its peer cannot be paused and rejoined.
+            return new BcTlsStream(protocol.Stream, server.PeerLeafCertificate);
         }
 
         public static async Task<Stream> AuthenticateClientAsync(Stream inner, BcTlsOptions options, CancellationToken ct = default)
@@ -43,7 +45,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
             var protocol = new TlsClientProtocol(inner);
             var client   = new BcV2GTlsClient(new BcTlsCrypto(new SecureRandom()), options);
             await Task.Run(() => protocol.Connect(client), ct).ConfigureAwait(false);
-            return protocol.Stream;
+            return new BcTlsStream(protocol.Stream, client.PeerLeafCertificate);
         }
     }
 }

@@ -18,6 +18,8 @@
 using System.Net.Security;
 using System.Security.Cryptography;
 
+using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
+
 namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 {
 
@@ -93,11 +95,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// The other end's leaf certificate (DER) when <paramref name="stream"/> is an authenticated TLS
         /// stream, else <c>null</c>. Symmetric: the SECC gets the vehicle's, the EVCC gets the station's.
         /// </summary>
+        /// <remarks>
+        /// Both TLS backends, because the question is whether the handshake authenticated a peer and not
+        /// which library performed it. Matching only <see cref="SslStream"/> made a BouncyCastle session
+        /// indistinguishable here from plain TCP, so it paused unbound and every resume of it was
+        /// refused - and BouncyCastle is the backend a conformant `-20` profile needs wherever Schannel
+        /// cannot provide one, which put the profile and pause/resume in direct conflict.
+        /// </remarks>
         public static byte[]? PeerLeafOf(Stream? stream)
 
-            => stream is SslStream { IsAuthenticated: true, RemoteCertificate: { } peer }
-                   ? peer.GetRawCertData()
-                   : null;
+            => stream switch {
+                   SslStream  { IsAuthenticated: true, RemoteCertificate: { } peer }  => peer.GetRawCertData(),
+                   BcTlsStream { PeerLeafCertificate: { Length: > 0 } leaf }           => leaf,
+                   _                                                                  => null
+               };
 
     }
 

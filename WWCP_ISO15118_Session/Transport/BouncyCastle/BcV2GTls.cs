@@ -198,13 +198,20 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
                        SignatureScheme.GetSignatureAndHashAlgorithm(creds.SignatureScheme));
         }
 
-        internal static void ValidatePeer(Certificate? peer, Func<byte[], bool>? validateLeaf,
-                                          short missingAlert, Func<byte[][], bool>? validateChain = null)
+        /// <summary>
+        /// Validate the peer's chain and return its leaf (DER), which the caller keeps so that the
+        /// `-20` session binding can be computed against it after the handshake — the certificate is
+        /// decoded here anyway, and this callback is the only moment it is in reach.
+        /// </summary>
+        internal static byte[] ValidatePeer(Certificate? peer, Func<byte[], bool>? validateLeaf,
+                                            short missingAlert, Func<byte[][], bool>? validateChain = null)
         {
             if (peer is null || peer.IsEmpty)
                 throw new TlsFatalAlert(missingAlert);
 
-            if (validateLeaf is not null && !validateLeaf(peer.GetCertificateAt(0).GetEncoded()))
+            var leaf = peer.GetCertificateAt(0).GetEncoded();
+
+            if (validateLeaf is not null && !validateLeaf(leaf))
                 throw new TlsFatalAlert(AlertDescription.bad_certificate);
 
             // The whole chain as the peer sent it, leaf first. The handshake already carries it; until now
@@ -218,6 +225,8 @@ namespace cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle
                 if (!validateChain(chain))
                     throw new TlsFatalAlert(AlertDescription.bad_certificate);
             }
+
+            return leaf;
         }
     }
 }

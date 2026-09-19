@@ -122,6 +122,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// with <see cref="InstalledContractKey"/> proving the ECDH/AES-GCM key unwrap round-tripped.</summary>
         public byte[]? InstalledContractCertificate { get; private set; }
 
+        /// <summary>The sub-CAs (DER) the SECC sent with that contract certificate, in wire order.</summary>
+        /// <remarks>
+        /// Kept beside the leaf because a caller checking the issued chain against its own MO roots needs
+        /// both: a chain handed only its leaf is refused wherever the hierarchy has a sub-CA, which is
+        /// every real one. Empty rather than null once an installation has happened and carried none.
+        /// </remarks>
+        public byte[][]? InstalledContractSubCertificates { get; private set; }
+
         /// <summary>The unwrapped contract private key (P-521); the caller owns disposal.</summary>
         public System.Security.Cryptography.ECDsa? InstalledContractKey { get; private set; }
 
@@ -822,6 +830,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 InstalledContractKey = ContractProvisioning.RecoverContractKey(
                     oem.OemKeyAgreement, res.SignedInstallationData.DHPublicKey, wrapped);
                 InstalledContractCertificate = res.SignedInstallationData.ContractCertificateChain.Certificate;
+
+                InstalledContractSubCertificates =
+                    res.SignedInstallationData.ContractCertificateChain.SubCertificates?.Certificate?.ToArray() ?? [];
             }
         }
 

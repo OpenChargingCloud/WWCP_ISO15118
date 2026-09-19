@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>cloud.charging.open.protocols.ISO15118.T1S</RootNamespace>
+    <AssemblyName>cloud.charging.open.protocols.ISO15118.T1S</AssemblyName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <!-- The raw socket for a real adapter (Transport/Linux) hands the kernel
+         pointers into its buffers, which LibraryImport spells as unsafe. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- MACAddress, and nothing else. The emulated medium is UDP multicast
+         with the framework's own sockets, so that a bench without a 10BASE-T1S
+         adapter - which is every bench today - can run it; the real one is a
+         raw socket through libc, with nothing in between. -->
+    <ProjectReference Include="..\..\Hermod\Hermod\Hermod.csproj" />
+  </ItemGroup>
+
+</Project>

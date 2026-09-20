@@ -43,21 +43,28 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
         public static List<VerificationResult> VerifyGood(V2GHierarchy h)
         {
 
-            var trust    = new HashSet<TrustAnchor> {
-                               new (h.Root.Certificate, null)
-                           };
-
+            // Each chain against the one anchor it is supposed to end at -
+            // which, with a single root, is the same anchor five times, and
+            // with roots of their own is the check that the MO branch really
+            // ends at the MO root rather than at whichever root happens to
+            // verify it.
+            var v2g      = Anchor(h.Root);
+            var mo       = Anchor(h.MoRoot);
+            var oem      = Anchor(h.OemRoot);
             var results  = new List<VerificationResult> {
-                               VerifyChain("secc",         h, trust, h.SeccLeaf,       h.CpoSubCa2,     h.CpoSubCa1),
-                               VerifyChain("contract",     h, trust, h.ContractLeaf,   h.MoSubCa2,      h.MoSubCa1),
-                               VerifyChain("oem_prov",     h, trust, h.OemProvLeaf,    h.OemSubCa2,     h.OemSubCa1),
-                               VerifyChain("vehicle",      h, trust, h.VehicleLeaf,    h.VehicleSubCa2, h.VehicleSubCa1),
-                               VerifyChain("cps_signing",  h, trust, h.CpsSigningLeaf, h.CpsSubCa)
+                               VerifyChain("secc",         h, v2g, h.SeccLeaf,       h.CpoSubCa2,     h.CpoSubCa1),
+                               VerifyChain("contract",     h, mo,  h.ContractLeaf,   h.MoSubCa2,      h.MoSubCa1),
+                               VerifyChain("oem_prov",     h, oem, h.OemProvLeaf,    h.OemSubCa2,     h.OemSubCa1),
+                               VerifyChain("vehicle",      h, oem, h.VehicleLeaf,    h.VehicleSubCa2, h.VehicleSubCa1),
+                               VerifyChain("cps_signing",  h, v2g, h.CpsSigningLeaf, h.CpsSubCa)
                            };
 
             return results;
 
         }
+
+        private static HashSet<TrustAnchor> Anchor(V2GIssued Root)
+            => [ new TrustAnchor(Root.Certificate, null) ];
 
         private static VerificationResult VerifyChain(String                slug,
                                                       V2GHierarchy          hierarchy,

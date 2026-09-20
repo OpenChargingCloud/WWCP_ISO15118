@@ -75,6 +75,8 @@ public sealed record V2GCertProfile(
                 PolicyOids: options.Policies.Policies(options.Policies.RootPolicy),
                 SubjectAltDnsNames: []),
 
+            V2GRole.MORootCA  => RootCa(role, "MO Root CA"  + suffix, ["V2G", "MO"],  options),
+            V2GRole.OEMRootCA => RootCa(role, "OEM Root CA" + suffix, ["V2G", "OEM"], options),
             V2GRole.CPOSubCA1 => SubCa(role, "CPO Sub-CA 1" + suffix, ["V2G", "CPO"], pathLen: 1, options),
             V2GRole.CPOSubCA2 => SubCa(role, "CPO Sub-CA 2" + suffix, ["V2G", "CPO"], pathLen: 0, options),
 
@@ -189,6 +191,27 @@ public sealed record V2GCertProfile(
     {
         return ForRole(role, V2GProfileOptions.LabFor(V2GAlgorithm.EcdsaP256), cnSuffix);
     }
+
+    /// <summary>
+    /// A root of its own for one branch: the same shape as the V2G Root CA, under another name.
+    /// </summary>
+    private static V2GCertProfile RootCa(
+        V2GRole role,
+        string cn,
+        string[] dcs,
+        V2GProfileOptions options) => new(
+        role,
+        CommonName: cn,
+        DomainComponents: dcs,
+        Organization: "V2G PKI",
+        Country: "DE",
+        IsCa: true,
+        PathLenConstraint: null,
+        KeyUsageBits: KeyUsage.KeyCertSign | KeyUsage.CrlSign,
+        ExtendedKeyUsages: [],
+        Validity: TimeSpan.FromDays(365 * 40),
+        PolicyOids: options.Policies.Policies(options.Policies.RootPolicy),
+        SubjectAltDnsNames: []);
 
     private static V2GCertProfile SubCa(
         V2GRole role,

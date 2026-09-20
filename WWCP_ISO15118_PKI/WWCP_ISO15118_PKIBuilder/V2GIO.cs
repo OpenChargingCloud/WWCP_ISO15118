@@ -105,22 +105,38 @@ public static class V2GIO
         foreach (var (subdir, issued) in ordered)
             WriteIssued(issued, Path.Combine(baseDir, subdir));
 
+        // The roots of their own, at the same rank as the V2G root: a
+        // directory listing then shows the anchors first and together.
+        if (V2GHierarchy.HasSeparateRoots)
+        {
+            WriteIssued(V2GHierarchy.MoRoot,  Path.Combine(baseDir, "01_mo_root_ca"));
+            WriteIssued(V2GHierarchy.OemRoot, Path.Combine(baseDir, "01_oem_root_ca"));
+        }
         // Chain bundles for each leaf, ordered leaf -> root.
         WriteChain(Path.Combine(baseDir, "chains", "secc_chain.pem"),
                    V2GHierarchy.SeccLeaf, V2GHierarchy.CpoSubCa2, V2GHierarchy.CpoSubCa1, V2GHierarchy.Root);
         WriteChain(Path.Combine(baseDir, "chains", "contract_chain.pem"),
-                   V2GHierarchy.ContractLeaf, V2GHierarchy.MoSubCa2, V2GHierarchy.MoSubCa1, V2GHierarchy.Root);
+                   V2GHierarchy.ContractLeaf, V2GHierarchy.MoSubCa2, V2GHierarchy.MoSubCa1, V2GHierarchy.MoRoot);
         WriteChain(Path.Combine(baseDir, "chains", "oem_prov_chain.pem"),
-                   V2GHierarchy.OemProvLeaf, V2GHierarchy.OemSubCa2, V2GHierarchy.OemSubCa1, V2GHierarchy.Root);
+                   V2GHierarchy.OemProvLeaf, V2GHierarchy.OemSubCa2, V2GHierarchy.OemSubCa1, V2GHierarchy.OemRoot);
         WriteChain(Path.Combine(baseDir, "chains", "vehicle_chain.pem"),
-                   V2GHierarchy.VehicleLeaf, V2GHierarchy.VehicleSubCa2, V2GHierarchy.VehicleSubCa1, V2GHierarchy.Root);
+                   V2GHierarchy.VehicleLeaf, V2GHierarchy.VehicleSubCa2, V2GHierarchy.VehicleSubCa1, V2GHierarchy.OemRoot);
         WriteChain(Path.Combine(baseDir, "chains", "cps_signing_chain.pem"),
                    V2GHierarchy.CpsSigningLeaf, V2GHierarchy.CpsSubCa, V2GHierarchy.Root);
 
-        // Trust store: just the root.
+        // Trust stores: the V2G root alone, as before, and - where the MO and
+        // OEM branches have roots of their own - one file per anchor, so that
+        // whoever keeps the three apart can take each from its own file.
         File.WriteAllText(Path.Combine(baseDir, "chains", "v2g_root_trust.pem"),
             ToPEM("CERTIFICATE", V2GHierarchy.Root.Certificate.GetEncoded()));
 
+        if (V2GHierarchy.HasSeparateRoots)
+        {
+            File.WriteAllText(Path.Combine(baseDir, "chains", "mo_root_trust.pem"),
+                ToPEM("CERTIFICATE", V2GHierarchy.MoRoot.Certificate.GetEncoded()));
+            File.WriteAllText(Path.Combine(baseDir, "chains", "oem_root_trust.pem"),
+                ToPEM("CERTIFICATE", V2GHierarchy.OemRoot.Certificate.GetEncoded()));
+        }
         WriteCrls(baseDir, V2GHierarchy);
         WriteSizeReport(baseDir, V2GHierarchy);
 

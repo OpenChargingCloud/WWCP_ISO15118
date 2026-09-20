@@ -38,6 +38,22 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
     /// (operator vs sub-operator). CPS uses a single intermediate. The Vehicle branch is the
     /// CharIN 2nd-gen V2G PKI's dedicated TLS-client identity for ISO 15118-20 mutual TLS,
     /// kept separate from the Contract cert (application-layer PnC only).
+    ///
+    /// With <see cref="V2GRootLayout.SeparateRoots"/> the MO branch hangs below an MO Root CA
+    /// and the OEM and Vehicle branches below an OEM Root CA, each self-signed, and only the
+    /// CPO and CPS branches stay below the V2G Root CA:
+    ///
+    ///   V2G Root CA ── CPO Sub-CA 1 ── CPO Sub-CA 2 ── SECC Leaf
+    ///               └─ CPS Sub-CA ─────────────────── CPS Signing Leaf
+    ///    MO Root CA ──  MO Sub-CA 1 ──  MO Sub-CA 2 ── Contract Cert Leaf
+    ///   OEM Root CA ── OEM Sub-CA 1 ── OEM Sub-CA 2 ── OEM Prov Cert Leaf
+    ///               └─ Vehicle Sub-CA 1 ── Vehicle Sub-CA 2 ── Vehicle Leaf
+    ///
+    /// Those are the three anchors ISO 15118-20 Annex C names, and what a vehicle that keeps
+    /// its trust anchors apart by kind - a v2gRoot, an moRoot and an oemRoot - is filled from.
+    /// <see cref="MoRoot"/> and <see cref="OemRoot"/> are those roots, or <see cref="Root"/>
+    /// itself where the layout has only the one, so a consumer can always ask "what anchors
+    /// the contract chain?" and get an answer.
     /// </summary>
     public class V2GHierarchy
     {
@@ -48,6 +64,11 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
         public required V2GProfileOptions  Options           { get; init; }
         public required V2GIssued          Root              { get; init; }
 
+        /// <summary>The anchor of the MO branch: a root of its own, or <see cref="Root"/> where there is only the one.</summary>
+        public required V2GIssued          MoRoot            { get; init; }
+
+        /// <summary>The anchor of the OEM and Vehicle branches: a root of its own, or <see cref="Root"/> where there is only the one.</summary>
+        public required V2GIssued          OemRoot           { get; init; }
         public required V2GIssued          CpoSubCa1         { get; init; }
         public required V2GIssued          CpoSubCa2         { get; init; }
         public required V2GIssued          SeccLeaf          { get; init; }
@@ -67,10 +88,29 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
         public required V2GIssued          CpsSubCa          { get; init; }
         public required V2GIssued          CpsSigningLeaf    { get; init; }
 
-        public IEnumerable<V2GIssued> AllCerts()
+        /// <summary>Whether <see cref="MoRoot"/> and <see cref="OemRoot"/> are roots of their own rather than <see cref="Root"/>.</summary>
+        public Boolean HasSeparateRoots
+            => Options.HasSeparateRoots;
+
+        /// <summary>Every trust anchor of this hierarchy: one, or three.</summary>
+        public IEnumerable<V2GIssued> Roots()
         {
 
             yield return Root;
+
+            if (HasSeparateRoots)
+            {
+                yield return MoRoot;
+                yield return OemRoot;
+            }
+
+        }
+
+        public IEnumerable<V2GIssued> AllCerts()
+        {
+
+            foreach (var root in Roots())
+                yield return root;
             yield return CpoSubCa1;
             yield return CpoSubCa2;
             yield return SeccLeaf;
@@ -126,6 +166,37 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
                                       revocation:  V2GRevocationInfo.ForRoot(RevocationBaseURL)
                                   );
 
+            // The MO and OEM branches' anchors: roots of their own where the
+            // layout asks for them, and the V2G root itself where it does not,
+            // so that everything below is issued the same way either way.
+            var moRoot          = V2GProfileOptions.HasSeparateRoots
+                                      ? V2GCertificateBuilder.Issue(
+                                            V2GCertProfile.ForRole(
+                                                V2GRole.MORootCA,
+                                                V2GProfileOptions,
+                                                CommonNameSuffix
+                                            ),
+                                            V2GAlgorithm,
+                                            SecureRandom,
+                                            issuer:      null,
+                                            revocation:  V2GRevocationInfo.ForRoot(RevocationBaseURL)
+                                        )
+                                      : root;
+
+            var oemRoot         = V2GProfileOptions.HasSeparateRoots
+                                      ? V2GCertificateBuilder.Issue(
+                                            V2GCertProfile.ForRole(
+                                                V2GRole.OEMRootCA,
+                                                V2GProfileOptions,
+                                                CommonNameSuffix
+                                            ),
+                                            V2GAlgorithm,
+                                            SecureRandom,
+                                            issuer:      null,
+                                            revocation:  V2GRevocationInfo.ForRoot(RevocationBaseURL)
+                                        )
+                                      : root;
+
             var cpo1            = V2GCertificateBuilder.Issue(
                                       V2GCertProfile.ForRole(
                                           V2GRole.CPOSubCA1,
@@ -179,10 +250,10 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
                                       ),
                                       V2GAlgorithm,
                                       SecureRandom,
-                                      root,
+                                      moRoot,
                                       revocation:  V2GRevocationInfo.ForIssuer(
                                                        RevocationBaseURL,
-                                                       root
+                                                       moRoot
                                                    )
                                   );
 
@@ -226,10 +297,10 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
                                       ),
                                       V2GAlgorithm,
                                       SecureRandom,
-                                      root,
+                                      oemRoot,
                                       revocation:  V2GRevocationInfo.ForIssuer(
                                                        RevocationBaseURL,
-                                                       root
+                                                       oemRoot
                                                    )
                                   );
 
@@ -273,10 +344,10 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
                                       ),
                                       V2GAlgorithm,
                                       SecureRandom,
-                                      root,
+                                      oemRoot,
                                       revocation:  V2GRevocationInfo.ForIssuer(
                                                        RevocationBaseURL,
-                                                       root
+                                                       oemRoot
                                                    )
                                   );
 
@@ -347,6 +418,8 @@ namespace cloud.charging.open.protocols.ISO15118.PKI
                        Algorithm       = V2GAlgorithm,
                        Options         = V2GProfileOptions,
                        Root            = root,
+                       MoRoot          = moRoot,
+                       OemRoot         = oemRoot,
                        CpoSubCa1       = cpo1,
                        CpoSubCa2       = cpo2,
                        SeccLeaf        = secc,

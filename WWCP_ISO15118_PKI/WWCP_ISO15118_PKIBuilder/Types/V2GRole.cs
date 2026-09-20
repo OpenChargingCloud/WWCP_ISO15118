@@ -40,6 +40,17 @@ public enum V2GRole
     /// <summary>V2G Root CA — anchor of trust. Self-signed, ~30-40y validity.</summary>
     V2GRootCA,
 
+    /// <summary>
+    /// MO Root CA — the Mobility Operator's own anchor above the MO Sub-CAs, where a hierarchy
+    /// keeps its roots apart (<see cref="V2GRootLayout.SeparateRoots"/>). Self-signed, like the V2G root.
+    /// </summary>
+    MORootCA,
+
+    /// <summary>
+    /// OEM Root CA — the vehicle manufacturer's own anchor above the OEM and Vehicle Sub-CAs, where a
+    /// hierarchy keeps its roots apart. Self-signed, like the V2G root.
+    /// </summary>
+    OEMRootCA,
     /// <summary>CPO Sub-CA — issues SECC leaf certs for charging stations.</summary>
     CPOSubCA1,
     CPOSubCA2,

@@ -25,14 +25,14 @@ using cloud.charging.open.protocols.ISO15118.PKI.Evil;
 #endregion
 
 // Minimal CLI:
-//   v2gpki [--out <dir>] [--algo p256|p384|p521|ed448|15118-20|pqc|all] [--profile strict-2|strict-20|lab|pqc] [--policy-arc <oid>] [--evil] [--seed <hex>]
-
+//   v2gpki [--out <dir>] [--algo p256|p384|p521|ed448|15118-20|pqc|all] [--profile strict-2|strict-20|lab|pqc] [--policy-arc <oid>] [--separate-roots] [--evil] [--seed <hex>]
 String   outDir             = "out";
 String   algoFlag           = "p521";
 String   profileFlag        = "strict-20";
 String?  policyArc          = null;
 String?  revocationBaseUri  = "http://pki.v2g.local";
 Boolean  buildEvil          = false;
+Boolean  separateRoots      = false;
 Byte[]?  seed               = null;
 
 for (var i = 0; i < args.Length; i++)
@@ -47,6 +47,7 @@ for (var i = 0; i < args.Length; i++)
         case "--revocation-base-uri": revocationBaseUri  = args[++i];                        break;
         case "--no-revocation-uris":  revocationBaseUri  = null;                             break;
         case "--evil":                buildEvil          = true;                             break;
+        case "--separate-roots":      separateRoots      = true;                             break;
         case "--seed":                seed               = Convert.FromHexString(args[++i]); break;
 
         case "-h" or "--help":
@@ -142,7 +143,8 @@ Directory.CreateDirectory(outDir);
 foreach (var algo in algorithms)
 {
 
-    var options = new V2GProfileOptions(profileFlavor, algo, policySet);
+    var options = new V2GProfileOptions(profileFlavor, algo, policySet,
+                                        separateRoots ? V2GRootLayout.SeparateRoots : V2GRootLayout.SingleRoot);
     Console.WriteLine($"[+] Building {profileFlavor} hierarchy ({algo})…");
     var good = V2GHierarchy.Build(algo, random, V2GProfileOptions: options, RevocationBaseURL: revocationBaseUri);
     V2GIO.WriteHierarchy(good, outDir);
@@ -186,6 +188,9 @@ static void PrintHelp()
           --revocation-base-uri <uri>
                                Base URI for CRL DP and AIA/OCSP (default: http://pki.v2g.local)
           --no-revocation-uris Omit CRL DP and AIA/OCSP extensions
+          --separate-roots     An MO Root CA above the MO branch and an OEM Root CA above
+                               the OEM and Vehicle branches, instead of one V2G Root CA
+                               above everything (the three anchors of ISO 15118-20 Annex C)
           --evil               Also generate malformed cert variants for pentesting
           --seed <hex>         Deterministic PRNG seed (testing/repro)
           -h, --help           This help

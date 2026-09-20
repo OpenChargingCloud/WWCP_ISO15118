@@ -35,10 +35,13 @@ namespace cloud.charging.open.protocols.ISO15118.PKI;
 public sealed record V2GProfileOptions(
     V2GProfileFlavor Flavor,
     V2GAlgorithm Algorithm,
-    V2GPolicySet Policies)
+    V2GPolicySet Policies,
+    V2GRootLayout RootLayout = V2GRootLayout.SingleRoot)
 {
-
     public bool IsLab => Flavor == V2GProfileFlavor.Lab;
+
+    /// <summary>Whether the MO and OEM branches hang below roots of their own rather than below the V2G Root CA.</summary>
+    public bool HasSeparateRoots => RootLayout == V2GRootLayout.SeparateRoots;
 
     public bool IsExperimentalPqc => Flavor == V2GProfileFlavor.ExperimentalPqc;
 

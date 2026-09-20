@@ -25,6 +25,25 @@ for ISO 15118-20 mutual TLS. It is deliberately separate from the Contract certi
 EVCC always presents the Vehicle cert as the TLS client, while the Contract cert stays at the
 application layer (Plug & Charge) and the OEM Provisioning cert stays provisioning-only.
 
+One root above everything is the default. With `--separate-roots` (`V2GRootLayout.SeparateRoots`
+on the profile options) the MO branch hangs below an **MO Root CA** and the OEM and Vehicle
+branches below an **OEM Root CA**, each self-signed, and only the CPO and CPS branches stay
+below the V2G Root CA — the three anchors ISO 15118-20 Annex C names:
+
+```
+V2G Root CA ── CPO Sub-CA 1 ── CPO Sub-CA 2 ── SECC Leaf
+            └─ CPS Sub-CA ─────────────────── CPS Signing Leaf
+ MO Root CA ──  MO Sub-CA 1 ──  MO Sub-CA 2 ── Contract Cert Leaf
+OEM Root CA ── OEM Sub-CA 1 ── OEM Sub-CA 2 ── OEM Prov Cert Leaf
+            └─ Vehicle Sub-CA 1 ── Vehicle Sub-CA 2 ── Vehicle Leaf
+```
+
+That is what a verifier which keeps its trust anchors apart by what they vouch for needs: with
+one root, an OEM root would vouch for a contract, which is the difference between checking who
+is charging and checking that somebody signed something. `V2GHierarchy.MoRoot` and `.OemRoot`
+name the anchors of those branches in either layout — the roots of their own, or the V2G root
+itself — so a consumer never has to know which layout it was given. The verifier checks each
+chain against its own anchor and nothing else.
 ## Algorithm profiles
 
 | Profile         | Signing alg     | TLS KEX           | Notes                           |
@@ -92,10 +111,12 @@ Strict profiles do not emit placeholder certificate-policy OIDs. Pass `--policy-
 
 This emits, for each algorithm:
 
-- `out/<profile>_<algo>/01_v2g_root_ca/` … `12_cps_signing_leaf/`, each containing
-  `*.cert.pem`, `*.cert.der`, `*.key.pem`, `*.key.der`
+- `out/<profile>_<algo>/01_v2g_root_ca/` … `15_cps_signing_leaf/`, each containing
+  `*.cert.pem`, `*.cert.der`, `*.key.pem`, `*.key.der` — and, with `--separate-roots`,
+  `01_mo_root_ca/` and `01_oem_root_ca/` at the same rank as the V2G root
 - `out/<profile>_<algo>/chains/` with leaf-to-root bundles for each leaf cert
-  (`secc_chain.pem`, `contract_chain.pem`, …) plus `v2g_root_trust.pem`
+  (`secc_chain.pem`, `contract_chain.pem`, …) plus `v2g_root_trust.pem`, and with
+  `--separate-roots` also `mo_root_trust.pem` and `oem_root_trust.pem`, one anchor per file
 - `out/<profile>_<algo>/crls/` with empty CRLs for every generated CA
 - `out/<profile>_<algo>/size_report.md` with certificate/signature/key sizes
 - `out/evil_<algo>/<variant>/` with malformed certs and `INDEX.md`

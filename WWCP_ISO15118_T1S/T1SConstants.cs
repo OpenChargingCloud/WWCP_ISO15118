@@ -18,6 +18,8 @@
 #region Usings
 
 using System.Net;
+using System.Net.Sockets;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 
 using org.GraphDefined.Vanaheimr.Hermod.Ethernet;
@@ -198,6 +200,45 @@ namespace cloud.charging.open.protocols.ISO15118.T1S
         /// systems each do differently.
         /// </remarks>
         public static readonly IPEndPoint  DefaultMulticastEndpoint  = new (IPAddress.Parse("239.151.18.1"), 16118);
+
+        #endregion
+
+        #region TryParseBus(Text, out Bus)
+
+        /// <summary>
+        /// The emulated medium written as a group and a port, the way a
+        /// configuration file carries it: <c>239.151.18.1:16118</c>.
+        /// </summary>
+        /// <remarks>
+        /// One rule in one place, because both ends of the cable read it out
+        /// of their own configuration and a group that one of them accepted
+        /// and the other refused would be a bench that half works. IPv4
+        /// multicast only: that is what the emulated medium is, and an address
+        /// that is not one is a bus nobody would ever hear a BEACON on.
+        /// </remarks>
+        public static Boolean TryParseBus(String?                                Text,
+                                          [NotNullWhen(true)] out IPEndPoint?    Bus)
+        {
+
+            Bus = null;
+
+            if (Text is null ||
+                !IPEndPoint.TryParse(Text.Trim(), out var endpoint) ||
+                endpoint.Port == 0 ||
+                endpoint.Address.AddressFamily != AddressFamily.InterNetwork)
+            {
+                return false;
+            }
+
+            var first = endpoint.Address.GetAddressBytes()[0];
+
+            if (first < 224 || first > 239)
+                return false;
+
+            Bus = endpoint;
+            return true;
+
+        }
 
         #endregion
 

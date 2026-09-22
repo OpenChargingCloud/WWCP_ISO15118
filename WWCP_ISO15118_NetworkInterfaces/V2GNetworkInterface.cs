@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2014-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
@@ -31,10 +31,15 @@ namespace cloud.charging.open.protocols.ISO15118.NetworkInterfaces
     /// pieces V2GTP / SDP / TCP-V2G actually need: a stable index for the IPv6
     /// scope-id, the link-local address to send/respond from, and the MAC.
     /// </summary>
+    /// <param name="HasIPv4Address">Whether the interface also carries an IPv4
+    /// address. Not needed to speak V2G - ISO 15118 is IPv6 throughout - but it
+    /// tells a V2G port apart from the one the machine is administered over,
+    /// which practically always has one.</param>
     public sealed record V2GNetworkInterface(Int32      Index,
                                              String     Name,
                                              IPAddress  LinkLocalIPAddress,
-                                             Byte[]     MACAddress)
+                                             Byte[]     MACAddress,
+                                             Boolean    HasIPv4Address = false)
     {
 
         /// <summary>

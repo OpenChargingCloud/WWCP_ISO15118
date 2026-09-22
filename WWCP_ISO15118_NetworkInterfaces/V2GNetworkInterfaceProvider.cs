@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2014-2026 GraphDefined GmbH <achim.friedland@graphdefined.com>
  * This file is part of WWCP ISO/IEC 15118 <https://github.com/OpenChargingCloud/WWCP_ISO15118>
  *
@@ -18,6 +18,7 @@
 #region Usings
 
 using System.Net.NetworkInformation;
+using System.Net.Sockets;
 
 #endregion
 
@@ -69,7 +70,9 @@ namespace cloud.charging.open.protocols.ISO15118.NetworkInterfaces
                        index.Value,
                        NetworkInterface.Name,
                        linkLocalIPAddress,
-                       NetworkInterface.GetPhysicalAddress().GetAddressBytes()
+                       NetworkInterface.GetPhysicalAddress().GetAddressBytes(),
+                       ipInterfaceProperties.UnicastAddresses.
+                           Any(unicastIPAddressInformation => unicastIPAddressInformation.Address.AddressFamily == AddressFamily.InterNetwork)
                    );
 
         }

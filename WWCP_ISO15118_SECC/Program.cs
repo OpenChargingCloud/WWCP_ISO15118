@@ -341,7 +341,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
         {
             var iface  = V2GInterface.Resolve(args.Interface!);
             var noTls  = args.TlsStack == TlsStack.None;
-            var server = new SECC_SDPServer(BuildSdpOptions(iface, tcpPort, noTls));
+            var server = new SECC_SDPServer(BuildSdpOptions(iface, tcpPort, noTls, args.SdpLoopback));
             // iface.LinkLocalIPAddress already carries the interface ScopeId on Linux; re-derive a scoped
             // address so the display shows the scope exactly once (not "…%2%2").
             var scoped = new IPAddress(iface.LinkLocalIPAddress.GetAddressBytes(), iface.Index);
@@ -359,7 +359,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
         /// otherwise silently drop it and make <c>--sdp</c> discovery appear broken. A TLS station
         /// advertises <see cref="SDP_Security.TLS"/> and keeps rejecting no-TLS downgrade requests.
         /// </summary>
-        internal static SECC_SDPServerOptions BuildSdpOptions(V2GNetworkInterface iface, int tcpPort, bool noTls)
+        internal static SECC_SDPServerOptions BuildSdpOptions(V2GNetworkInterface iface, int tcpPort, bool noTls, bool loopback = false)
             => new()
             {
                 Interface           = iface,
@@ -367,6 +367,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                 AcceptedVersions    = new HashSet<SDP_Version> { SDP_Version.ISO_15118_2, SDP_Version.ISO_15118_20 },
                 OfferedSecurity     = noTls ? SDP_Security.NoTLS : SDP_Security.TLS,
                 RejectNoTlsRequests = !noTls,
+                MulticastLoopback   = loopback,
             };
 
         // ── helpers ──────────────────────────────────────────────────────────────────────────────────

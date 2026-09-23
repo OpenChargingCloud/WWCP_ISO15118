@@ -31,7 +31,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
     /// </remarks>
     public sealed record SeccOptions(
         int ListenPort, ProtocolVariant Protocol, bool OfferBoth, PowerMode Mode, bool Mcs,
-        TlsStack TlsStack, bool UseSdp, string? Interface, bool PreferDynamic, bool NoPnc,
+        TlsStack TlsStack, bool UseSdp, string? Interface, bool SdpLoopback, bool PreferDynamic, bool NoPnc,
         bool UseSlac, int SlacListenPort, string? PkiDir,
         string? ServerCertPath, string? ServerCertPass, bool RequireClientCert, string? TrustRootsPath,
         bool Renegotiate, string? TariffCertPath, string? TariffCertPass)
@@ -51,7 +51,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             var mode = PowerMode.Dc;
             var mcs = false;
             var backend = TlsStack.None;
-            bool tls = false, useSdp = false, useSlac = false;
+            bool tls = false, useSdp = false, useSlac = false, sdpLoopback = false;
             bool preferDynamic = false, noPnc = false, requireClientCert = false, renegotiate = false;
             string? iface = null, pkiDir = null, serverCertPath = null, serverCertPass = null, trustRootsPath = null;
             string? tariffCertPath = null, tariffCertPass = null;
@@ -100,6 +100,14 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                         break;
                     case "--sdp":
                         useSdp = true;
+                        break;
+                    // A station and a car on one machine. See
+                    // SECC_SDPServerOptions.MulticastLoopback for why this is
+                    // the socket that decides on Windows, and why the car's own
+                    // switch cannot stand in for it.
+                    case "--sdp-loopback":
+                        useSdp      = true;
+                        sdpLoopback = true;
                         break;
                     case "--interface":
                         iface = args[++i];
@@ -158,7 +166,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             Validate(listenPort, backend, useSdp, iface, useSlac, slacListenPort, pkiDir, mcs, protocol, offerBoth, trustRootsPath, serverCertPath);
 
             return new SeccOptions(listenPort, protocol, offerBoth, mode, mcs, backend,
-                                   useSdp, iface, preferDynamic, noPnc, useSlac, slacListenPort, pkiDir,
+                                   useSdp, iface, sdpLoopback, preferDynamic, noPnc, useSlac, slacListenPort, pkiDir,
                                    serverCertPath, serverCertPass, requireClientCert, trustRootsPath,
                                    renegotiate, tariffCertPath, tariffCertPass);
         }
@@ -229,6 +237,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             "                                      the car does not send itself in here too; they can only\n" +
             "                                      act as intermediates, never as trust anchors.\n" +
             "  SDP:    --sdp --interface <name>    advertise the endpoint instead of a fixed one\n" +
+            "          --sdp-loopback             also hear a car running on this same machine\n" +
             "  Auth:   --no-pnc                    -20: advertise EIM only, not EIM + Plug & Charge\n" +
             "  Mode:   --dynamic                   -20: offer the Dynamic control-mode set first\n" +
             "  Tariff: --tariff-cert <pfx> [--tariff-cert-pass <pw>]   sign the SalesTariff / -20\n" +

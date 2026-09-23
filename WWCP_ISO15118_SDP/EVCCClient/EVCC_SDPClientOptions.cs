@@ -101,6 +101,24 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
         /// kernel loops it back locally — with the default the discovery times
         /// out even though both sides are healthy.
         /// </summary>
+        /// <remarks>
+        /// On Windows this one is not enough, and on its own it does nothing at
+        /// all: the two families disagree about which socket the option belongs
+        /// to. POSIX reads it as the sender's, Windows as the receiver's — the
+        /// table in <see cref="Server.SECC_SDPServerOptions.MulticastLoopback"/>
+        /// has the measurements. A station and a car on one Windows machine
+        /// need the station's switch; setting only this one leaves the
+        /// discovery timing out exactly as if it were off.
+        ///
+        /// Measured against the reference station on Windows 11, the car asking
+        /// with this true both times: station without its own loopback, nothing
+        /// answered in fifteen attempts over 3879 ms; station with it, found on
+        /// the first request in 255 ms.
+        ///
+        /// So set both for a single-host bench. Which of the two is the one
+        /// that matters depends on the platform, and neither costs anything
+        /// where it is not the one.
+        /// </remarks>
         public Boolean                      MulticastLoopback              { get; init; } = false;
 
 

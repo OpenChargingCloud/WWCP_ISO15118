@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Net;
+
 using cloud.charging.open.protocols.ISO15118.SDP.Messages;
 
 #endregion
@@ -30,6 +32,12 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
     public sealed record SDP_DiscoveryRejected : SDP_DiscoveryResult
     {
         public required IReadOnlyList<(SDP_Response Response, String Reason)> RejectedResponses { get; init; }
+
+        /// <summary>
+        /// Where each of <see cref="RejectedResponses"/> came from, in the
+        /// same order. Empty for a result made without them.
+        /// </summary>
+        public IReadOnlyList<IPEndPoint> RejectedRemoteEndpoints { get; init; } = [];
 
     }
 

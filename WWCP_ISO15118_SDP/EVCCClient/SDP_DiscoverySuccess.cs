@@ -41,6 +41,13 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
         /// </summary>
         public IReadOnlyList<SDP_Response>  AdditionalResponses    { get; init; } = [];
 
+        /// <summary>
+        /// Where each of <see cref="AdditionalResponses"/> came from, in the
+        /// same order - what <see cref="RemoteEndpoint"/> is to
+        /// <see cref="Response"/>. Empty for a result made without them.
+        /// </summary>
+        public IReadOnlyList<IPEndPoint>    AdditionalRemoteEndpoints    { get; init; } = [];
+
     }
 
 }

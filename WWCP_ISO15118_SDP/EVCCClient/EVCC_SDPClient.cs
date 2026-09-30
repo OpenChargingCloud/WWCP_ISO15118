@@ -93,7 +93,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
             var sw          = Stopwatch.StartNew();
             var deadline    = DateTimeOffset.UtcNow + clientOptions.TotalDeadline;
             var attempts    = 0;
-            var rejects     = new List<(SDP_Response, String)>();
+            var rejects     = new List<(SDP_Response, IPEndPoint, String)>();
 
             // Build the request once – its bytes do not change between retries.
             var sdpRequest  = new SDP_Request(
@@ -162,14 +162,14 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
                         var rejectReason = Validate(resp);
                         if (rejectReason is not null)
                         {
-                            rejects.Add((resp, rejectReason));
+                            rejects.Add((resp, from, rejectReason));
                             logger.LogInformation("SDP_Response from {Remote} rejected: {Reason}", from, rejectReason);
                             continue;
                         }
 
                         if (clientOptions.ResponseFilter is not null && !clientOptions.ResponseFilter(resp))
                         {
-                            rejects.Add((resp, "rejected by ResponseFilter"));
+                            rejects.Add((resp, from, "rejected by ResponseFilter"));
                             continue;
                         }
 
@@ -193,22 +193,12 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
                 }
 
                 if (collected.Count > 0 && clientOptions.DuplicateStrategy == DuplicateResponseStrategy.CollectAll)
-                    return new SDP_DiscoverySuccess {
-                               Response             = collected[0].Item1,
-                               RemoteEndpoint       = collected[0].Item2,
-                               Attempts             = attempts,
-                               Elapsed              = sw.Elapsed,
-                               AdditionalResponses  = [.. collected.Skip(1).Select(x => x.Item1)],
-                           };
+                    return Found(collected, attempts, sw.Elapsed);
 
             }
 
             if (rejects.Count > 0)
-                return new SDP_DiscoveryRejected {
-                           Attempts           = attempts,
-                           Elapsed            = sw.Elapsed,
-                           RejectedResponses  = rejects,
-                       };
+                return Refused(rejects, attempts, sw.Elapsed);
 
             return new SDP_DiscoveryTimeout {
                        Attempts  = attempts,
@@ -216,6 +206,58 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
                    };
 
         }
+
+        #endregion
+
+        #region (internal static) Found(Answers, Attempts, Elapsed)
+
+        /// <summary>
+        /// What a discovery found: the first valid answer, the one to use, and
+        /// every other one beside it - each with where it came from, as the
+        /// first one is.
+        /// </summary>
+        /// <remarks>
+        /// Only the first answer's sender used to be kept. A vehicle listing
+        /// the other stations on its link could show what each of them offered,
+        /// but not who had said it (found by the EV).
+        /// </remarks>
+        /// <param name="Answers">The valid answers in the order they arrived; at least one.</param>
+        /// <param name="Attempts">How many SDP_Request emissions it took.</param>
+        /// <param name="Elapsed">Wall-clock time spent in discovery.</param>
+        internal static SDP_DiscoverySuccess Found(IReadOnlyList<(SDP_Response Response, IPEndPoint From)>  Answers,
+                                                   Int32                                                    Attempts,
+                                                   TimeSpan                                                 Elapsed)
+
+            => new () {
+                   Response                   = Answers[0].Response,
+                   RemoteEndpoint             = Answers[0].From,
+                   Attempts                   = Attempts,
+                   Elapsed                    = Elapsed,
+                   AdditionalResponses        = [.. Answers.Skip(1).Select(answer => answer.Response)],
+                   AdditionalRemoteEndpoints  = [.. Answers.Skip(1).Select(answer => answer.From)]
+               };
+
+        #endregion
+
+        #region (internal static) Refused(Answers, Attempts, Elapsed)
+
+        /// <summary>
+        /// A discovery whose every answer was refused: each with why, and with
+        /// where it came from.
+        /// </summary>
+        /// <param name="Answers">The refused answers in the order they arrived; at least one.</param>
+        /// <param name="Attempts">How many SDP_Request emissions it took.</param>
+        /// <param name="Elapsed">Wall-clock time spent in discovery.</param>
+        internal static SDP_DiscoveryRejected Refused(IReadOnlyList<(SDP_Response Response, IPEndPoint From, String Reason)>  Answers,
+                                                      Int32                                                                    Attempts,
+                                                      TimeSpan                                                                 Elapsed)
+
+            => new () {
+                   Attempts                 = Attempts,
+                   Elapsed                  = Elapsed,
+                   RejectedResponses        = [.. Answers.Select(answer => (answer.Response, answer.Reason))],
+                   RejectedRemoteEndpoints  = [.. Answers.Select(answer => answer.From)]
+               };
 
         #endregion
 

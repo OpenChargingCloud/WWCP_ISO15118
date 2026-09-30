@@ -52,6 +52,9 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         private static readonly IPEndPoint    fromSecond  = new (IPAddress.Parse("fe80::b"), 15118);
         private static readonly IPEndPoint    fromThird   = new (IPAddress.Parse("fe80::c"), 15118);
 
+        private const           String        noTLS       = "no-TLS response rejected by policy (RejectNoTlsResponses=true)";
+        private const           String        filtered    = "rejected by ResponseFilter";
+
         #endregion
 
 
@@ -112,16 +115,70 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         public void EveryRefusedAnswerKeepsWhereItCameFrom()
         {
 
-            var refused = EVCC_SDPClient.Refused([ (third, fromThird,  "no-TLS response rejected by policy (RejectNoTlsResponses=true)"),
-                                                   (first, fromFirst,  "rejected by ResponseFilter") ],
+            var refused = EVCC_SDPClient.Refused([ (third, fromThird, noTLS),
+                                                   (first, fromFirst, filtered) ],
                                                  3,
                                                  TimeSpan.FromMilliseconds(750));
 
             Assert.Multiple(() => {
-                Assert.That(refused.RejectedResponses,        Is.EqualTo(new[] { (third, "no-TLS response rejected by policy (RejectNoTlsResponses=true)"),
-                                                                                 (first, "rejected by ResponseFilter") }));
+                Assert.That(refused.RejectedResponses,        Is.EqualTo(new[] { (third, noTLS), (first, filtered) }));
                 Assert.That(refused.RejectedRemoteEndpoints,  Is.EqualTo(new[] { fromThird, fromFirst }));
                 Assert.That(refused.Attempts,                 Is.EqualTo(3));
+            });
+
+        }
+
+        #endregion
+
+        #region AStationAskedAgainIsRefusedOnce()
+
+        /// <summary>
+        /// A station that answers every request with what is refused is one
+        /// refused answer, not one per request - said where it was first heard.
+        /// </summary>
+        [Test]
+        public void AStationAskedAgainIsRefusedOnce()
+        {
+
+            var refused = EVCC_SDPClient.Refused([ (third, fromThird, noTLS),
+                                                   (third, fromThird, noTLS),
+                                                   (first, fromFirst, filtered),
+                                                   (third, fromThird, noTLS) ],
+                                                 15,
+                                                 TimeSpan.FromMilliseconds(3883));
+
+            Assert.Multiple(() => {
+                Assert.That(refused.RejectedResponses,        Is.EqualTo(new[] { (third, noTLS), (first, filtered) }));
+                Assert.That(refused.RejectedRemoteEndpoints,  Is.EqualTo(new[] { fromThird, fromFirst }));
+                Assert.That(refused.Attempts,                 Is.EqualTo(15));
+            });
+
+        }
+
+        #endregion
+
+        #region WhatDiffersIsKept()
+
+        /// <summary>
+        /// Only the same answer from the same sender for the same reason is
+        /// one. The same answer from another sender is another station, another
+        /// answer from the same sender is something else it said, and another
+        /// reason for the same answer says something new.
+        /// </summary>
+        [Test]
+        public void WhatDiffersIsKept()
+        {
+
+            var refused = EVCC_SDPClient.Refused([ (third, fromThird,  noTLS),
+                                                   (third, fromSecond, noTLS),
+                                                   (first, fromThird,  filtered),
+                                                   (third, fromThird,  filtered) ],
+                                                 2,
+                                                 TimeSpan.FromMilliseconds(500));
+
+            Assert.Multiple(() => {
+                Assert.That(refused.RejectedResponses,        Is.EqualTo(new[] { (third, noTLS), (third, noTLS), (first, filtered), (third, filtered) }));
+                Assert.That(refused.RejectedRemoteEndpoints,  Is.EqualTo(new[] { fromThird, fromSecond, fromThird, fromThird }));
             });
 
         }

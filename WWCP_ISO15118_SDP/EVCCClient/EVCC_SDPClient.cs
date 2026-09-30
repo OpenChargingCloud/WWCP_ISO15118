@@ -243,21 +243,35 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
 
         /// <summary>
         /// A discovery whose every answer was refused: each with why, and with
-        /// where it came from.
+        /// where it came from - and each once, however often it was heard.
         /// </summary>
+        /// <remarks>
+        /// A station that is asked again answers again. One that offered no
+        /// TLS to a vehicle asking for it answered each of its fifteen
+        /// requests, and was fifteen refused answers: fifteen warnings, and
+        /// "15 station(s) answered" where one had (found by the EV). The same
+        /// answer from the same sender, refused for the same reason, is said
+        /// once, where it was first heard; anything that differs is kept.
+        /// </remarks>
         /// <param name="Answers">The refused answers in the order they arrived; at least one.</param>
         /// <param name="Attempts">How many SDP_Request emissions it took.</param>
         /// <param name="Elapsed">Wall-clock time spent in discovery.</param>
         internal static SDP_DiscoveryRejected Refused(IReadOnlyList<(SDP_Response Response, IPEndPoint From, String Reason)>  Answers,
                                                       Int32                                                                    Attempts,
                                                       TimeSpan                                                                 Elapsed)
+        {
 
-            => new () {
-                   Attempts                 = Attempts,
-                   Elapsed                  = Elapsed,
-                   RejectedResponses        = [.. Answers.Select(answer => (answer.Response, answer.Reason))],
-                   RejectedRemoteEndpoints  = [.. Answers.Select(answer => answer.From)]
-               };
+            var heard    = new HashSet<(SDP_Response, IPEndPoint, String)>();
+            var answers  = Answers.Where(answer => heard.Add(answer)).ToArray();
+
+            return new () {
+                       Attempts                 = Attempts,
+                       Elapsed                  = Elapsed,
+                       RejectedResponses        = [.. answers.Select(answer => (answer.Response, answer.Reason))],
+                       RejectedRemoteEndpoints  = [.. answers.Select(answer => answer.From)]
+                   };
+
+        }
 
         #endregion
 

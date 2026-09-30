@@ -235,7 +235,7 @@ This makes it easy for callers to distinguish between:
 - responses arriving but being rejected by policy,
 - or no valid answer arriving at all.
 
-Every answer keeps the endpoint it came from: `RemoteEndpoint` beside the `Response` to use, `AdditionalRemoteEndpoints` beside the `AdditionalResponses` that `DuplicateResponseStrategy.CollectAll` collects, and `RejectedRemoteEndpoints` beside the `RejectedResponses`, each in the same order.
+Every answer keeps the endpoint it came from: `RemoteEndpoint` beside the `Response` to use, `AdditionalRemoteEndpoints` beside the `AdditionalResponses` that `DuplicateResponseStrategy.CollectAll` collects, and `RejectedRemoteEndpoints` beside the `RejectedResponses`, each in the same order. A refused answer that comes again on a later request, from the same sender and for the same reason, is listed once.
 
 ## Pentest and fuzzing support
 

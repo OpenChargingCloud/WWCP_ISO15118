@@ -31,6 +31,10 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
     /// </summary>
     public sealed record SDP_DiscoveryRejected : SDP_DiscoveryResult
     {
+        /// <summary>
+        /// Every answer that was refused, and why, in the order they were
+        /// first heard - an answer heard again on a later request only once.
+        /// </summary>
         public required IReadOnlyList<(SDP_Response Response, String Reason)> RejectedResponses { get; init; }
 
         /// <summary>

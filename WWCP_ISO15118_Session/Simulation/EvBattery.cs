@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Globalization;
+
 namespace cloud.charging.open.protocols.ISO15118.Simulation
 {
 
@@ -283,24 +285,29 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
         }
 
         /// <summary>One line for the console: where the pack ended up and why it stopped.</summary>
+        /// <remarks>
+        /// Its numbers are written with a point whatever the culture of the machine, as the switches they
+        /// came from are read: on a German Windows it said "Battery: 50,5 % of 60,5 kWh".
+        /// </remarks>
         public string Describe(ChargeStop stop)
-            => $"Battery: {SoC:F1} % of {CapacityWh / 1000:F1} kWh " +
-               $"(started at {StartSoC:F1} %, {DeliveredWh / 1000:F2} kWh delivered) " +
-               $"after {Elapsed.TotalMinutes:F0} min simulated in {Iterations} iteration(s) — " +
+            => string.Create(CultureInfo.InvariantCulture,
+                             $"Battery: {SoC:F1} % of {CapacityWh / 1000:F1} kWh " +
+                             $"(started at {StartSoC:F1} %, {DeliveredWh / 1000:F2} kWh delivered) " +
+                             $"after {Elapsed.TotalMinutes:F0} min simulated in {Iterations} iteration(s) — ") +
                stop switch
                {
                    ChargeStop.Full         => "full.",
-                   ChargeStop.TargetSoC    => $"target {TargetSoC:F0} % reached.",
-                   ChargeStop.TargetEnergy => $"target {TargetEnergyWh / 1000:F1} kWh delivered.",
+                   ChargeStop.TargetSoC    => string.Create(CultureInfo.InvariantCulture, $"target {TargetSoC:F0} % reached."),
+                   ChargeStop.TargetEnergy => string.Create(CultureInfo.InvariantCulture, $"target {TargetEnergyWh / 1000:F1} kWh delivered."),
                    ChargeStop.TimeLimit    => "charging-time limit reached.",
                    ChargeStop.Departure    => "departure time reached.",
-                   ChargeStop.LoopLimit    => $"stopped at the {MaxIterations}-iteration ceiling — the goal was not reachable.",
+                   ChargeStop.LoopLimit    => string.Create(CultureInfo.InvariantCulture, $"stopped at the {MaxIterations}-iteration ceiling — the goal was not reachable."),
                    _                       => "still running.",
                }
              + (MinimumSoC is { } m
                     ? MinimumSoCMissed
-                          ? $" NOT ENOUGH: {m:F0} % was asked for and the car leaves at {SoC:F1} %."
-                          : $" The {m:F0} % minimum was met."
+                          ? string.Create(CultureInfo.InvariantCulture, $" NOT ENOUGH: {m:F0} % was asked for and the car leaves at {SoC:F1} %.")
+                          : string.Create(CultureInfo.InvariantCulture, $" The {m:F0} % minimum was met.")
                     : "");
 
     }

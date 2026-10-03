@@ -93,7 +93,7 @@ public sealed class V2GRootLayoutTests
         var results = V2GVerifier.VerifyGood(hierarchy);
 
         Assert.That(results, Has.Count.EqualTo(5));
-        Assert.That(results, Has.All.Matches<V2GVerifier.VerificationResult>(result => result.Ok),
+        Assert.That(results, Has.All.Matches<V2GVerifier.VerificationResult>(result => result is { Ok: true }),
                     String.Join("; ", results.Where(r => !r.Ok).Select(r => $"{r.Slug}: {r.Error}")));
     }
 

@@ -13,7 +13,7 @@
     <ProjectReference Include="..\WWCP_ISO15118_V2GTP\WWCP_ISO15118_V2GTP.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
   </ItemGroup>
   <ItemGroup>
     <!-- SDP_DiscoveryResultTests hands the client's Found and Refused the answers it would have heard, without a socket. -->

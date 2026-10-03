@@ -165,7 +165,7 @@ public class Iso20TransportTests
         using (evcc)
         using (secc)
         {
-            var aborted = Assert.ThrowsAsync<SessionAborted>(async () =>
+            var aborted = await Assert.ThrowsAsync<SessionAborted>(async () =>
                 await SapHandshake.RunEvccSideAsync(evcc, [new SapOffer(ProtocolVariant.Iso15118_20)],
                                                     Ct, TransportSecurity.Tls12OrLower));
 
@@ -214,11 +214,11 @@ public class Iso20TransportTests
             var station = SapHandshake.RunSeccSideAsync(secc, BothOffers, Ct, TransportSecurity.None);
             var car     = SapHandshake.RunEvccSideAsync(evcc, [new SapOffer(ProtocolVariant.Iso15118_20)], Ct);
 
-            var refused = Assert.ThrowsAsync<SessionAborted>(async () => await station);
+            var refused = await Assert.ThrowsAsync<SessionAborted>(async () => await station);
             Assert.That(refused!.Message, Does.Contain("[V2G20-2356]"));
 
             // And the car is told, rather than left waiting: Failed_NoNegotiation on the wire.
-            var seen = Assert.ThrowsAsync<SessionAborted>(async () => await car);
+            var seen = await Assert.ThrowsAsync<SessionAborted>(async () => await car);
             Assert.That(seen!.Message, Does.Contain("Failed_NoNegotiation"));
         }
     }

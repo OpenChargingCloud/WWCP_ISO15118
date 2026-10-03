@@ -55,7 +55,7 @@ public sealed class V2GPKIBuilderTests
         var results = V2GVerifier.VerifyGood(hierarchy);
 
         Assert.That(results, Has.Count.EqualTo(5));
-        Assert.That(results, Has.All.Matches<V2GVerifier.VerificationResult>(result => result.Ok));
+        Assert.That(results, Has.All.Matches<V2GVerifier.VerificationResult>(result => result is { Ok: true }));
     }
 
     [TestCase(V2GAlgorithm.EcdsaP521)]
@@ -69,7 +69,7 @@ public sealed class V2GPKIBuilderTests
 
         Assert.That(
             V2GVerifier.VerifyGood(hierarchy),
-            Has.All.Matches<V2GVerifier.VerificationResult>(result => result.Ok));
+            Has.All.Matches<V2GVerifier.VerificationResult>(result => result is { Ok: true }));
     }
 
     [Test]
@@ -83,7 +83,7 @@ public sealed class V2GPKIBuilderTests
         var results = V2GVerifier.VerifyGood(hierarchy);
 
         Assert.That(results, Has.Some.Matches<V2GVerifier.VerificationResult>(
-            result => !result.Ok && result.Error?.Contains("strict ISO 15118-20", StringComparison.Ordinal) == true));
+            result => result is { Ok: false } && result.Error?.Contains("strict ISO 15118-20", StringComparison.Ordinal) == true));
     }
 
     [Test]

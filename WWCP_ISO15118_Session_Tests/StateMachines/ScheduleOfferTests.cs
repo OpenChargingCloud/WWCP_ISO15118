@@ -129,7 +129,8 @@ namespace cloud.charging.open.protocols.ISO15118.Session.Tests.StateMachines
             // unchanged machine would wave it through, and the car would draw more than was granted.
             var (secc, _) = SeccAtPowerOn(new BackedSecc2(PowerMode.Ac, TimeSpan.FromSeconds(30), TimeProvider.System, BackendPMax));
 
-            var powerDelivery = PowerDeliveryAt(secc, 8_000);
+            var profileW      = 8_000;
+            var powerDelivery = PowerDeliveryAt(secc, profileW);
 
             Assert.Multiple(() => {
 
@@ -138,7 +139,7 @@ namespace cloud.charging.open.protocols.ISO15118.Session.Tests.StateMachines
 
                 Assert.That(secc.ChargingProfileCheck!.WithinPMax, Is.False);
 
-                Assert.That(8_000, Is.LessThan(StationPMax),
+                Assert.That(profileW, Is.LessThan(StationPMax),
                             "precondition: the same profile is within what this station offers unaided");
 
             });

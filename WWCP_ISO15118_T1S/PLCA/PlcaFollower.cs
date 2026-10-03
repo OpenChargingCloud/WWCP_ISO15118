@@ -38,7 +38,7 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.PLCA
     public enum PlcaFollowerState
     {
 
-        /// <summary>No identifier: listening for a BEACON, and for a discovery opportunity to ask in.</summary>
+        /// <summary>No identifier: listening for a BEACON, and for a discovery opportunity to ask in - unless it left, when it only listens until it is started again.</summary>
         Detached,
 
         /// <summary>Asked for an identifier, and waiting to be told one.</summary>
@@ -77,8 +77,9 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.PLCA
     /// <remarks>
     /// <para>
     /// A follower never speaks unasked. It sends in exactly two moments: the
-    /// discovery opportunity, while it has no identifier, and its own
-    /// opportunity, once it has one. What it sends in its own is, in order of
+    /// discovery opportunity, while it has no identifier and has not left,
+    /// and its own opportunity, once it has one. Leaving is the exception,
+    /// and is said at once. What it sends in its own is, in order of
     /// preference, whatever was queued for it, whatever its
     /// <see cref="Supplier"/> produces on the spot, an announcement of who it
     /// is the first time round, and a yield. A sensor is a follower with a
@@ -115,6 +116,8 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.PLCA
         private          Int32                             backoffCycles;
         private          Boolean                           announced;
         private          Boolean                           started;
+        private          Boolean                           left;
+        private          UInt32?                           abandonedNonce;
         private          Task?                             watchdog;
         private          TaskCompletionSource              attached  = new (TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -197,13 +200,30 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.PLCA
         #region StartAsync(CancellationToken = default)
 
         /// <summary>
-        /// Start listening for the coordinator.
+        /// Start listening for the coordinator - or, after
+        /// <see cref="LeaveAsync"/>, ask it for an identifier again.
         /// </summary>
         public Task StartAsync(CancellationToken CancellationToken = default)
         {
 
             if (started)
+            {
+
+                lock (padlock)
+                {
+
+                    if (!left)
+                        return Task.CompletedTask;
+
+                    left = false;
+
+                }
+
+                Log?.Invoke(this, $"'{options.Name}' was started again and asks to join at the next opportunity.");
+
                 return Task.CompletedTask;
+
+            }
 
             started = true;
 
@@ -265,12 +285,21 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.PLCA
         #region LeaveAsync(CancellationToken = default)
 
         /// <summary>
-        /// Say goodbye, and go back to having no identifier.
+        /// Say goodbye, go back to having no identifier, and stay off the bus:
+        /// no more asking for one until started again.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Sent at once rather than in the next opportunity, because a node
         /// that is leaving may be about to be disposed of, and the coordinator
         /// takes a LEAVE out of turn for exactly this reason.
+        /// </para>
+        /// <para>
+        /// Staying off is what leaving means. A node that asked again in the
+        /// next discovery opportunity would be back a cycle later - and one
+        /// leaving on its way to being disposed of would be back as a node
+        /// nobody answers for, given up for lost a few cycles on.
+        /// </para>
         /// </remarks>
         public async Task LeaveAsync(CancellationToken CancellationToken = default)
         {
@@ -280,6 +309,17 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.PLCA
 
             lock (padlock)
             {
+
+                left = true;
+
+                // Asked, and not answered yet: there is no identifier to say
+                // goodbye with. Whatever answer still comes is given back.
+                if (state == PlcaFollowerState.Joining)
+                {
+                    abandonedNonce  = joinNonce;
+                    state           = PlcaFollowerState.Detached;
+                    return;
+                }
 
                 if (state != PlcaFollowerState.Attached || nodeId is null || coordinator is null)
                     return;
@@ -397,7 +437,7 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.PLCA
                 if (Opportunity.IsDiscovery)
                 {
 
-                    if (state != PlcaFollowerState.Detached || backoffCycles > 0)
+                    if (left || state != PlcaFollowerState.Detached || backoffCycles > 0)
                         return;
 
                     joinNonce  = (UInt32) RandomNumberGenerator.GetInt32(Int32.MaxValue);
@@ -456,6 +496,36 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.PLCA
 
         private void OnAssign(DecodedT1SFrame Frame, Assign Assign)
         {
+
+            #region The answer to a question this node stopped waiting for when it left
+
+            // The coordinator wrote the node down before it answered, and this
+            // is the first moment it can be told otherwise - rather than find
+            // out from a few cycles of silence.
+
+            var givenBack = false;
+
+            lock (padlock)
+            {
+                if (Assign.Nonce == abandonedNonce && Frame.Destination == Mac)
+                {
+                    abandonedNonce  = null;
+                    givenBack       = true;
+                }
+            }
+
+            if (givenBack)
+            {
+
+                Log?.Invoke(this, $"'{options.Name}' was told identifier {Assign.NodeId} after it left, and gives it back.");
+
+                _ = SendAsync(Frame.Source, new Leave(Assign.NodeId));
+
+                return;
+
+            }
+
+            #endregion
 
             lock (padlock)
             {

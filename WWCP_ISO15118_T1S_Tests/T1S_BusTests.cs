@@ -333,8 +333,16 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
             await using var coordinator = new PlcaCoordinator(evseMedium, quick);
             await using var vehicle     = new PlcaFollower(evMedium, new PlcaFollowerOptions(T1SNodeRole.Vehicle, "car"));
 
-            var left = new List<PlcaNode>();
-            coordinator.NodeLeft += (_, node) => left.Add(node);
+            // Both sides are asked at the moment each acts on the LEAVE, not
+            // once the test gets round to it. A follower without an identifier
+            // asks for one in the next discovery opportunity - one CycleGap
+            // later here - so by then it may rightly be Joining, or Attached
+            // again, and the coordinator may know it again.
+            var left      = new List<(PlcaNode Node, Int32 NodesLeft)>();
+            var detached  = new List<(String Reason, PlcaFollowerState State, Byte? NodeId)>();
+
+            coordinator.NodeLeft += (_, node)   => left.    Add((node,   coordinator.Nodes.Count));
+            vehicle.    Detached += (_, reason) => detached.Add((reason, vehicle.State, vehicle.NodeId));
 
             await evseMedium.StartAsync();
             await evMedium.  StartAsync();
@@ -343,14 +351,20 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
 
             Assert.That(await vehicle.WaitUntilAttachedAsync(TimeSpan.FromSeconds(10)), Is.True);
 
+            var nodeId = vehicle.NodeId;
+
             await vehicle.LeaveAsync();
 
             await Eventually(() => left.Count == 1, "the coordinator noticing the vehicle left");
 
             Assert.Multiple(() => {
-                Assert.That(coordinator.Nodes,  Is.Empty);
-                Assert.That(vehicle.State,      Is.EqualTo(PlcaFollowerState.Detached));
-                Assert.That(vehicle.NodeId,     Is.Null);
+                Assert.That(left[0].Node.NodeId,  Is.EqualTo(nodeId));
+                Assert.That(left[0].Node.Mac,     Is.EqualTo(vehicle.Mac));
+                Assert.That(left[0].NodesLeft,    Is.Zero, "removed by the LEAVE, not after missed cycles");
+                Assert.That(detached,             Has.Count.EqualTo(1));
+                Assert.That(detached[0].Reason,   Is.EqualTo("left the bus"));
+                Assert.That(detached[0].State,    Is.EqualTo(PlcaFollowerState.Detached));
+                Assert.That(detached[0].NodeId,   Is.Null);
             });
 
         }

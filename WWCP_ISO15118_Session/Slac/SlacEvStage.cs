@@ -40,7 +40,11 @@ namespace cloud.charging.open.protocols.ISO15118.Slac
             await transport.StartAsync(ct).ConfigureAwait(false); // begin receiving after the session subscribed
 
             var result = await session.RunAsync(ct).ConfigureAwait(false);
-            var slac   = new SlacResult(result.MatchCnf.Nid, result.MatchCnf.Nmk);
+            var slac   = new SlacResult(result.MatchCnf.Nid,
+                                        result.MatchCnf.Nmk,
+                                        result.Winner.EVSEMACAddress,
+                                        result.Winner,
+                                        result.AllCandidates);
 
             await SlacChip.ProgramAsync(chip, slac, avlnReadyTimeout ?? SlacChip.DefaultAvlnReadyTimeout, ct).ConfigureAwait(false);
             return slac;

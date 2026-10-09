@@ -39,7 +39,9 @@ namespace cloud.charging.open.protocols.ISO15118.Slac
         public async Task StartAsync(CancellationToken ct = default)
         {
             _listener = new EvseSlacListener(transport, () => options);
-            _listener.SessionCompleted += (_, e) => _matched.TrySetResult(new SlacResult(e.Result.Nid, e.Result.Nmk));
+            // A station pairs with the vehicle that sounded it, and chooses
+            // among nobody: there is no candidate on this side.
+            _listener.SessionCompleted += (_, e) => _matched.TrySetResult(new SlacResult(e.Result.Nid, e.Result.Nmk, e.Session.PevMac, null, []));
             _listener.SessionFailed    += (_, e) => _matched.TrySetException(e.Error);
 
             await _listener.StartAsync(ct).ConfigureAwait(false); // subscribes to transport.FrameReceived

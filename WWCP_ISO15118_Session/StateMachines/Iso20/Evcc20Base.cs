@@ -442,6 +442,26 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         }
 
         /// <summary>
+        /// Record that a charge-loop response told the vehicle to <b>end the charging</b> - the station puts
+        /// <c>EvseNotification.Terminate</c> in its EVSEStatus ([V2G20-1477]), when it has to: a coupler
+        /// too hot, an emergency, an operator. Called by the AC and DC loops, as
+        /// <see cref="NoteRenegotiationRequest"/> is; acted on once the iteration is finished.
+        /// </summary>
+        protected void NoteTerminateRequest(Boolean requested)
+        {
+            if (requested)
+                TerminatedByStation = true;
+        }
+
+        /// <summary>
+        /// Whether the station told the vehicle to end the charging. The vehicle then leaves the charge
+        /// loop after the iteration that said so, stops power delivery and ends the session - with
+        /// <see cref="ChargingSession.Terminate"/>, whatever <see cref="StopMode"/> says, because a pause is
+        /// not what the station asked for - and a renegotiation asked for as well is not gone round.
+        /// </summary>
+        public Boolean TerminatedByStation { get; private set; }
+
+        /// <summary>
         /// A battery that fills up, and the goal that ends the charge loop. Null — the default — keeps the
         /// fixed three iterations every recorded interop run was taken with.
         /// </summary>
@@ -747,23 +767,25 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             }
 
             if (Battery is null)
-                for (int cycle = 0; cycle < 3; cycle++)
+                for (int cycle = 0; cycle < 3 && !TerminatedByStation; cycle++)
                 {
                     await RunChargeLoopIterationAsync(ct);
-                    await pollDelay.Wait(PollInterval, ct);
+                    if (!TerminatedByStation)
+                        await pollDelay.Wait(PollInterval, ct);
                 }
             else
             {
-                ChargeStop stop;
+                var stop = ChargeStop.Running;
                 do
                 {
                     var before = Meter.Energy;
                     await RunChargeLoopIterationAsync(ct);
                     Battery.Add(Meter.Energy - before);
-                    await pollDelay.Wait(PollInterval, ct);
+                    if (!TerminatedByStation)
+                        await pollDelay.Wait(PollInterval, ct);
                 }
-                while ((stop = Battery.Stop) == ChargeStop.Running);
-                BatteryStop = stop;
+                while (!TerminatedByStation && (stop = Battery.Stop) == ChargeStop.Running);
+                BatteryStop = TerminatedByStation ? ChargeStop.StationTerminated : stop;
             }
 
             // Power off either way: a renegotiation stops delivery too, and the contactor must be open
@@ -772,7 +794,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 dest => new PowerDeliveryReq(SessionCtx.ToCommonHeader(), Processing.Finished, ChargeProgress.Stop, null, null)
                     .TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
 
-            if (!_renegotiationRequested)
+            if (!_renegotiationRequested || TerminatedByStation)
                 break;
 
             _renegotiationRequested = false;
@@ -791,8 +813,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             await RunPostChargeSequenceAsync(ct);
 
+            // Terminated by the station: ended for good, whatever this vehicle would otherwise have done.
+            var stopMode = TerminatedByStation ? ChargingSession.Terminate : StopMode;
+
             await Exchange<SessionStopRes>(MessageSet.Iso20CommonMessages,
-                dest => new SessionStopReq(SessionCtx.ToCommonHeader(), StopMode, null, null)
+                dest => new SessionStopReq(SessionCtx.ToCommonHeader(), stopMode, null, null)
                     .TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
         }
 

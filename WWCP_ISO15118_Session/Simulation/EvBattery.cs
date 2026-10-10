@@ -37,6 +37,8 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
         Departure,
         /// <summary>The iteration ceiling was hit — a guard, not a goal.</summary>
         LoopLimit,
+        /// <summary>The station told the vehicle to end the charging - EVSENotification Terminate.</summary>
+        StationTerminated,
     }
 
     /// <summary>
@@ -302,6 +304,7 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
                    ChargeStop.TimeLimit    => "charging-time limit reached.",
                    ChargeStop.Departure    => "departure time reached.",
                    ChargeStop.LoopLimit    => string.Create(CultureInfo.InvariantCulture, $"stopped at the {MaxIterations}-iteration ceiling — the goal was not reachable."),
+                   ChargeStop.StationTerminated => "the station told it to end the charging.",
                    _                       => "still running.",
                }
              + (MinimumSoC is { } m

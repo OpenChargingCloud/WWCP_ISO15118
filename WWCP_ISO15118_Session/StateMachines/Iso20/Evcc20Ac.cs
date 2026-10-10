@@ -192,6 +192,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // absent EVSEStatus. The base class acts on it once this iteration is finished and the
             // contactor is open — it cannot see this type, which is why the loop reports it.
             NoteRenegotiationRequest(response.EVSEStatus?.EVSENotification == Ac20.EvseNotification.ServiceRenegotiation);
+            NoteTerminateRequest    (response.EVSEStatus?.EVSENotification == Ac20.EvseNotification.Terminate);
 
             // The one place in this project where the EV's own inlet power is a field on the wire:
             // -20 AC has EVPresentActivePower in the request, so the vehicle's view needs no deriving

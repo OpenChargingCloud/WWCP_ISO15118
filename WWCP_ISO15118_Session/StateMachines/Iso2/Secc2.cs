@@ -1053,6 +1053,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// </remarks>
         public Double? DcRunningMaxAmps { get; set; }
 
+        /// <summary>The most current this DC outlet can push at all, in amperes - what a
+        /// <see cref="DcRunningMaxAmps"/> is below.</summary>
+        public Double MaximumCurrent_A
+            => DcMaxAmps;
+
         private static SAScheduleListType PlainSchedule() =>
             new(new[]
             {

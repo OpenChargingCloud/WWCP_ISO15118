@@ -53,6 +53,45 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         protected virtual Dc20.RationalNumberType MaxVoltage => Rat(500);                  // 500 V
         protected virtual Dc20.RationalNumberType MinVoltage => Rat(50);
 
+        // NaN: no limit below the station's own. A double, so that it can be read and written across
+        // threads without a lock - the thermal monitor sets it while the charge loop reads it.
+        private double currentLimit_A = double.NaN;
+        private int    terminate;
+
+        /// <summary>
+        /// The current this station may deliver now, below <see cref="MaxCurrent"/> - or null for its
+        /// maximum. Set from outside the session, by whatever watches the cable (the thermal monitor of an
+        /// MCS coupler), and read at every charge-loop iteration: the EVSE's maximum current of a Dynamic
+        /// control mode says it, and what is served never exceeds it.
+        /// </summary>
+        public double? CurrentLimit_A
+        {
+            get => Volatile.Read(ref currentLimit_A) is var limit && double.IsNaN(limit) ? null : limit;
+            set => Volatile.Write(ref currentLimit_A, value is { } limit ? Math.Max(0, limit) : double.NaN);
+        }
+
+        /// <summary>
+        /// Whether the vehicle is being told to end the charging - by <see cref="Terminate"/>.
+        /// </summary>
+        public bool TerminateRequested
+            => Volatile.Read(ref terminate) != 0;
+
+        /// <summary>
+        /// Tell the vehicle, in the next charge-loop response, to end the charging: an EVSEStatus with the
+        /// notification Terminate and no delay ([V2G20-1477]). The vehicle answers with
+        /// PowerDelivery(Stop) and SessionStop. From then on nothing more is served.
+        /// </summary>
+        public void Terminate()
+            => Volatile.Write(ref terminate, 1);
+
+        /// <summary>The most current this station can deliver at all, in amperes - what a limit is below.</summary>
+        public double MaximumCurrent_A
+            => (double) Dc20Rational.ToDecimal(MaxCurrent);
+
+        /// <summary>The current this station may deliver now: its maximum, or the limit below it.</summary>
+        private double AllowedCurrent_A
+            => Math.Min(MaximumCurrent_A, CurrentLimit_A ?? double.MaxValue);
+
         /// <summary>
         /// Answers DC charge-parameter discovery in kind — a BPT request gets discharge limits back, a
         /// charge-only one does not — after checking that the direction the EV just declared is the one the
@@ -150,14 +189,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             {
                 Dc20.BPT_Dynamic_DC_CLReqControlModeType => new Dc20.BPT_Dynamic_DC_CLResControlModeType(
                     DepartureTime: null, MinimumSOC: null, TargetSOC: null, AckMaxDelay: null,
-                    EVSEMaximumChargePower: Rat(5_000, exponent: 1), EVSEMinimumChargePower: Rat(0),
-                    EVSEMaximumChargeCurrent: Rat(200), EVSEMaximumVoltage: Rat(500),
-                    EVSEMaximumDischargePower: Rat(5_000, exponent: 1), EVSEMinimumDischargePower: Rat(0),
-                    EVSEMaximumDischargeCurrent: Rat(200), EVSEMinimumVoltage: Rat(50)),
+                    EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
+                    EVSEMaximumChargeCurrent: Amperes(AllowedCurrent_A), EVSEMaximumVoltage: MaxVoltage,
+                    EVSEMaximumDischargePower: MaxPower, EVSEMinimumDischargePower: Rat(0),
+                    EVSEMaximumDischargeCurrent: Amperes(AllowedCurrent_A), EVSEMinimumVoltage: MinVoltage),
                 Dc20.Dynamic_DC_CLReqControlModeType => new Dc20.Dynamic_DC_CLResControlModeType(
                     DepartureTime: null, MinimumSOC: null, TargetSOC: null, AckMaxDelay: null,
-                    EVSEMaximumChargePower: Rat(5_000, exponent: 1), EVSEMinimumChargePower: Rat(0),
-                    EVSEMaximumChargeCurrent: Rat(200), EVSEMaximumVoltage: Rat(500)),
+                    EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
+                    EVSEMaximumChargeCurrent: Amperes(AllowedCurrent_A), EVSEMaximumVoltage: MaxVoltage),
                 Dc20.BPT_Scheduled_DC_CLReqControlModeType => new Dc20.BPT_Scheduled_DC_CLResControlModeType(null, null, null, null, null, null, null, null),
                 _ => new Dc20.Scheduled_DC_CLResControlModeType(null, null, null, null),
             };
@@ -173,22 +212,30 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // operating point ([V2G20-1600] and the mandatory EVSE limits above), so the default stands.
             MeterInfoRequestedByEv = req.MeterInfoRequested;
 
-            var servedAmps = req.CLReqControlMode is Dc20.Scheduled_DC_CLReqControlModeType s
-                                 ? Math.Min(200d, (double) Dc20Rational.ToDecimal(s.EVTargetCurrent))
+            // Capped by the current allowed now - the station's maximum, or the limit below it - and nothing
+            // at all once the vehicle has been told to terminate.
+            var wantedAmps = req.CLReqControlMode is Dc20.Scheduled_DC_CLReqControlModeType s
+                                 ? (double) Dc20Rational.ToDecimal(s.EVTargetCurrent)
                                  : 120d;
+            var terminate  = TerminateRequested;
+            var servedAmps = terminate ? 0d : Math.Min(wantedAmps, AllowedCurrent_A);
+            var limited    = !terminate && servedAmps < wantedAmps;
             Deliver(400d * servedAmps);   // the EVSEPresentVoltage x EVSEPresentCurrent announced below
 
             var res = new Dc20.DC_ChargeLoopRes(SessionCtx.ToDcHeader(), Dc20.ResponseCode.OK,
                 // Service renegotiation is requested via the (otherwise absent) EVSEStatus ([V2G20-1477]);
                 // a Josev EVCC reacts with PowerDelivery(Stop) + SessionStopReq(ServiceRenegotiation).
-                EVSEStatus: SignalRenegotiationOnce()
-                    ? new Dc20.EVSEStatusType(NotificationMaxDelay: 0, Dc20.EvseNotification.ServiceRenegotiation)
-                    : null,
+                // Terminate - the station has to end the charging - goes before a renegotiation it may also want.
+                EVSEStatus: terminate
+                    ? new Dc20.EVSEStatusType(NotificationMaxDelay: 0, Dc20.EvseNotification.Terminate)
+                    : SignalRenegotiationOnce()
+                        ? new Dc20.EVSEStatusType(NotificationMaxDelay: 0, Dc20.EvseNotification.ServiceRenegotiation)
+                        : null,
                 MeterInfo: MeterReading() is { } m
                     ? new Dc20.MeterInfoType(m.Id, m.Wh, null, null, null, m.Signature, null, m.Timestamp)
                     : null, Receipt: null,
-                EVSEPresentCurrent: Rat((short) servedAmps), EVSEPresentVoltage: Rat(400),
-                EVSEPowerLimitAchieved: false, EVSECurrentLimitAchieved: false, EVSEVoltageLimitAchieved: false,
+                EVSEPresentCurrent: Amperes(servedAmps), EVSEPresentVoltage: Rat(400),
+                EVSEPowerLimitAchieved: false, EVSECurrentLimitAchieved: limited, EVSEVoltageLimitAchieved: false,
                 CLResControlMode: clRes);
             return (MessageSet.Iso20DC, res);
         }
@@ -269,5 +316,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         }
 
         private static Dc20.RationalNumberType Rat(short value, sbyte exponent = 0) => new(exponent, value);
+
+        /// <summary>A current in whole amperes, as a rational number - the megawatt currents of MCS fit a short.</summary>
+        private static Dc20.RationalNumberType Amperes(double amperes)
+            => Rat((short) Math.Clamp(Math.Round(amperes), 0, short.MaxValue));
     }
 }

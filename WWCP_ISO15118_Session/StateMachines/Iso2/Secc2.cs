@@ -174,6 +174,24 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>How many renegotiation cycles this session ran (EV-initiated or SECC-requested).</summary>
         public int Renegotiations { get; private set; }
 
+        /// <summary>
+        /// Whether the vehicle is being told to stop the charging - by <see cref="StopCharging"/>.
+        /// </summary>
+        public bool StopChargingRequested
+            => Volatile.Read(ref _stopCharging) != 0;
+
+        /// <summary>
+        /// Tell the vehicle, in every charge-loop response from the next one on, to stop the charging: an
+        /// EVSEStatus with the notification StopCharging and no delay - the -2 counterpart of what
+        /// <see cref="Iso20.Secc20Dc.Terminate"/> says over -20. It goes before a renegotiation asked for
+        /// with <see cref="RequestRenegotiation"/>. The vehicle answers with PowerDelivery(Stop) and
+        /// SessionStop, and from then on nothing more is served.
+        /// </summary>
+        public void StopCharging()
+            => Volatile.Write(ref _stopCharging, 1);
+
+        private int _stopCharging;
+
         /// <summary>DC only: how many times this session ran <c>CableCheck</c>. One on the way in, and one
         /// more per renegotiation — which is the whole of what
         /// <see cref="RenegotiationNeedsIsolationSequence"/> changes, made visible, since a refusal that
@@ -1166,7 +1184,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             // one was set. A station that announces a limit and then serves past it is worse than one that
             // announces none, so the clamp and the announcement come from the same figure.
             var cap        = DcRunningMaxAmps is { } running ? Math.Min(running, DcMaxAmps) : (double) DcMaxAmps;
-            var servedAmps = Math.Clamp((double) req.EVTargetCurrent.ToDecimal(), 0, cap);
+            var servedAmps = StopChargingRequested ? 0 : Math.Clamp((double) req.EVTargetCurrent.ToDecimal(), 0, cap);
 
             // The station's own view of this iteration: what it is presenting at the outlet. The same
             // volts x amps it reports below, so the number it signs is the number it announces.
@@ -1191,7 +1209,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
         private BodyBaseType ChargingStatus()
         {
-            var measured = Deliver(_acCommittedPowerW);   // see CurrentDemand(); AC's only power is the profile
+            // See CurrentDemand(); AC's only power is the profile - and none once the charging is to stop.
+            var measured = Deliver(StopChargingRequested ? 0 : _acCommittedPowerW);
 
             // A Contract session gets ReceiptRequired + the MeterInfo the EV echoes back inside its
             // signed MeteringReceiptReq (a Josev EVCC only honours this over TLS).
@@ -1219,6 +1238,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// response with a renegotiation, so repeating it would loop).</summary>
         private EVSENotification Notification()
         {
+            if (StopChargingRequested) return EVSENotification.StopCharging;
             if (!RequestRenegotiation || _renegotiationSignalled) return EVSENotification.None;
             _renegotiationSignalled = true;
             return EVSENotification.ReNegotiation;

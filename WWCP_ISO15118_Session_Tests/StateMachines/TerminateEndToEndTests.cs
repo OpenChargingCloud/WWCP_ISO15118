@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
-using System.Threading.Channels;
-
 using NUnit.Framework;
 
 using cloud.charging.open.protocols.ISO15118.Simulation;
@@ -33,87 +31,6 @@ namespace cloud.charging.open.protocols.ISO15118.Tests.StateMachines;
 [TestFixture]
 public class TerminateEndToEndTests
 {
-
-    #region (private) InMemoryStream
-
-    /// <summary>
-    /// One end of a connection held in memory: what it writes the other end reads, in order.
-    /// </summary>
-    private sealed class InMemoryStream(Channel<Byte[]> Incoming, Channel<Byte[]> Outgoing) : Stream
-    {
-
-        private Byte[] pending = [];
-        private Int32  offset;
-
-        public static (Stream A, Stream B) Pair()
-        {
-            var ab = Channel.CreateUnbounded<Byte[]>();
-            var ba = Channel.CreateUnbounded<Byte[]>();
-            return (new InMemoryStream(ba, ab), new InMemoryStream(ab, ba));
-        }
-
-        public override Boolean CanRead  => true;
-        public override Boolean CanWrite => true;
-        public override Boolean CanSeek  => false;
-        public override Int64   Length   => throw new NotSupportedException();
-        public override Int64   Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
-
-        public override async ValueTask<Int32> ReadAsync(Memory<Byte> Buffer, CancellationToken CancellationToken = default)
-        {
-
-            if (offset >= pending.Length)
-            {
-                if (!await Incoming.Reader.WaitToReadAsync(CancellationToken) || !Incoming.Reader.TryRead(out var next))
-                    return 0;
-                pending = next;
-                offset  = 0;
-            }
-
-            var count = Math.Min(Buffer.Length, pending.Length - offset);
-            pending.AsMemory(offset, count).CopyTo(Buffer);
-            offset += count;
-            return count;
-
-        }
-
-        public override Task<Int32> ReadAsync(Byte[] Buffer, Int32 Offset, Int32 Count, CancellationToken CancellationToken)
-            => ReadAsync(Buffer.AsMemory(Offset, Count), CancellationToken).AsTask();
-
-        public override Int32 Read(Byte[] Buffer, Int32 Offset, Int32 Count)
-            => ReadAsync(Buffer, Offset, Count, CancellationToken.None).GetAwaiter().GetResult();
-
-        public override ValueTask WriteAsync(ReadOnlyMemory<Byte> Buffer, CancellationToken CancellationToken = default)
-        {
-            Outgoing.Writer.TryWrite(Buffer.ToArray());
-            return ValueTask.CompletedTask;
-        }
-
-        public override Task WriteAsync(Byte[] Buffer, Int32 Offset, Int32 Count, CancellationToken CancellationToken)
-            => WriteAsync(Buffer.AsMemory(Offset, Count), CancellationToken).AsTask();
-
-        public override void Write(Byte[] Buffer, Int32 Offset, Int32 Count)
-            => Outgoing.Writer.TryWrite(Buffer.AsSpan(Offset, Count).ToArray());
-
-        public override void Flush() { }
-        public override Task FlushAsync(CancellationToken CancellationToken) => Task.CompletedTask;
-        public override Int64 Seek(Int64 Offset, SeekOrigin Origin) => throw new NotSupportedException();
-        public override void SetLength(Int64 Value) => throw new NotSupportedException();
-
-        protected override void Dispose(Boolean Disposing)
-        {
-            Outgoing.Writer.TryComplete();
-            base.Dispose(Disposing);
-        }
-
-    }
-
-    /// <summary>A poll that does not wait: the session is about its messages, not its pace.</summary>
-    private sealed class NoDelay : IAsyncDelay
-    {
-        public Task Wait(TimeSpan Duration, CancellationToken CancellationToken = default) => Task.CompletedTask;
-    }
-
-    #endregion
 
     #region (private static) RunSession(Station)
 

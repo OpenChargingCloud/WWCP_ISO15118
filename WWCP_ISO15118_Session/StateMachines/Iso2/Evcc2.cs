@@ -287,6 +287,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>Why the charge loop ended; null while it has not finished.</summary>
         public Simulation.ChargeStop? BatteryStop { get; private set; }
 
+        /// <summary>
+        /// Whether the station told the vehicle to stop the charging: <c>EVSENotification.StopCharging</c>
+        /// in a charge-loop response, the -2 counterpart of -20's Terminate. The vehicle then leaves the
+        /// charge loop after the iteration that said so, stops power delivery and ends the session - with
+        /// <c>ChargingSession.Terminate</c>, whatever <see cref="StopMode"/> says, because a pause is not
+        /// what the station asked for - and a renegotiation asked for as well is not gone round.
+        /// </summary>
+        public bool TerminatedByStation { get; private set; }
+
         /// <summary>The tariff signer's public key (fachlich the Mobility Operator's). When set AND the
         /// SECC's SASchedule offer carries signed SalesTariffs, the EV verifies them (§7.9.2.5); without a
         /// key the tariffs are still read for the price-aware tuple choice, just not verified.</summary>
@@ -387,7 +396,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             // Three iterations stand in for a session when there is no battery; with one, the loop ends
             // when the car is done. Same rule as the -20 side, and the same reason it is opt-in: every
             // recorded run was taken at three.
-            for (int cycle = 0; Battery is null ? cycle < 3 : BatteryStop is null; cycle++)
+            for (int cycle = 0; !TerminatedByStation && (Battery is null ? cycle < 3 : BatteryStop is null); cycle++)
             {
                 var energyBefore = Meter.Energy;
                 // A Contract SECC may demand a receipt (ReceiptRequired) in its status response — answer with
@@ -427,10 +436,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                         await SendMeteringReceipt(cs.MeterInfo, cs.SAScheduleTupleID, ct);
                 }
 
+                // Told to stop the charging: acted on once this iteration is finished.
+                if (notification == EVSENotification.StopCharging)
+                    TerminatedByStation = true;
+
                 // Renegotiation ([V2G2-841]) — reactive (the SECC notified ReNegotiation) or proactive
                 // (Renegotiate option, once): PowerDelivery(Renegotiate) → fresh ChargeParameterDiscovery →
-                // PowerDelivery(Start), then the charging loop continues.
-                if (!renegotiated && (notification == EVSENotification.ReNegotiation || Renegotiate))
+                // PowerDelivery(Start), then the charging loop continues. Not in a charging told to stop.
+                if (!TerminatedByStation && !renegotiated && (notification == EVSENotification.ReNegotiation || Renegotiate))
                 {
                     renegotiated = true;
                     Renegotiations++;
@@ -451,11 +464,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 if (Battery is not null)
                 {
                     Battery.Add(Meter.Energy - energyBefore);
-                    if (Battery.Stop is var stop && stop != Simulation.ChargeStop.Running)
+                    if (TerminatedByStation)
+                        BatteryStop = Simulation.ChargeStop.StationTerminated;
+                    else if (Battery.Stop is var stop && stop != Simulation.ChargeStop.Running)
                         BatteryStop = stop;
                 }
 
-                await pollDelay.Wait(ChargeLoopInterval ?? PollInterval, ct);
+                if (!TerminatedByStation)
+                    await pollDelay.Wait(ChargeLoopInterval ?? PollInterval, ct);
             }
 
             await Send<PowerDeliveryResType>(PowerDelivery(ChargeProgress.Stop), ct);
@@ -463,7 +479,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             // ── STOP ───────────────────────────────────────────────────────────
             if (mode == PowerMode.Dc)
                 await Send<WeldingDetectionResType>(new WeldingDetectionReqType(EvStatus()), ct);
-            await Send<SessionStopResType>(new SessionStopReqType(StopMode), ct);
+            // Told to stop by the station: ended for good, whatever this vehicle would otherwise have done.
+            await Send<SessionStopResType>(new SessionStopReqType(TerminatedByStation ? ChargingSession.Terminate : StopMode), ct);
         }
 
         /// <summary>Polls ChargeParameterDiscovery until Finished, then evaluates the SASchedule offer:

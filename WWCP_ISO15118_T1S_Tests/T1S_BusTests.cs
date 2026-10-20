@@ -19,6 +19,7 @@
 
 using System.Net;
 using System.Security.Cryptography;
+using System.Collections.Concurrent;
 
 using NUnit.Framework;
 
@@ -231,11 +232,14 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
             await using var coordinator = new PlcaCoordinator(evseMedium, quick);
             await using var sensor      = new TemperatureSensorNode(s1Medium, new TemperatureSensorOptions("DC+ pin", Model: pin));
 
-            var monitor  = new CableThermalMonitor(new CableThermalMonitorOptions(Warning_C: 70, Overload_C: 90, Hysteresis_C: 5));
-            var changes  = new List<ThermalStateChange>();
+            var monitor   = new CableThermalMonitor(new CableThermalMonitorOptions(Warning_C: 70, Overload_C: 90, Hysteresis_C: 5));
+            var changes   = new ConcurrentQueue<ThermalStateChange>();
+            var readings  = new ConcurrentQueue<SensorReading>();
 
-            monitor.StateChanged        += (_, change) => changes.Add(change);
-            coordinator.ReadingReceived += (_, pair)   => monitor.Observe(pair.Node, pair.Reading, DateTimeOffset.UtcNow);
+            // Both arrive on the bus's thread while the test looks at them on
+            // its own: queues, which can be read while they are written to.
+            monitor.StateChanged        += (_, change) => changes.Enqueue(change);
+            coordinator.ReadingReceived += (_, pair)   => { readings.Enqueue(pair.Reading); monitor.Observe(pair.Node, pair.Reading, DateTimeOffset.UtcNow); };
             coordinator.NodeLost        += (_, node)   => monitor.Lost(node, DateTimeOffset.UtcNow);
 
             await evseMedium.StartAsync();
@@ -245,7 +249,15 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
 
             Assert.That(await sensor.Follower.WaitUntilAttachedAsync(TimeSpan.FromSeconds(10)), Is.True);
 
-            // 800 A through a 500 A pin: settles 102 K above the room.
+            // 600 A through a 500 A pin: settles 57.6 K above the room, in the
+            // warning band and never above it. Straight to 800 A, the pin would
+            // cross the band in a quarter of a second - less than a cycle, on
+            // a machine busy enough, and then no reading lands in it.
+            sensor.Current_A = 600;
+
+            await Eventually(() => changes.Any(change => change.To == ThermalState.Warning), "the warning");
+
+            // 800 A: settles 102 K above the room.
             sensor.Current_A = 800;
 
             await Eventually(() => changes.Any(change => change.To == ThermalState.Overload), "the overload");
@@ -257,18 +269,20 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
                 Assert.That(overload.Temperature_C,  Is.GreaterThanOrEqualTo(90));
                 Assert.That(overload.Node.Name,      Is.EqualTo("DC+ pin"));
                 Assert.That(monitor.InAlarm,         Is.True);
-                Assert.That(sensor.LastReading!.Flags.HasFlag(SensorFlags.Alarm), Is.True, "the sensor thought so too");
+                Assert.That(readings.First(reading => reading.AsDouble >= 90).Flags.HasFlag(SensorFlags.Alarm), Is.True, "the sensor thought so too");
             });
 
             // Passed through warning on the way up, and said so once.
             Assert.That(changes.Select(change => change.To).Take(2), Is.EqualTo(new[] { ThermalState.Warning, ThermalState.Overload }));
 
-            // The current goes away: the pin cools, and the alarm clears.
+            // The current goes away: the pin cools, and the alarm clears. The
+            // change is waited for, not the monitor's state: the state is set
+            // before the change is told.
             sensor.Current_A = 0;
 
-            await Eventually(() => monitor.Overall == ThermalState.Normal, "the all-clear");
+            await Eventually(() => changes.LastOrDefault()?.To == ThermalState.Normal, "the all-clear");
 
-            Assert.That(changes.Last().To,   Is.EqualTo(ThermalState.Normal));
+            Assert.That(monitor.Overall,     Is.EqualTo(ThermalState.Normal));
             Assert.That(changes.Any(change => change.IsAllClear), Is.True);
 
         }
@@ -290,7 +304,9 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
             var monitor  = new CableThermalMonitor();
             var lost     = new List<PlcaNode>();
 
-            coordinator.NodeLost        += (_, node) => { lost.Add(node); monitor.Lost(node, DateTimeOffset.UtcNow); };
+            // The monitor first: the test waits for the list, and then asks
+            // the monitor.
+            coordinator.NodeLost        += (_, node) => { monitor.Lost(node, DateTimeOffset.UtcNow); lost.Add(node); };
             coordinator.ReadingReceived += (_, pair) => monitor.Observe(pair.Node, pair.Reading, DateTimeOffset.UtcNow);
 
             await evseMedium.StartAsync();

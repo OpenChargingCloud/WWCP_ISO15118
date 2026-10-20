@@ -34,7 +34,9 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
     /// ranges of ports for Hyper-V and WSL that nothing else may bind, and
     /// they move between reboots, so a port that was merely random failed a
     /// test one run in fifty with "access denied" and nothing to do with the
-    /// bus.
+    /// bus. Tried without ReuseAddress: a bus binds its port with it, so a
+    /// probe with it binds beside a bus that is running - another test run's,
+    /// on the same group - and the two tests share one bus.
     /// </remarks>
     internal static class TestPorts
     {
@@ -52,7 +54,6 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
 
                     using var probe = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
-                    probe.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
                     probe.Bind(new IPEndPoint(IPAddress.Any, port));
 
                     return port;

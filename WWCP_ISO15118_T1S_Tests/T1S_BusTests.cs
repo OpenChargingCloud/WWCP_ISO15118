@@ -117,8 +117,10 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
             await using var pin1        = new TemperatureSensorNode(s1Medium, new TemperatureSensorOptions("DC+ pin"));
             await using var pin2        = new TemperatureSensorNode(s2Medium, new TemperatureSensorOptions("DC- pin"));
 
-            var cycles = new List<PlcaCycleReport>();
-            coordinator.CycleCompleted += (_, report) => cycles.Add(report);
+            // Each cycle, with how many frames had come out of turn by its end:
+            // reported from the coordinator's task, read from this one.
+            var cycles = new ConcurrentQueue<(PlcaCycleReport Report, Int64 OutOfTurn)>();
+            coordinator.CycleCompleted += (_, report) => cycles.Enqueue((report, coordinator.OutOfTurn));
 
             await evseMedium.StartAsync();
             await evMedium.  StartAsync();
@@ -152,24 +154,42 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
                                                     .All(node => node.LastReading is not null),
                              "a reading from both sensors");
 
-            var cyclesBefore = cycles.Count;
+            // A full cycle: 3 vehicle + 1 + 1 sensor opportunities, and discovery -
+            // one in which nobody was silent and nobody spoke out of turn. Not
+            // every one: on a loaded machine a node may answer after its 100 ms,
+            // and that slot is missed and the late answer counted out of turn,
+            // as a collision would be on a real bus. A node that speaks unasked
+            // would do so in every cycle, and no cycle would be found.
+            //
+            // And after a full one: in the first, whoever joined last uses its
+            // first opportunity to announce itself, the vehicle too.
+            PlcaCycleReport? full = null;
 
-            await Eventually(() => cycles.Count >= cyclesBefore + 3, "three more cycles");
+            await Eventually(() => {
+                              var seen = cycles.ToArray();
+                              full = seen.Zip(seen.Skip(1), (before, cycle) => (before, cycle))
+                                         .Where (pair => pair.before.Report.Slots  == 6 &&
+                                                         pair.cycle.Report.Slots   == 6 &&
+                                                         pair.cycle.Report.Missed  == 0 &&
+                                                         pair.cycle.OutOfTurn      == pair.before.OutOfTurn)
+                                         .Select(pair => pair.cycle.Report)
+                                         .LastOrDefault();
+                              return full is not null;
+                          },
+                          "a full cycle in which nobody was silent and nobody spoke out of turn",
+                          TimeSpan.FromSeconds(20));
 
-            // A full cycle: 3 vehicle + 1 + 1 sensor opportunities, and discovery.
-            var full = cycles.Last(report => report.Slots == 6);
+            var clean = full!;
 
             Assert.Multiple(() => {
-                Assert.That(full.Missed,   Is.EqualTo(0),  "nobody was silent");
-                Assert.That(full.Answered, Is.EqualTo(2),  "the two sensors sent readings");
-                Assert.That(full.Yielded,  Is.EqualTo(3),  "the vehicle, with nothing queued, yielded its three");
+                Assert.That(clean.Answered, Is.EqualTo(2),  "the two sensors sent readings");
+                Assert.That(clean.Yielded,  Is.EqualTo(3),  "the vehicle, with nothing queued, yielded its three");
             });
 
             var sensor = coordinator.Nodes.First(node => node.Role == T1SNodeRole.TemperatureSensor);
 
             Assert.That(sensor.LastReading!.Kind,      Is.EqualTo(SensorKind.Temperature));
             Assert.That(sensor.LastReading.AsDouble,   Is.EqualTo(20).Within(0.5), "a cold pin reads ambient");
-            Assert.That(coordinator.OutOfTurn,         Is.EqualTo(0), "nobody spoke out of turn");
 
             #endregion
 

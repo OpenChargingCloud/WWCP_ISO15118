@@ -133,9 +133,12 @@ the reason not to put it in front of a real car as anything but a test instrumen
   Both TLS backends validate chains, and they take the car's identity differently. `--tls-backend bc`
   wants either `--pki-dir`, where it mints the hierarchy and pins the car it minted, or `--server-cert`,
   where it presents a real chain and has nothing to pin — there the car is judged by `--trust-roots` or
-  not at all, and the program says which. One caveat before pointing it at a counterparty: its
-  `CertificateRequest` asks for `ecdsa_secp521r1_sha512` or `ed448`, so a car with a P-256 client
-  certificate cannot answer it. That is the -20 profile being kept; use the .NET backend for those.
+  not at all, and the program says which. The `--pki-dir` it mints into holds the car's private key,
+  so it is kept to the account the station runs under: 0700 and its files 0600 on Unix, on Windows a
+  protected list for that account, SYSTEM and the administrators. One caveat before pointing it at a
+  counterparty: its `CertificateRequest` asks for `ecdsa_secp521r1_sha512` or `ed448`, so a car with
+  a P-256 client certificate cannot answer it. That is the -20 profile being kept; use the .NET
+  backend for those.
 - **The timeouts are not the standard's** — a flat 2 s per message and 60 s per sequence, not the
   per-message performance tables.
 - **The charge loop lasts as long as the car keeps asking.** This station has no pack and no view of

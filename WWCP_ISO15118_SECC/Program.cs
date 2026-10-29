@@ -122,7 +122,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                             ? null
                             : args.ServerCertPath is not null
                                   ? SeccPki.WithServerCertificate(args.ServerCertPath, args.ServerCertPass, args.RequireClientCert)
-                                  : SeccPki.Generate(args.PkiDir!);
+                                  : SeccPki.Generate(args.PkiDir!, complain: problem => Console.WriteLine($"WARNING: {problem}"));
             if (bcTls is not null && trust is not null)
                 bcTls = bcTls with { ValidatePeerChain = c => Report("TLS client", trust.Validate(c[0], c[1..])) };
             if (bcTls is not null && trust is null && args.RequireClientCert && args.ServerCertPath is not null)

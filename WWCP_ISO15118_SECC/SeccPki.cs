@@ -15,6 +15,10 @@
  * limitations under the License.
  */
 
+using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
+
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Tls;
@@ -74,9 +78,17 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             };
 
         /// <summary>Build the hierarchy, write the EVCC's files, return the SECC's mutual-TLS options.</summary>
-        public static BcTlsOptions Generate(string pkiDir)
+        /// <remarks>
+        /// <c>vehicle.key</c> is the car's private key, so the directory is kept to the account this runs
+        /// under before anything is written into it: 0700 and its files 0600 on Unix, on Windows a protected
+        /// list for that account, SYSTEM and the administrators that its files inherit and nothing else.
+        /// Best effort, as a mounted share may know neither: what could not be restricted is handed to
+        /// <paramref name="complain"/>, and the run goes on.
+        /// </remarks>
+        public static BcTlsOptions Generate(string pkiDir, Action<string>? complain = null)
         {
             Directory.CreateDirectory(pkiDir);
+            KeepToItsOwner(pkiDir, isDirectory: true, complain);
 
             var h = V2GHierarchy.Build(
                         V2GAlgorithm.EcdsaP521,
@@ -84,11 +96,11 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                         V2GProfileOptions: new V2GProfileOptions(V2GProfileFlavor.Strict15118_20, V2GAlgorithm.EcdsaP521, V2GPolicySet.None));
 
             // What the EVCC needs: its Vehicle chain + key, plus the SECC leaf to pin.
-            File.WriteAllBytes(Path.Combine(pkiDir, "vehicle.0.der"), h.VehicleLeaf.Certificate.GetEncoded());
-            File.WriteAllBytes(Path.Combine(pkiDir, "vehicle.1.der"), h.VehicleSubCa2.Certificate.GetEncoded());
-            File.WriteAllBytes(Path.Combine(pkiDir, "vehicle.2.der"), h.VehicleSubCa1.Certificate.GetEncoded());
-            File.WriteAllBytes(Path.Combine(pkiDir, "vehicle.key"),   PrivateKeyInfoFactory.CreatePrivateKeyInfo(h.VehicleLeaf.KeyPair.Private).GetEncoded());
-            File.WriteAllBytes(Path.Combine(pkiDir, "secc.leaf.der"), h.SeccLeaf.Certificate.GetEncoded());
+            Write("vehicle.0.der", h.VehicleLeaf.Certificate.GetEncoded());
+            Write("vehicle.1.der", h.VehicleSubCa2.Certificate.GetEncoded());
+            Write("vehicle.2.der", h.VehicleSubCa1.Certificate.GetEncoded());
+            Write("vehicle.key",   PrivateKeyInfoFactory.CreatePrivateKeyInfo(h.VehicleLeaf.KeyPair.Private).GetEncoded());
+            Write("secc.leaf.der", h.SeccLeaf.Certificate.GetEncoded());
 
             return new BcTlsOptions
             {
@@ -98,6 +110,61 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                 RequireClientCertificate = true,
                 ValidatePeerLeaf         = expected => h.VehicleLeaf.Certificate.GetEncoded().AsSpan().SequenceEqual(expected),
             };
+
+            // A file left by an earlier run keeps its mode, or a list of its own, when written over.
+            void Write(string name, byte[] content)
+            {
+                var path = Path.Combine(pkiDir, name);
+                File.WriteAllBytes(path, content);
+                KeepToItsOwner(path, isDirectory: false, complain);
+            }
+        }
+
+        private static void KeepToItsOwner(string path, bool isDirectory, Action<string>? complain)
+        {
+            try
+            {
+                if (!OperatingSystem.IsWindows())
+                    File.SetUnixFileMode(path, isDirectory
+                                                   ? UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute
+                                                   : UnixFileMode.UserRead | UnixFileMode.UserWrite);
+                else if (isDirectory)
+                    ProtectOnWindows(new DirectoryInfo(path));
+                else
+                    InheritOnWindows(new FileInfo(path));
+            }
+            catch (Exception ex)
+            {
+                complain?.Invoke($"'{path}' could not be made readable by its owner alone, and may be readable by other users of this machine: {ex.Message}");
+            }
+        }
+
+        /// <summary>Nothing from the folder above; full control for this account, SYSTEM and the administrators, handed down.</summary>
+        [SupportedOSPlatform("windows")]
+        private static void ProtectOnWindows(DirectoryInfo directory)
+        {
+            using var identity = WindowsIdentity.GetCurrent();
+            var owner    = identity.User ?? throw new InvalidOperationException("The account this runs under has no security identifier.");
+            var security = new DirectorySecurity();
+            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+
+            foreach (var who in new[] { owner,
+                                        new SecurityIdentifier(WellKnownSidType.LocalSystemSid,           null),
+                                        new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null) }.Distinct())
+                security.AddAccessRule(new FileSystemAccessRule(who, FileSystemRights.FullControl,
+                                                                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                                                                PropagationFlags.None, AccessControlType.Allow));
+
+            directory.SetAccessControl(security);
+        }
+
+        /// <summary>What the directory hands down and no rule of the file's own.</summary>
+        [SupportedOSPlatform("windows")]
+        private static void InheritOnWindows(FileInfo file)
+        {
+            var inherited = new FileSecurity();
+            inherited.SetAccessRuleProtection(isProtected: false, preserveInheritance: false);
+            file.SetAccessControl(inherited);
         }
     }
 }

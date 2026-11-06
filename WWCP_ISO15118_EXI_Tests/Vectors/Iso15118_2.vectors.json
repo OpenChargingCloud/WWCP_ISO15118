@@ -84,6 +84,11 @@
       "expectedHex": "80 98 02 00 00 00 00 00 00 00 00 10 40 00 00 02 10 40"
     },
     {
+      "name": "CableCheckRes_IsolationValid",
+      "messageType": "CableCheckRes",
+      "expectedHex": "80 98 02 00 00 00 00 00 00 00 00 10 40 00 00 00 20 40 00"
+    },
+    {
       "name": "PreChargeReq",
       "messageType": "PreChargeReq",
       "expectedHex": "80 98 02 00 00 00 00 00 00 00 00 11 71 00 19 01 88 12 00 60 61 80 50 00"

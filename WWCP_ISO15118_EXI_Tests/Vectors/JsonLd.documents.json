@@ -608,6 +608,29 @@
           }
         }
       },
+      "CableCheckRes_IsolationValid": {
+        "@context": "urn:iso:15118:2:2013:MsgDef",
+        "@type": "V2G_Message",
+        "header": {
+          "@type": "MessageHeaderType",
+          "sessionID": "0000000000000000"
+        },
+        "body": {
+          "@type": "BodyType",
+          "bodyElement": {
+            "@type": "CableCheckResType",
+            "responseCode": "OK",
+            "dc_EVSEStatus": {
+              "@type": "DC_EVSEStatusType",
+              "notificationMaxDelay": 0,
+              "evseNotification": "None",
+              "evseIsolationStatus": "Valid",
+              "evseStatusCode": "EVSE_Ready"
+            },
+            "evseProcessing": "Finished"
+          }
+        }
+      },
       "PreChargeReq": {
         "@context": "urn:iso:15118:2:2013:MsgDef",
         "@type": "V2G_Message",

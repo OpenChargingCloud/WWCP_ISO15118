@@ -130,6 +130,12 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests.Infrastructure
             ["CableCheckRes"] = new V2G_Message(Header(),
                 new BodyType(new CableCheckResType(ResponseCode.OK, DcEvseStatus(), EVSEProcessing.Ongoing))),
 
+            // The optional EVSEIsolationStatus present — what the -2 station states from CableCheck on.
+            ["CableCheckRes_IsolationValid"] = new V2G_Message(Header(),
+                new BodyType(new CableCheckResType(ResponseCode.OK,
+                    DcEvseStatus() with { EVSEIsolationStatus = IsolationLevel.Valid },
+                    EVSEProcessing.Finished))),
+
             ["PreChargeReq"] = new V2G_Message(Header(),
                 new BodyType(new PreChargeReqType(DcEvStatus(),
                     new PhysicalValueType(0, UnitSymbol.V, 400),

@@ -285,6 +285,16 @@ int main(int argc, char** argv) {
         set_dc_evsestatus(&body->CableCheckRes.DC_EVSEStatus);
         body->CableCheckRes.EVSEProcessing = iso2_EVSEProcessingType_Ongoing;
 
+    } else if (strcmp(v, "CableCheckRes_IsolationValid") == 0) {
+        /* The optional EVSEIsolationStatus present: what the -2 station states from CableCheck on
+         * since 2026-11-06, and the first vector to carry the element at all. */
+        body->CableCheckRes_isUsed = 1u;
+        body->CableCheckRes.ResponseCode = iso2_responseCodeType_OK;
+        set_dc_evsestatus(&body->CableCheckRes.DC_EVSEStatus);
+        body->CableCheckRes.DC_EVSEStatus.EVSEIsolationStatus_isUsed = 1u;
+        body->CableCheckRes.DC_EVSEStatus.EVSEIsolationStatus        = iso2_isolationLevelType_Valid;
+        body->CableCheckRes.EVSEProcessing = iso2_EVSEProcessingType_Finished;
+
     } else if (strcmp(v, "PreChargeReq") == 0) {
         body->PreChargeReq_isUsed = 1u;
         set_dc_evstatus(&body->PreChargeReq.DC_EVStatus);

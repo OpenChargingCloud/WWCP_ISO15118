@@ -1257,12 +1257,44 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         }
 
         /// <summary>The DC isolation test, answered <c>Finished</c> in one step by this simulated station,
-        /// and counted — a second one in a session is the renegotiation return path having been walked.</summary>
+        /// and counted — a second one in a session is the renegotiation return path having been walked.
+        /// It finds <c>Valid</c>, and says so: in this response and in every <c>DC_EVSEStatus</c> after it
+        /// (<see cref="_isolation"/>).</summary>
         private BodyBaseType CableCheck()
         {
             IsolationSequences++;
+            _isolation = IsolationLevel.Valid;
             return new CableCheckResType(ResponseCode.OK, DcEvseStatus(), EVSEProcessing.Finished);
         }
+
+        /// <summary>
+        /// DC only: what this station's isolation test found — null until <see cref="CableCheck"/> has run,
+        /// and stated as <c>EVSEIsolationStatus</c> in every <c>DC_EVSEStatus</c> from then on.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Until 2026-11-06 this station never stated it. The element is optional in -2 — the schema has
+        /// <c>minOccurs="0"</c>, Table 95 leaves its handling to IEC 61851-23 — and nothing we can read
+        /// obliges a station to send it, so a <c>CableCheckRes</c> said <c>Finished</c> without saying what
+        /// the test had found.
+        /// </para>
+        /// <para>
+        /// <b>EVerest's next car would not charge on that.</b> <c>Ev15118</c>
+        /// (<c>everest-core#3031</c>) accepts <c>Valid</c> or <c>Warning</c> and refuses an absent element on
+        /// purpose, so it stopped after <c>CableCheck</c>, two runs of two; a copy of this station stating
+        /// <c>Valid</c> charged to <c>SessionStop</c>, two of two (<c>docs/interop-runs/2026-11-06-everest-ev15118/</c>
+        /// in the conformance repository). Neither side is in defect there: a car may refuse to energise
+        /// without a result, and this station was schema-valid without one. But a station that reports
+        /// the test <c>Finished</c> has claimed it ran, and the result is the half of that claim it left out.
+        /// </para>
+        /// <para>
+        /// <b>From <c>CableCheck</c> on, not only in its response,</b> because that is how a station with
+        /// an insulation monitor behaves: EVerest's own <c>EvseV2G</c> puts its monitor's latest reading
+        /// in every <c>DC_EVSEStatus</c> it sends. <b>Nothing before it</b>, because no test has run yet —
+        /// <c>Invalid</c> would be a measurement this station never made.
+        /// </para>
+        /// </remarks>
+        private IsolationLevel? _isolation;
 
         // ── Plug & Charge handlers ────────────────────────────────────────────
 
@@ -1470,8 +1502,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                        MeterStatus: null, TMeter: timestamp);
         }
 
-        private static DC_EVSEStatusType DcEvseStatus(EVSENotification notification = EVSENotification.None) =>
-            new(NotificationMaxDelay: 0, notification, EVSEIsolationStatus: null, DC_EVSEStatusCode.EVSE_Ready);
+        private DC_EVSEStatusType DcEvseStatus(EVSENotification notification = EVSENotification.None) =>
+            new(NotificationMaxDelay: 0, notification, EVSEIsolationStatus: _isolation, DC_EVSEStatusCode.EVSE_Ready);
         private static AC_EVSEStatusType AcEvseStatus(EVSENotification notification = EVSENotification.None) =>
             new(NotificationMaxDelay: 0, notification, RCD: false);
 

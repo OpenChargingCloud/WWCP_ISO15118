@@ -22,6 +22,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
 using org.GraphDefined.Vanaheimr.Hermod.Ethernet;
 
 using cloud.charging.open.protocols.ISO15118.NetworkInterfaces;
@@ -191,6 +192,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
 
         private static async Task<Stream> ConnectAsync(EvccOptions args, string host, int port, V2GChainValidator? trust)
         {
+            // A host name is resolved by Hermod's DNS client, asking the name servers of this machine's network
+            // configuration itself - never by the resolver of the operating system. An address needs none.
+            await using var dnsClient = NameResolution.TryLiteral(host, out _) ? null : new DNSClient();
+
             switch (args.TlsStack)
             {
                 case TlsStack.BouncyCastle:
@@ -207,7 +212,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     // and both do when both are.
                     if (trust is not null)
                         bc = bc with { ValidatePeerChain = c => Report("TLS station", trust.Validate(c[0], c[1..])) };
-                    return await TcpV2GClient.ConnectAsync(host, port, bc);
+                    return await TcpV2GClient.ConnectAsync(host, port, bc, dnsClient);
                 }
 
                 case TlsStack.Dotnet:
@@ -231,11 +236,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     };
                     if (vehicleLeaf is not null)
                         Console.WriteLine($"Presenting Vehicle certificate for mutual TLS: {vehicleLeaf.Subject} (+{vehicleChain?.Count ?? 0} intermediate(s))");
-                    return await TcpV2GClient.ConnectAsync(host, port, tlsOptions);
+                    return await TcpV2GClient.ConnectAsync(host, port, tlsOptions, dnsClient);
                 }
 
                 default:
-                    return await TcpV2GClient.ConnectAsync(host, port);
+                    return await TcpV2GClient.ConnectAsync(host, port, dnsClient: dnsClient);
             }
         }
 

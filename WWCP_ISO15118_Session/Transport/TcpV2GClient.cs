@@ -19,6 +19,8 @@ using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
+using org.GraphDefined.Vanaheimr.Hermod.DNS;
+
 using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
 
 namespace cloud.charging.open.protocols.ISO15118.Transport
@@ -29,12 +31,18 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
     /// <paramref name="tls"/> is given. When <see cref="TlsOptions.ClientCertificate"/> is set, the EVCC
     /// presents it for mutual TLS (the Vehicle certificate).
     /// </summary>
+    /// <remarks>
+    /// The host is an IP address - a link-local one with its zone, as <see cref="V2GEndpoint.ConnectHost"/>
+    /// writes it - or "localhost", or a host name, which is resolved with the DNS client given and never with
+    /// the resolver of the operating system: a host name without a DNS client is refused with a
+    /// <see cref="NameResolutionException"/>.
+    /// </remarks>
     public static class TcpV2GClient
     {
-        public static async Task<Stream> ConnectAsync(string host, int port, TlsOptions? tls = null, CancellationToken ct = default)
+        public static async Task<Stream> ConnectAsync(string host, int port, TlsOptions? tls = null, IDNSClient? dnsClient = null, CancellationToken ct = default)
         {
             var client = new TcpClient();
-            await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
+            await ConnectAsync(client, host, port, dnsClient, ct).ConfigureAwait(false);
             Stream stream = client.GetStream(); // owns the underlying socket; disposing the stream closes it
 
             if (tls is null) return stream;
@@ -86,11 +94,28 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         /// EVCC-side connect using the <b>BouncyCastle</b> TLS backend (the -20-faithful P-521 / Ed448
         /// profile Schannel can't do). Overload selected by passing <see cref="BcTlsOptions"/>.
         /// </summary>
-        public static async Task<Stream> ConnectAsync(string host, int port, BcTlsOptions bcTls, CancellationToken ct = default)
+        public static async Task<Stream> ConnectAsync(string host, int port, BcTlsOptions bcTls, IDNSClient? dnsClient = null, CancellationToken ct = default)
         {
             var client = new TcpClient();
-            await client.ConnectAsync(host, port, ct).ConfigureAwait(false);
+            await ConnectAsync(client, host, port, dnsClient, ct).ConfigureAwait(false);
             return await BcTlsTransport.AuthenticateClientAsync(client.GetStream(), bcTls, ct).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Connect, the client disposed of when it could not: a connect that failed used to leave its socket
+        /// to the finalizer.
+        /// </summary>
+        private static async Task ConnectAsync(TcpClient client, string host, int port, IDNSClient? dnsClient, CancellationToken ct)
+        {
+            try
+            {
+                await NameResolution.ConnectAsync(client, host, port, dnsClient, ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                client.Dispose();
+                throw;
+            }
         }
     }
 }

@@ -96,7 +96,7 @@ namespace cloud.charging.open.protocols.ISO15118.EXI.Tests
         public void ValueTable_SequenceRoundtrips_WithHitsAndMisses()
         {
             // Small key- and value-pools so hits (local and global) occur frequently.
-            var genValue = Gen.OneOfConst("a", "bb", "ccc", "urn:x", "urn:y", "urn:z");
+            var genValue = Gen.OneOf("a", "bb", "ccc", "urn:x", "urn:y", "urn:z");
             var genPair  = Gen.Select(Gen.Int[0, 3], genValue, (k, v) => (k.ToString(), v));
 
             genPair.List[0, 50].Sample(seq =>

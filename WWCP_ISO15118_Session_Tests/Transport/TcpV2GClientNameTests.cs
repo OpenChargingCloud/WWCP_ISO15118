@@ -87,16 +87,19 @@ public class TcpV2GClientNameTests
             var accepted  = listener.AcceptTcpClientAsync(CancellationToken).AsTask();
             var dnsClient = new LoopbackDNS();
 
-            // .invalid is a name no resolver of an operating system answers (RFC 6761).
-            await using (var stream = await TcpV2GClient.ConnectAsync("secc.invalid", port, dnsClient: dnsClient, ct: CancellationToken))
+            // .test is a name no resolver of an operating system answers, and one a name resolution library
+            // hands to its DNS client as any other (RFC 6761 §6.2) - unlike .invalid, which it answers itself
+            // with "no such name" and asks no DNS client for (§6.4).
+            await using (var stream = await TcpV2GClient.ConnectAsync("secc.test", port, dnsClient: dnsClient, ct: CancellationToken))
             {
                 using var secc = await accepted;
                 Assert.That(secc.Connected, Is.True);
             }
 
-            Assert.That(dnsClient.Asked.Distinct(), Is.EqualTo(new[] { "secc.invalid" }));
+            Assert.That(dnsClient.Asked.Distinct(), Is.EqualTo(new[] { "secc.test" }));
 
-            await Assert.ThrowsAsync<NameResolutionException>(async () => await TcpV2GClient.ConnectAsync("secc.invalid", port, ct: CancellationToken),
+            // The same name without a DNS client: refused for that, not for being an "invalid" one.
+            await Assert.ThrowsAsync<NameResolutionException>(async () => await TcpV2GClient.ConnectAsync("secc.test", port, ct: CancellationToken),
                                                         "A host name without a DNS client was resolved some other way.");
 
         }

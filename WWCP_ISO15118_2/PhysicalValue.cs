@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using System.Globalization;
+
 using cloud.charging.open.protocols.ISO15118_2.Generated;
 
 namespace cloud.charging.open.protocols.ISO15118_2
@@ -57,6 +59,12 @@ namespace cloud.charging.open.protocols.ISO15118_2
 
             return new PhysicalValueType(multiplier, unit, (short)Math.Round(scaled, MidpointRounding.ToEven));
         }
+
+        /// <summary>The decimal amount a double is written as: 11.9, not the 11.900000000000000355271367880
+        /// a cast gives since .NET 11, for which <see cref="Of"/> would take the finest multiplier and
+        /// encode 11900 · 10^-3 rather than 119 · 10^-1.</summary>
+        public static decimal Amount(double amount) =>
+            decimal.Parse(amount.ToString("R", CultureInfo.InvariantCulture), NumberStyles.Float, CultureInfo.InvariantCulture);
 
         /// <summary>The exact decimal amount this physical value represents (<c>Value · 10^Multiplier</c>).</summary>
         public static decimal ToDecimal(this PhysicalValueType value) =>

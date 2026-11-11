@@ -921,7 +921,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         private EVSEChargeParameterType EvseChargeParameter() =>
             mode == PowerMode.Dc
                 ? new DC_EVSEChargeParameterType(DcEvseStatus(),
-                      EVSEMaximumCurrentLimit: PhysicalValue.Of((decimal) (DcAdvertisedMaxAmps ?? 200), UnitSymbol.A),
+                      EVSEMaximumCurrentLimit: PhysicalValue.Of(PhysicalValue.Amount(DcAdvertisedMaxAmps ?? 200), UnitSymbol.A),
                       EVSEMaximumPowerLimit: Watt(150_000),
                       EVSEMaximumVoltageLimit: Volt(500), EVSEMinimumCurrentLimit: Amp(0),
                       EVSEMinimumVoltageLimit: Volt(200), EVSECurrentRegulationTolerance: null,
@@ -1202,12 +1202,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             bool reading = receipt || InstalledMeter is not null;
             return new CurrentDemandResType(ResponseCode.OK, DcEvseStatus(Notification()),
                 EVSEPresentVoltage: Volt(DcVolts),
-                EVSEPresentCurrent: PhysicalValue.Of((decimal) servedAmps, UnitSymbol.A),
+                EVSEPresentCurrent: PhysicalValue.Of(PhysicalValue.Amount(servedAmps), UnitSymbol.A),
                 EVSECurrentLimitAchieved: DcRunningMaxAmps is not null && servedAmps >= cap,
                 EVSEVoltageLimitAchieved: false, EVSEPowerLimitAchieved: false,
                 EVSEMaximumVoltageLimit: DcRunningMaxAmps is null ? null : Volt(DcVolts),
-                EVSEMaximumCurrentLimit: DcRunningMaxAmps is null ? null : PhysicalValue.Of((decimal) cap, UnitSymbol.A),
-                EVSEMaximumPowerLimit:   DcRunningMaxAmps is null ? null : PhysicalValue.Of((decimal) (DcVolts * cap), UnitSymbol.W),
+                EVSEMaximumCurrentLimit: DcRunningMaxAmps is null ? null : PhysicalValue.Of(PhysicalValue.Amount(cap), UnitSymbol.A),
+                EVSEMaximumPowerLimit:   DcRunningMaxAmps is null ? null : PhysicalValue.Of(PhysicalValue.Amount(DcVolts * cap), UnitSymbol.W),
                 EVSEID: "DE*ABC*E1", SAScheduleTupleID: _chosenTupleId,
                 MeterInfo: reading ? measured : null, ReceiptRequired: receipt ? true : null);
         }

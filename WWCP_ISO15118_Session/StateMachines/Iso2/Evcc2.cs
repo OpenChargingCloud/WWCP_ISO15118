@@ -593,7 +593,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                 .Select(p => new ProfileEntryType(
                     ChargingProfileEntryStart: p.TimeInterval is RelativeTimeIntervalType rti ? rti.Start : 0,
                     ChargingProfileEntryMaxPower: cap is { } watts && (double) p.PMax.ToDecimal() > watts
-                                                      ? PhysicalValue.Of((decimal) watts, UnitSymbol.W)
+                                                      ? PhysicalValue.Of(PhysicalValue.Amount(watts), UnitSymbol.W)
                                                       : p.PMax,
                     ChargingProfileEntryMaxNumberOfPhasesInUse: null))
                 .ToArray());
@@ -1057,7 +1057,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>Watt-hours as a -2 physical value, rounded to the whole watt-hour the wire and the
         /// meter both count in.</summary>
         private static PhysicalValueType WattHours(double wattHours)
-            => PhysicalValue.Of((decimal) Math.Round(wattHours), UnitSymbol.Wh);
+            => PhysicalValue.Of(PhysicalValue.Amount(Math.Round(wattHours)), UnitSymbol.Wh);
 
         /// <summary>
         /// One DC charge-loop request. <c>--power</c> lands here: <c>EVTargetCurrent</c> is the setpoint

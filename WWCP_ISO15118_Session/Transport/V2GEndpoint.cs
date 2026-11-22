@@ -18,6 +18,7 @@
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 
 namespace cloud.charging.open.protocols.ISO15118.Transport
 {
@@ -64,7 +65,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
     /// <param name="Zone">The zone exactly as written (<c>eth0</c>, <c>14</c>), or <c>null</c>.</param>
     /// <param name="Address">The parsed address, carrying a resolved <see cref="IPAddress.ScopeId"/> when
     /// a zone was given — or <c>null</c> when <paramref name="Host"/> is a name to be resolved later.</param>
-    public sealed record V2GEndpoint(string Host, int Port, string? Zone, IPAddress? Address)
+    public sealed record V2GEndpoint(string Host, IPPort Port, string? Zone, IPAddress? Address)
     {
 
         /// <summary>
@@ -73,7 +74,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         /// </summary>
         public string ConnectHost => Address?.ToString() ?? Host;
 
-        public IPEndPoint? IPEndPoint => Address is null ? null : new IPEndPoint(Address, Port);
+        public IPEndPoint? IPEndPoint => Address is null ? null : new IPEndPoint(Address, Port.ToInt32());
 
         public override string ToString()
             => Address is { AddressFamily: AddressFamily.InterNetworkV6 } || Host.Contains(':')
@@ -121,7 +122,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
                         $"port separator — write [{host}]:{portText}, got '{value}'.");
             }
 
-            if (!Int32.TryParse(portText, out var port) || port is < 1 or > 65535)
+            if (!IPPort.TryParse(portText, out var port) || port.IsZero)
                 throw new ArgumentException($"{origin}: '{portText}' is not a TCP port (1-65535), from '{value}'.");
 
             // The zone is split off before parsing, deliberately: handing "%evcc-veth" to the framework

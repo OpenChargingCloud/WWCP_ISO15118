@@ -21,6 +21,7 @@ using System.Net;
 
 using cloud.charging.open.protocols.ISO15118.SDP.Messages;
 using cloud.charging.open.protocols.ISO15118.NetworkInterfaces;
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 
 #endregion
 
@@ -48,7 +49,7 @@ public sealed record SECC_SDPServerOptions
     public IPAddress?                              SeccIPAddressOverride    { get; init; }
 
     /// <summary>TCP port the V2G server (SAP/EXI handler) is listening on.</summary>
-    public required UInt16 SeccPort { get; init; }
+    public required IPPort SeccPort { get; init; }
 
 
 

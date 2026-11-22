@@ -17,6 +17,7 @@
 
 #region Usings
 
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -41,20 +42,20 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
     internal static class TestPorts
     {
 
-        public static UInt16 Free()
+        public static IPPort Free()
         {
 
             for (var attempt = 0; attempt < 25; attempt++)
             {
 
-                var port = (UInt16) RandomNumberGenerator.GetInt32(20000, 60000);
+                var port = IPPort.Parse(RandomNumberGenerator.GetInt32(20000, 60000));
 
                 try
                 {
 
                     using var probe = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
-                    probe.Bind(new IPEndPoint(IPAddress.Any, port));
+                    probe.Bind(new IPEndPoint(IPAddress.Any, port.ToInt32()));
 
                     return port;
 

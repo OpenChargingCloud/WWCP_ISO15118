@@ -363,7 +363,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Client
             if (clientOptions.RequireLinkLocalSeccAddress && !SDPResponse.SeccIPAddress.IsIPv6LinkLocal)
                 return $"SECC address {SDPResponse.SeccIPAddress} is not link-local";
 
-            if (SDPResponse.SeccPort == 0)
+            if (SDPResponse.SeccPort.IsZero)
                 return "SECC port is zero";
 
             return null;

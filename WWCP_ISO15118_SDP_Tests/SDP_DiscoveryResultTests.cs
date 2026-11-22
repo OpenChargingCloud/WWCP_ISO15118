@@ -23,6 +23,7 @@ using NUnit.Framework;
 
 using cloud.charging.open.protocols.ISO15118.SDP.Client;
 using cloud.charging.open.protocols.ISO15118.SDP.Messages;
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 
 #endregion
 
@@ -44,9 +45,9 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
 
         #region Data
 
-        private static readonly SDP_Response  first       = new (IPAddress.Parse("fe80::1"), 64109, SDP_Security.TLS,   SDP_TransportProtocol.TCP);
-        private static readonly SDP_Response  second      = new (IPAddress.Parse("fe80::2"), 64110, SDP_Security.TLS,   SDP_TransportProtocol.TCP);
-        private static readonly SDP_Response  third       = new (IPAddress.Parse("fe80::3"), 64111, SDP_Security.NoTLS, SDP_TransportProtocol.TCP);
+        private static readonly SDP_Response  first       = new (IPAddress.Parse("fe80::1"), IPPort.Parse(64109), SDP_Security.TLS,   SDP_TransportProtocol.TCP);
+        private static readonly SDP_Response  second      = new (IPAddress.Parse("fe80::2"), IPPort.Parse(64110), SDP_Security.TLS,   SDP_TransportProtocol.TCP);
+        private static readonly SDP_Response  third       = new (IPAddress.Parse("fe80::3"), IPPort.Parse(64111), SDP_Security.NoTLS, SDP_TransportProtocol.TCP);
 
         private static readonly IPEndPoint    fromFirst   = new (IPAddress.Parse("fe80::a"), 15118);
         private static readonly IPEndPoint    fromSecond  = new (IPAddress.Parse("fe80::b"), 15118);

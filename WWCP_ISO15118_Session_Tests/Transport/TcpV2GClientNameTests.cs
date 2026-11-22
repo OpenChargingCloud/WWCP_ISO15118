@@ -83,7 +83,7 @@ public class TcpV2GClientNameTests
         try
         {
 
-            var port      = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port      = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             var accepted  = listener.AcceptTcpClientAsync(CancellationToken).AsTask();
             var dnsClient = new LoopbackDNS();
 
@@ -121,7 +121,7 @@ public class TcpV2GClientNameTests
         try
         {
 
-            var port     = ((IPEndPoint) listener.LocalEndpoint).Port;
+            var port     = IPPort.Parse(((IPEndPoint) listener.LocalEndpoint).Port);
             var accepted = listener.AcceptTcpClientAsync(CancellationToken).AsTask();
 
             await using var stream = await TcpV2GClient.ConnectAsync("127.0.0.1", port, ct: CancellationToken);

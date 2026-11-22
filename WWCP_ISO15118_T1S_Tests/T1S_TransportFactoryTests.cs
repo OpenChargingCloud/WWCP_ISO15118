@@ -162,7 +162,7 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
         {
 
             var port    = TestPorts.Free();
-            var group   = new IPEndPoint(IPAddress.Parse("239.151.18.77"), port);
+            var group   = new IPEndPoint(IPAddress.Parse("239.151.18.77"), port.ToInt32());
             var medium  = T1STransports.Open(new T1STransportOptions(T1STransportKind.UDP, Group: group));
 
             Assert.That(medium.IsFailed,   Is.False, medium.Error);
@@ -187,7 +187,7 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
 
             var mac     = MACAddress.Parse("02:71:50:AA:BB:CC");
             var medium  = T1STransports.Open(new T1STransportOptions(T1STransportKind.UDP,
-                                                                     Group:     new IPEndPoint(IPAddress.Parse("239.151.18.78"), TestPorts.Free()),
+                                                                     Group:     new IPEndPoint(IPAddress.Parse("239.151.18.78"), TestPorts.Free().ToInt32()),
                                                                      LocalMac:  mac));
 
             Assert.That(medium.IsOpen,               Is.True, medium.Error);
@@ -230,7 +230,7 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
 
             var medium = T1STransports.Open(new T1STransportOptions(T1STransportKind.UDP,
                                                                     InterfaceName:  candidate.Name,
-                                                                    Group:          new IPEndPoint(IPAddress.Parse("239.151.18.79"), TestPorts.Free())));
+                                                                    Group:          new IPEndPoint(IPAddress.Parse("239.151.18.79"), TestPorts.Free().ToInt32())));
 
             Assert.That(medium.IsOpen,  Is.True, medium.Error);
 
@@ -248,7 +248,7 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
         {
 
             var medium = T1STransports.Open(new T1STransportOptions(T1STransportKind.UDP,
-                                                                    Group: new IPEndPoint(IPAddress.Loopback, TestPorts.Free())));
+                                                                    Group: new IPEndPoint(IPAddress.Loopback, TestPorts.Free().ToInt32())));
 
             Assert.That(medium.IsFailed,  Is.True);
             Assert.That(medium.Error,     Does.Contain("multicast"));

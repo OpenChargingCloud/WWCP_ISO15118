@@ -17,6 +17,7 @@
 
 #region Usings
 
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 using System.Net;
 
 #endregion
@@ -42,7 +43,7 @@ namespace cloud.charging.open.protocols.ISO15118.NetworkInterfaces
         /// <summary>
         /// UDP/TCP port reserved for V2G – ISO 15118 / IANA.
         /// </summary>
-        public const UInt16 V2GUdpPort = 15118;
+        public static readonly IPPort V2GUdpPort = IPPort.Parse(15118);
 
         /// <summary>
         /// Endpoint a SECC must bind/listen on to catch SDP_Request multicasts.
@@ -53,7 +54,7 @@ namespace cloud.charging.open.protocols.ISO15118.NetworkInterfaces
 
             => new (
                    IPAddress.IPv6Any,
-                   V2GUdpPort
+                   V2GUdpPort.ToInt32()
                );
 
         /// <summary>
@@ -65,7 +66,7 @@ namespace cloud.charging.open.protocols.ISO15118.NetworkInterfaces
 
             => new (
                    SDPMulticastGroup,
-                   V2GUdpPort
+                   V2GUdpPort.ToInt32()
                );
 
     }

@@ -337,7 +337,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             Console.WriteLine($"SLAC: paired (NID {Convert.ToHexString(result.Nid)}).");
         }
 
-        private static async Task<SeccSdpAdvertiser> StartSdpAsync(SeccOptions args, int tcpPort)
+        private static async Task<SeccSdpAdvertiser> StartSdpAsync(SeccOptions args, IPPort tcpPort)
         {
             var iface  = V2GInterface.Resolve(args.Interface!);
             var noTls  = args.TlsStack == TlsStack.None;
@@ -359,7 +359,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
         /// otherwise silently drop it and make <c>--sdp</c> discovery appear broken. A TLS station
         /// advertises <see cref="SDP_Security.TLS"/> and keeps rejecting no-TLS downgrade requests.
         /// </summary>
-        internal static SECC_SDPServerOptions BuildSdpOptions(V2GNetworkInterface iface, int tcpPort, bool noTls, bool loopback = false)
+        internal static SECC_SDPServerOptions BuildSdpOptions(V2GNetworkInterface iface, IPPort tcpPort, bool noTls, bool loopback = false)
             => new()
             {
                 Interface           = iface,

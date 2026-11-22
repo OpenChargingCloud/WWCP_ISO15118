@@ -18,6 +18,7 @@
 using System.Net;
 
 using cloud.charging.open.protocols.ISO15118.SDP.Messages;
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 
 namespace cloud.charging.open.protocols.ISO15118.Discovery
 {
@@ -26,7 +27,7 @@ namespace cloud.charging.open.protocols.ISO15118.Discovery
     /// address, port, and whether TLS is expected. This is the hand-off point between the discovery
     /// stage (SDP or a fixed endpoint) and <see cref="Transport.TcpV2GClient"/>.
     /// </summary>
-    public sealed record SeccEndpoint(IPAddress Address, int Port, bool Tls)
+    public sealed record SeccEndpoint(IPAddress Address, IPPort Port, bool Tls)
     {
         /// <summary>Address as a string, including the IPv6 scope-id if present (e.g. <c>fe80::1%12</c>).</summary>
         public string Host => Address.ToString();

@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod;
 using cloud.charging.open.protocols.ISO15118.V2GTP;
 
 #endregion
@@ -40,7 +41,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Messages
     /// Only used in ISO 15118-20.
     /// </summary>
     public sealed record SDP_ResponseWireless(Byte[]                SeccIpAddress,     // exactly 16 bytes
-                                             UInt16                SeccTcpPort,
+                                             IPPort                SeccTcpPort,
                                              SDP_Security           Security,
                                              SDP_TransportProtocol  TransportProtocol,
                                              Byte                  DiagStatus,        // 0x00 / 0x01 / 0x02 / 0x10
@@ -66,8 +67,8 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Messages
             var buf = new Byte[PayloadSize];
             Array.Copy(SeccIpAddress, 0, buf, 0, 16);
 
-            buf[16] = (Byte) (SeccTcpPort >> 8);
-            buf[17] = (Byte) SeccTcpPort;
+            buf[16] = (Byte) (SeccTcpPort.ToUInt16() >> 8);
+            buf[17] = (Byte)  SeccTcpPort.ToUInt16();
 
             buf[18] = (Byte) Security;
             buf[19] = (Byte) TransportProtocol;
@@ -92,7 +93,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Messages
 
             return new SDP_ResponseWireless(
                        SeccIpAddress:     ip,
-                       SeccTcpPort:       (UInt16) ((Payload[16] << 8) | Payload[17]),
+                       SeccTcpPort:       IPPort.Parse((UInt16) ((Payload[16] << 8) | Payload[17])),
                        Security:          (SDP_Security)          Payload[18],
                        TransportProtocol: (SDP_TransportProtocol) Payload[19],
                        DiagStatus:        Payload[20],

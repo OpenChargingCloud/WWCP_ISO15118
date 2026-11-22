@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod;
 using NUnit.Framework;
 
 using cloud.charging.open.protocols.ISO15118.SDP.Client;
@@ -58,7 +59,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         {
             Assert.That(new SECC_SDPServerOptions {
                             Interface  = null!,
-                            SeccPort   = 15118
+                            SeccPort   = IPPort.Parse(15118)
                         }.MulticastLoopback,
                         Is.False,
                         "A SECC would answer anything running on its own machine.");
@@ -94,7 +95,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
 
                 Assert.That(new SECC_SDPServerOptions {
                                 Interface          = null!,
-                                SeccPort           = 15118,
+                                SeccPort           = IPPort.Parse(15118),
                                 MulticastLoopback  = true
                             }.MulticastLoopback,
                             Is.True);

@@ -73,7 +73,7 @@ namespace cloud.charging.open.protocols.ISO15118.T1S.Tests
         public void EachTestItsOwnBus()
             => group = new IPEndPoint(
                            IPAddress.Parse("239.151.18.2"),
-                           TestPorts.Free()
+                           TestPorts.Free().ToInt32()
                        );
 
         private UdpMulticastT1STransport Medium()

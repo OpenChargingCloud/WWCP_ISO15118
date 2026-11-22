@@ -43,6 +43,7 @@ using cloud.charging.open.protocols.ISO15118.StateMachines.Iso2;
 using cloud.charging.open.protocols.ISO15118.StateMachines.Iso20;
 using cloud.charging.open.protocols.ISO15118.Timing;
 using cloud.charging.open.protocols.ISO15118.Transport;
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 
 namespace cloud.charging.open.protocols.ISO15118.EVCC
 {
@@ -190,7 +191,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         private static SapOffer[] BothOffers(PowerMode mode) =>
             [new(ProtocolVariant.Iso15118_20, mode), new(ProtocolVariant.Iso15118_2, mode)];
 
-        private static async Task<Stream> ConnectAsync(EvccOptions args, string host, int port, V2GChainValidator? trust)
+        private static async Task<Stream> ConnectAsync(EvccOptions args, string host, IPPort port, V2GChainValidator? trust)
         {
             // A host name is resolved by Hermod's DNS client, asking the name servers of this machine's network
             // configuration itself - never by the resolver of the operating system. An address needs none.
@@ -377,7 +378,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             }
         }
 
-        private static async Task<(string Host, int Port)> ResolveEndpointAsync(EvccOptions args)
+        private static async Task<(string Host, IPPort Port)> ResolveEndpointAsync(EvccOptions args)
         {
             if (!args.UseSdp)
                 return (args.ConnectHost!, args.ConnectPort);
@@ -405,7 +406,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
 
         private static async Task RunSlacAsync(EvccOptions args)
         {
-            var peer = new IPEndPoint(IPAddress.Parse(args.SlacPeerHost!), args.SlacPeerPort);
+            var peer = new IPEndPoint(IPAddress.Parse(args.SlacPeerHost!), args.SlacPeerPort.ToInt32());
             await using var transport = new UdpSlacTransport(V2GInterface.RandomMac(), new IPEndPoint(IPAddress.Any, 0), bootstrapPeers: [peer]);
             var slac = new SlacEvStage(transport, new EvSlacOptions { PevId = new byte[17] });
             Console.WriteLine($"SLAC: pairing with EVSE at {peer}...");

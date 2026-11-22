@@ -20,6 +20,8 @@
 using System.Net;
 using System.Net.NetworkInformation;
 
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
+
 #endregion
 
 namespace cloud.charging.open.protocols.ISO15118.NetworkInterfaces
@@ -48,14 +50,14 @@ namespace cloud.charging.open.protocols.ISO15118.NetworkInterfaces
         /// without scope-id the kernel cannot pick the right interface when more
         /// than one link-local route exists.
         /// </summary>
-        public IPEndPoint LinkLocalEndpoint(UInt16 IPPort)
+        public IPEndPoint LinkLocalEndpoint(IPPort Port)
 
             => new (
                    new IPAddress(
                        LinkLocalIPAddress.GetAddressBytes(),
                        Index
                    ),
-                   IPPort
+                   Port.ToInt32()
                );
 
 

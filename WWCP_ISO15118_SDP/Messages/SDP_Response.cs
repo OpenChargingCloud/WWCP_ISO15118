@@ -21,6 +21,7 @@ using System.Net;
 using System.Buffers.Binary;
 
 using cloud.charging.open.protocols.ISO15118.V2GTP;
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 
 #endregion
 
@@ -42,7 +43,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Messages
     /// scope-id of the interface the SDP_Response arrived on.
     /// </summary>
     public sealed record SDP_Response(IPAddress             SeccIPAddress,
-                                     UInt16                SeccPort,
+                                     IPPort                SeccPort,
                                      SDP_Security           Security,
                                      SDP_TransportProtocol  TransportProtocol,
                                      SDP_Version            Version = SDP_Version.ISO_15118_2)
@@ -65,7 +66,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Messages
                     $"SDP_Response.SeccIPAddress must be IPv6 (16 bytes), got {addr.Length}.");
 
             addr.CopyTo(buf.AsSpan(0, 16));
-            BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(16, 2), SeccPort);
+            BinaryPrimitives.WriteUInt16BigEndian(buf.AsSpan(16, 2), SeccPort.ToUInt16());
             buf[18] = (Byte) Security;
             buf[19] = (Byte) TransportProtocol;
 
@@ -85,7 +86,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Messages
 
             return new SDP_Response(
                        SeccIPAddress:      new IPAddress(Payload[..16]),
-                       SeccPort:           BinaryPrimitives.ReadUInt16BigEndian(Payload.Slice(16, 2)),
+                       SeccPort:           IPPort.Parse(BinaryPrimitives.ReadUInt16BigEndian(Payload.Slice(16, 2))),
                        Security:           (SDP_Security)          Payload[18],
                        TransportProtocol:  (SDP_TransportProtocol) Payload[19],
                        Version:            Version
@@ -107,7 +108,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Messages
 
             return new SDP_Response(
                        SeccIPAddress:      new IPAddress(Payload[..16]),
-                       SeccPort:           BinaryPrimitives.ReadUInt16BigEndian(Payload.Slice(16, 2)),
+                       SeccPort:           IPPort.Parse(BinaryPrimitives.ReadUInt16BigEndian(Payload.Slice(16, 2))),
                        Security:           (SDP_Security)          Payload[18],
                        TransportProtocol:  (SDP_TransportProtocol) Payload[19],
                        Version:            Version

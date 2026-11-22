@@ -8,4 +8,8 @@
     <Nullable>enable</Nullable>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- IPPort: every TCP/IP port is one, here as well. -->
+    <ProjectReference Include="..\..\Hermod\Hermod\Hermod.csproj" />
+  </ItemGroup>
 </Project>

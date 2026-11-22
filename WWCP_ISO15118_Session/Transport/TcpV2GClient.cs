@@ -22,6 +22,7 @@ using System.Security.Cryptography.X509Certificates;
 using org.GraphDefined.Vanaheimr.Hermod.DNS;
 
 using cloud.charging.open.protocols.ISO15118.Transport.BouncyCastle;
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 
 namespace cloud.charging.open.protocols.ISO15118.Transport
 {
@@ -39,7 +40,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
     /// </remarks>
     public static class TcpV2GClient
     {
-        public static async Task<Stream> ConnectAsync(string host, int port, TlsOptions? tls = null, IDNSClient? dnsClient = null, CancellationToken ct = default)
+        public static async Task<Stream> ConnectAsync(string host, IPPort port, TlsOptions? tls = null, IDNSClient? dnsClient = null, CancellationToken ct = default)
         {
             var client = new TcpClient();
             await ConnectAsync(client, host, port, dnsClient, ct).ConfigureAwait(false);
@@ -94,7 +95,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         /// EVCC-side connect using the <b>BouncyCastle</b> TLS backend (the -20-faithful P-521 / Ed448
         /// profile Schannel can't do). Overload selected by passing <see cref="BcTlsOptions"/>.
         /// </summary>
-        public static async Task<Stream> ConnectAsync(string host, int port, BcTlsOptions bcTls, IDNSClient? dnsClient = null, CancellationToken ct = default)
+        public static async Task<Stream> ConnectAsync(string host, IPPort port, BcTlsOptions bcTls, IDNSClient? dnsClient = null, CancellationToken ct = default)
         {
             var client = new TcpClient();
             await ConnectAsync(client, host, port, dnsClient, ct).ConfigureAwait(false);
@@ -105,7 +106,7 @@ namespace cloud.charging.open.protocols.ISO15118.Transport
         /// Connect, the client disposed of when it could not: a connect that failed used to leave its socket
         /// to the finalizer.
         /// </summary>
-        private static async Task ConnectAsync(TcpClient client, string host, int port, IDNSClient? dnsClient, CancellationToken ct)
+        private static async Task ConnectAsync(TcpClient client, string host, IPPort port, IDNSClient? dnsClient, CancellationToken ct)
         {
             try
             {

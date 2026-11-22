@@ -17,6 +17,7 @@
 
 #region Usings
 
+using org.GraphDefined.Vanaheimr.Hermod;
 using NUnit.Framework;
 
 using cloud.charging.open.protocols.ISO15118.SDP.Messages;
@@ -286,7 +287,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
 
             var response = new SDP_ResponseWireless(
                                SeccIpAddress:      LinkLocalIPv6(0x01),
-                               SeccTcpPort:        64109,
+                               SeccTcpPort:        IPPort.Parse(64109),
                                Security:           SDP_Security.TLS,
                                TransportProtocol:  SDP_TransportProtocol.TCP,
                                DiagStatus:         0x01,
@@ -321,7 +322,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
 
             var original = new SDP_ResponseWireless(
                                SeccIpAddress:      LinkLocalIPv6(0x42),
-                               SeccTcpPort:        15119,
+                               SeccTcpPort:        IPPort.Parse(15119),
                                Security:           SDP_Security.TLS,
                                TransportProtocol:  SDP_TransportProtocol.TCP,
                                DiagStatus:         0x02,
@@ -352,7 +353,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         {
 
             var response = new SDP_ResponseWireless(
-                               LinkLocalIPv6(0x01), 64109, SDP_Security.TLS, SDP_TransportProtocol.TCP,
+                               LinkLocalIPv6(0x01), IPPort.Parse(64109), SDP_Security.TLS, SDP_TransportProtocol.TCP,
                                0x00, 0x00, ""
                            );
 
@@ -378,7 +379,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         {
 
             var response    = new SDP_ResponseWireless(
-                                  LinkLocalIPv6(0x07), 15118, SDP_Security.TLS, SDP_TransportProtocol.TCP,
+                                  LinkLocalIPv6(0x07), IPPort.Parse(15118), SDP_Security.TLS, SDP_TransportProtocol.TCP,
                                   0x01, 0x02, "DE*ABC*E12345*1"
                               );
 
@@ -387,7 +388,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
 
             Assert.Multiple(() => {
                 Assert.That(v2gtpFrame.Header.PayloadType, Is.EqualTo(V2GTP_PayloadType.SdpResponseWireless));
-                Assert.That(parsed.SeccTcpPort,            Is.EqualTo((UInt16) 15118));
+                Assert.That(parsed.SeccTcpPort,            Is.EqualTo(IPPort.Parse(15118)));
                 Assert.That(parsed.Evseid,                 Is.EqualTo("DE*ABC*E12345*1"));
             });
 
@@ -402,7 +403,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         {
 
             var response = new SDP_ResponseWireless(
-                               new Byte[15], 64109, SDP_Security.TLS, SDP_TransportProtocol.TCP,
+                               new Byte[15], IPPort.Parse(64109), SDP_Security.TLS, SDP_TransportProtocol.TCP,
                                0x00, 0x00, ""
                            );
 
@@ -434,14 +435,14 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         {
 
             var payload  = new SDP_ResponseWireless(
-                               LinkLocalIPv6(0x09), 64109, SDP_Security.TLS, SDP_TransportProtocol.TCP,
+                               LinkLocalIPv6(0x09), IPPort.Parse(64109), SDP_Security.TLS, SDP_TransportProtocol.TCP,
                                0x10, 0x01, "DE*ABC*E12345*1"
                            ).EncodePayload();
 
             var decoded  = SDP_ResponseWireless.DecodeLenient(payload.Concat(new Byte[] { 0xDE, 0xAD }).ToArray());
 
             Assert.Multiple(() => {
-                Assert.That(decoded.SeccTcpPort, Is.EqualTo((UInt16) 64109));
+                Assert.That(decoded.SeccTcpPort, Is.EqualTo(IPPort.Parse(64109)));
                 Assert.That(decoded.DiagStatus,  Is.EqualTo((Byte) 0x10));   // 0x10 = error
             });
 

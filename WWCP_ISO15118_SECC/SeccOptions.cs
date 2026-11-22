@@ -30,22 +30,22 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
     /// shows what this side can do rather than the union of two roles.
     /// </remarks>
     public sealed record SeccOptions(
-        int ListenPort, ProtocolVariant Protocol, bool OfferBoth, PowerMode Mode, bool Mcs,
+        IPPort ListenPort, ProtocolVariant Protocol, bool OfferBoth, PowerMode Mode, bool Mcs,
         TlsStack TlsStack, bool UseSdp, string? Interface, bool SdpLoopback, bool PreferDynamic, bool NoPnc,
-        bool UseSlac, int SlacListenPort, string? PkiDir,
+        bool UseSlac, IPPort SlacListenPort, string? PkiDir,
         string? ServerCertPath, string? ServerCertPass, bool RequireClientCert, string? TrustRootsPath,
         bool Renegotiate, string? TariffCertPath, string? TariffCertPass)
     {
 
         /// <summary>The IANA-registered V2G port, so a bare run needs no flag at all.</summary>
-        public const int DefaultListenPort = 15118;
+        public static readonly IPPort DefaultListenPort = IPPort.Parse(15118);
 
         public static SeccOptions Parse(string[] args)
         {
             // A station that speaks only one protocol is the exception, not the rule: a real SECC takes
             // whatever drives up. So "both" is the default and each connection's SupportedAppProtocol
             // handshake settles it — ask for less with --protocol 2 or --protocol 20.
-            int listenPort = DefaultListenPort, slacListenPort = 0;
+            IPPort listenPort = DefaultListenPort, slacListenPort = IPPort.Zero;
             var protocol = ProtocolVariant.Iso15118_20;
             var offerBoth = true;
             var mode = PowerMode.Dc;
@@ -171,12 +171,12 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                                    renegotiate, tariffCertPath, tariffCertPass);
         }
 
-        private static void Validate(int listenPort, TlsStack backend, bool useSdp, string? iface,
-                                     bool useSlac, int slacListenPort, string? pkiDir,
+        private static void Validate(IPPort listenPort, TlsStack backend, bool useSdp, string? iface,
+                                     bool useSlac, IPPort slacListenPort, string? pkiDir,
                                      bool mcs, ProtocolVariant protocol, bool offerBoth, string? trustRootsPath,
                                      string? serverCertPath)
         {
-            if (listenPort is <= 0 or > 65535)
+            if (listenPort.IsZero)
                 throw new ArgumentException($"--listen expects a port between 1 and 65535, got {listenPort}.");
 
             // Two ways to give this backend a server identity, and it needs exactly one of them: --pki-dir
@@ -190,7 +190,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             if (useSdp && iface is null)
                 throw new ArgumentException("--sdp requires --interface <name> (the V2G network interface).");
 
-            if (useSlac && slacListenPort == 0)
+            if (useSlac && slacListenPort.IsZero)
                 throw new ArgumentException("--slac requires --slac-listen <port>.");
 
             // A file or a directory, so this only asks that it is one of them.
@@ -205,8 +205,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                 throw new ArgumentException("--mode mcs is an ISO 15118-20 session; drop --protocol 2.");
         }
 
-        private static int ParsePort(string value, string flag)
-            => int.TryParse(value, out var port) ? port : throw new ArgumentException($"{flag} expects a port number, got '{value}'.");
+        private static IPPort ParsePort(string value, string flag)
+            => IPPort.TryParse(value, out var port) ? port : throw new ArgumentException($"{flag} expects a port number, got '{value}'.");
 
         public const string Usage =
             "The ISO 15118 charging station (SECC): accept an EV and run a charging session.\n" +

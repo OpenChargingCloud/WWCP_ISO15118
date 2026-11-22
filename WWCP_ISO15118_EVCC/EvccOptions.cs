@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+using org.GraphDefined.Vanaheimr.Hermod;
 using cloud.charging.open.protocols.ISO15118.StateMachines;
 using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Transport;
@@ -31,10 +32,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
     /// shows what this side can do rather than the union of two roles.
     /// </remarks>
     public sealed record EvccOptions(
-        string? ConnectHost, int ConnectPort,
+        string? ConnectHost, IPPort ConnectPort,
         ProtocolVariant Protocol, bool OfferBoth, PowerMode Mode, bool Mcs,
         TlsStack TlsStack, bool UseSdp, string? Interface,
-        bool UseSlac, string? SlacPeerHost, int SlacPeerPort, string? PkiDir,
+        bool UseSlac, string? SlacPeerHost, IPPort SlacPeerPort, string? PkiDir,
         string? VehicleCertPath, string? VehicleCertPass, string? TrustRootsPath,
         string? ContractCertPath, string? ContractCertPass,
         string? OemCertPath, string? OemCertPass,
@@ -59,7 +60,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             // priority 1 is what modern vehicles do, so it is the default here: against a -20 station the
             // session runs -20, against a -2-only station it falls back without a second attempt. Pin one
             // with --protocol 2 or --protocol 20 when the point of the run is that protocol.
-            int connectPort = 0, slacPeerPort = 0;
+            IPPort connectPort = IPPort.Zero, slacPeerPort = IPPort.Zero;
             var protocol = ProtocolVariant.Iso15118_20;
             var offerBoth = true;
             var mode = PowerMode.Dc;
@@ -338,7 +339,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         /// last colon silently connects somewhere else; and a zone whose interface name this machine does
         /// not have is discarded by the platform's parsers without a word.
         /// </remarks>
-        private static (string Host, int Port) SplitHostPort(string value, string flag)
+        private static (string Host, IPPort Port) SplitHostPort(string value, string flag)
         {
             var endpoint = V2GEndpoint.Parse(value, flag);
 

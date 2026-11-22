@@ -23,6 +23,7 @@ using NUnit.Framework;
 
 using cloud.charging.open.protocols.ISO15118.SDP.Messages;
 using cloud.charging.open.protocols.ISO15118.V2GTP;
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 
 #endregion
 
@@ -226,7 +227,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         {
 
             var address   = IPAddress.Parse("fe80::1234:5678:9abc:def0");
-            var response  = new SDP_Response(address, 64109, SDP_Security.TLS, SDP_TransportProtocol.TCP);
+            var response  = new SDP_Response(address, IPPort.Parse(64109), SDP_Security.TLS, SDP_TransportProtocol.TCP);
             var bytes     = response.EncodePayload();
 
             Assert.That(bytes.Length, Is.EqualTo(SDP_Response.PayloadSize));
@@ -235,7 +236,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
 
             Assert.Multiple(() => {
                 Assert.That(parsed.SeccIPAddress,     Is.EqualTo(address));
-                Assert.That(parsed.SeccPort,          Is.EqualTo((UInt16) 64109));
+                Assert.That(parsed.SeccPort,          Is.EqualTo(IPPort.Parse(64109)));
                 Assert.That(parsed.Security,          Is.EqualTo(SDP_Security.TLS));
                 Assert.That(parsed.TransportProtocol, Is.EqualTo(SDP_TransportProtocol.TCP));
             });
@@ -250,7 +251,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         public void Encode_PortBigEndian()
         {
 
-            var response  = new SDP_Response(IPAddress.Parse("fe80::1"), 0xFA01, SDP_Security.TLS, SDP_TransportProtocol.TCP);
+            var response  = new SDP_Response(IPAddress.Parse("fe80::1"), IPPort.Parse(0xFA01), SDP_Security.TLS, SDP_TransportProtocol.TCP);
             var bytes     = response.EncodePayload();
 
             Assert.Multiple(() => {
@@ -269,7 +270,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         {
 
             var address   = IPAddress.Parse("fe80::1234:5678:9abc:def0");
-            var bytes     = new SDP_Response(address, 15118, SDP_Security.NoTLS, SDP_TransportProtocol.TCP).EncodePayload();
+            var bytes     = new SDP_Response(address, IPPort.Parse(15118), SDP_Security.NoTLS, SDP_TransportProtocol.TCP).EncodePayload();
 
             Assert.Multiple(() => {
                 Assert.That(bytes[..16], Is.EqualTo(address.GetAddressBytes()));
@@ -287,7 +288,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         public void Encode_RejectsIPv4()
         {
 
-            var response = new SDP_Response(IPAddress.Parse("192.0.2.1"), 1234, SDP_Security.TLS, SDP_TransportProtocol.TCP);
+            var response = new SDP_Response(IPAddress.Parse("192.0.2.1"), IPPort.Parse(1234), SDP_Security.TLS, SDP_TransportProtocol.TCP);
 
             Assert.Throws<InvalidOperationException>(() => response.EncodePayload());
 
@@ -317,14 +318,14 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         {
 
             var address   = IPAddress.Parse("fe80::1");
-            var payload   = new SDP_Response(address, 15118, SDP_Security.TLS, SDP_TransportProtocol.TCP).EncodePayload();
+            var payload   = new SDP_Response(address, IPPort.Parse(15118), SDP_Security.TLS, SDP_TransportProtocol.TCP).EncodePayload();
             var padded    = payload.Concat(new Byte[] { 0xDE, 0xAD }).ToArray();
 
             var parsed    = SDP_Response.DecodeLenient(padded);
 
             Assert.Multiple(() => {
                 Assert.That(parsed.SeccIPAddress, Is.EqualTo(address));
-                Assert.That(parsed.SeccPort,      Is.EqualTo((UInt16) 15118));
+                Assert.That(parsed.SeccPort,      Is.EqualTo(IPPort.Parse(15118)));
             });
 
         }
@@ -337,7 +338,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         public void EncodeFrame_HasV2GTPHeader_PayloadType9001_Length20()
         {
 
-            var response  = new SDP_Response(IPAddress.Parse("fe80::1"), 15119, SDP_Security.TLS, SDP_TransportProtocol.TCP);
+            var response  = new SDP_Response(IPAddress.Parse("fe80::1"), IPPort.Parse(15119), SDP_Security.TLS, SDP_TransportProtocol.TCP);
             var frame     = response.EncodeFrame();
 
             Assert.Multiple(() => {
@@ -353,7 +354,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
 
             Assert.Multiple(() => {
                 Assert.That(v2gtpFrame.Header.PayloadType, Is.EqualTo(V2GTP_PayloadType.SdpResponse));
-                Assert.That(parsed.SeccPort,               Is.EqualTo((UInt16) 15119));
+                Assert.That(parsed.SeccPort,               Is.EqualTo(IPPort.Parse(15119)));
             });
 
         }
@@ -366,7 +367,7 @@ namespace cloud.charging.open.protocols.ISO15118.SDP.Tests
         public void ToString_NamesTheEndpoint()
         {
 
-            var response = new SDP_Response(IPAddress.Parse("fe80::1"), 15118, SDP_Security.TLS, SDP_TransportProtocol.TCP);
+            var response = new SDP_Response(IPAddress.Parse("fe80::1"), IPPort.Parse(15118), SDP_Security.TLS, SDP_TransportProtocol.TCP);
 
             Assert.That(response.ToString(), Does.Contain("fe80::1").And.Contains("15118"));
 

@@ -746,8 +746,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             await RunPreChargeSequenceAsync(ct);
 
             // PowerDelivery(Start) must carry an EVPowerProfile referencing a schedule tuple the SECC offered
-            // (ISO 15118-20 §7.9.2.4): pick the first tuple from the ScheduleExchangeRes and echo a single
-            // power-schedule entry. A live Josev run rejected the earlier absent profile (our SECC didn't).
+            // (ISO 15118-20 §7.9.2.4). A live Josev run rejected the earlier absent profile (our SECC didn't),
+            // and EVerest 2026.10.0 one anchored at 1970 — see Iso20EvPowerProfile.
             var evPowerProfile = BuildEvPowerProfile(scheduleRes);
             await Exchange<PowerDeliveryRes>(MessageSet.Iso20CommonMessages,
                 dest => new PowerDeliveryReq(SessionCtx.ToCommonHeader(), Processing.Finished, ChargeProgress.Start, evPowerProfile, null)
@@ -995,6 +995,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             RefuseOnFailure(message);
 
+            if (TimeStampOf(message) is { } seccTime)
+                SeccTimeStamp = seccTime;
+
             Exchanges++;
             BytesOnWire += V2GTPCodec.HeaderSize + reqLen;
             return (set, message);
@@ -1198,29 +1201,33 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 Tariff = verdict;
         }
 
-        /// <summary>Builds the EVPowerProfile that <c>PowerDelivery(Start)</c> must carry. Scheduled mode
-        /// selects the first schedule tuple the SECC returned in <c>ScheduleExchangeRes</c> and echoes one
-        /// power-schedule entry (falling back to tuple id 1 if the SECC returned no Scheduled control mode);
-        /// Dynamic mode has no tuple to point at, so its control-mode element is empty — the profile is then
-        /// only the EV's own power curve.</summary>
+        /// <summary>Builds the EVPowerProfile that <c>PowerDelivery(Start)</c> must carry: anchored at the
+        /// station's latest <c>TimeStamp</c> and following the first schedule tuple it offered — see
+        /// <see cref="Iso20EvPowerProfile"/> for the rules, and for why the anchor used to be 1970.</summary>
         private EVPowerProfileType BuildEvPowerProfile(ScheduleExchangeRes scheduleRes)
-        {
-            uint tupleId = scheduleRes.Scheduled_SEResControlMode?.ScheduleTuple.FirstOrDefault()?.ScheduleTupleID ?? 1;
+            => Iso20EvPowerProfile.Build(scheduleRes,
+                                         SeccTimeStamp ?? (ulong) clock.GetUtcNow().ToUnixTimeSeconds(),
+                                         PreferDynamicControlMode);
 
-            return new EVPowerProfileType(
-                TimeAnchor: 0,
-                Dynamic_EVPPTControlMode: PreferDynamicControlMode ? new Dynamic_EVPPTControlModeType() : null,
-                // PowerToleranceAcceptance is schema-optional but Josev's model requires it (its SECC rejects
-                // an absent one); a live run needed it set. PowerToleranceConfirmed = the EV accepts the tolerance.
-                Scheduled_EVPPTControlMode: PreferDynamicControlMode
-                                                ? null
-                                                : new Scheduled_EVPPTControlModeType(tupleId, PowerToleranceAcceptance.PowerToleranceConfirmed),
-                EVPowerProfileEntries: new EVPowerProfileEntryListType(new[]
-                {
-                    // one 1-hour entry at 10 kW (Power = 10 × 10^3 W)
-                    new PowerScheduleEntryType(Duration: 3600, Power: new RationalNumberType(3, 10), Power_L2: null, Power_L3: null),
-                }));
-        }
+        /// <summary>
+        /// SECC time as the station last stated it: the <c>TimeStamp</c> of its latest response, in seconds.
+        /// Null until the first response.
+        /// </summary>
+        /// <remarks>
+        /// <c>[V2G20-1536]</c> makes the station's header <c>TimeStamp</c> the reference for SECC time, so
+        /// this is the clock a profile anchor has to be stated in — not ours. Taken from the response, not
+        /// from our clock plus an offset, so a replayed session stays a pure function of the responses; the
+        /// latest response is at most one exchange old when <c>PowerDelivery(Start)</c> goes out.
+        /// </remarks>
+        public ulong? SeccTimeStamp { get; private set; }
+
+        private static ulong? TimeStampOf(object message) => message switch
+        {
+            V2GResponseType      r => r.Header.TimeStamp,
+            Ac20.V2GResponseType r => r.Header.TimeStamp,
+            Dc20.V2GResponseType r => r.Header.TimeStamp,
+            _                      => null,
+        };
 
         private static InvalidOperationException EncodeFailed() => new("EXI encode failed (buffer too small?).");
     }

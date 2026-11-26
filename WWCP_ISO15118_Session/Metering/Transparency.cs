@@ -91,6 +91,18 @@ public sealed class ClockComparison
                                   : null;
 
     /// <summary>
+    /// Whether the offset moved by more than the two samples can resolve between them.
+    /// </summary>
+    /// <remarks>
+    /// A drift is the difference of two offsets and inherits the uncertainty of both, so a clock that
+    /// merely ticked over to its next whole second between two samples "moves" by up to a second
+    /// without having moved at all. Found in the first live run, where a meter in perfect step was
+    /// reported as half a second fast.
+    /// </remarks>
+    public bool Drifted => Drift is { } drift && First is { } first && Last is { } last &&
+                           drift.Duration() > first.Uncertainty + last.Uncertainty;
+
+    /// <summary>
     /// Records one timestamp of the peer. Returns the sample, or null when the value is no time.
     /// </summary>
     public ClockSample? Note(DateTimeOffset sent, DateTimeOffset received, ulong peerUnixSeconds)

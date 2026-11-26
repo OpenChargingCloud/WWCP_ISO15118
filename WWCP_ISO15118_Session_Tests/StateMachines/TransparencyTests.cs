@@ -107,6 +107,38 @@ public class TransparencyTests
 
     #endregion
 
+    #region ASecondTickingOverIsNotADrift()
+
+    /// <summary>
+    /// A peer in perfect step stamps 12:00:00 at 12:00:00.9 and 12:00:02 at 12:00:02.0: its offset
+    /// "moves" by nine tenths of a second between the two, and it has not moved at all. Four seconds
+    /// are more than two samples can hide.
+    /// </summary>
+    [Test]
+    public void ASecondTickingOverIsNotADrift()
+    {
+
+        var noon    = new DateTimeOffset(2026, 11, 27, 12, 0, 0, TimeSpan.Zero);
+
+        var inStep  = new ClockComparison();
+        inStep.Note(noon + TimeSpan.FromSeconds(0.9), noon + TimeSpan.FromSeconds(0.9), (UInt64) noon.ToUnixTimeSeconds());
+        inStep.Note(noon + TimeSpan.FromSeconds(2.0), noon + TimeSpan.FromSeconds(2.0), (UInt64) noon.ToUnixTimeSeconds() + 2);
+
+        var running = new ClockComparison();
+        running.Note(noon,                            noon,                            (UInt64) noon.ToUnixTimeSeconds());
+        running.Note(noon + TimeSpan.FromSeconds(60), noon + TimeSpan.FromSeconds(60), (UInt64) noon.ToUnixTimeSeconds() + 64);
+
+        Assert.Multiple(() => {
+            Assert.That(inStep.Drift,    Is.EqualTo(TimeSpan.FromSeconds(0.9)));
+            Assert.That(inStep.Drifted,  Is.False);
+            Assert.That(running.Drift,   Is.EqualTo(TimeSpan.FromSeconds(4)));
+            Assert.That(running.Drifted, Is.True);
+        });
+
+    }
+
+    #endregion
+
     #region TheStationsClockIsKnownBeforeAnythingIsAuthorised()
 
     [Test]

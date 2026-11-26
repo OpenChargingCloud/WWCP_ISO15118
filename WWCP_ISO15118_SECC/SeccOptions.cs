@@ -36,7 +36,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
         TlsStack TlsStack, bool UseSdp, string? Interface, bool SdpLoopback, bool PreferDynamic, bool NoPnc,
         bool UseSlac, IPPort SlacListenPort, string? PkiDir,
         string? ServerCertPath, string? ServerCertPass, bool RequireClientCert, string? TrustRootsPath,
-        bool Renegotiate, string? TariffCertPath, string? TariffCertPass)
+        bool Renegotiate, string? TariffCertPath, string? TariffCertPass,
+        string? MeterId = null, int ClockSkewSeconds = 0)
     {
 
         /// <summary>The IANA-registered V2G port, so a bare run needs no flag at all.</summary>
@@ -57,6 +58,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             bool preferDynamic = false, noPnc = false, requireClientCert = false, renegotiate = false;
             string? iface = null, pkiDir = null, serverCertPath = null, serverCertPass = null, trustRootsPath = null;
             string? tariffCertPath = null, tariffCertPass = null;
+            string? meterId = null;
+            int clockSkewSeconds = 0;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -154,6 +157,18 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     case "--tariff-cert-pass":
                         tariffCertPass = args[++i];
                         break;
+                    // A station reports a meter reading only when it has a meter, and this one signs.
+                    // Without the flag there is no MeterInfo at all, whatever the car asks for.
+                    case "--meter":
+                        meterId = args[++i];
+                        break;
+                    // The first fault switch: a controller whose clock is wrong by this much. It moves
+                    // the header TimeStamp of every -20 response and nothing else — the meter keeps the
+                    // system's time, so the two clocks of one station can be seen to disagree.
+                    case "--clock-skew":
+                        if (!int.TryParse(args[++i], out clockSkewSeconds))
+                            throw new ArgumentException($"--clock-skew expects whole seconds, got '{args[i]}'.");
+                        break;
                     case "--help" or "-h":
                         throw new ArgumentException(Usage);
                     default:
@@ -170,7 +185,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             return new SeccOptions(listenPort, protocol, offerBoth, mode, mcs, backend,
                                    useSdp, iface, sdpLoopback, preferDynamic, noPnc, useSlac, slacListenPort, pkiDir,
                                    serverCertPath, serverCertPass, requireClientCert, trustRootsPath,
-                                   renegotiate, tariffCertPath, tariffCertPass);
+                                   renegotiate, tariffCertPath, tariffCertPass,
+                                   meterId, clockSkewSeconds);
         }
 
         private static void Validate(IPPort listenPort, TlsStack backend, bool useSdp, string? iface,
@@ -246,6 +262,10 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             "                                      AbsolutePriceSchedule offer with this key\n" +
             "  Reneg:  --renegotiate               notify ReNegotiation/ServiceRenegotiation once mid-loop\n" +
             "  SLAC:   --slac --slac-listen <port> run a SLAC pairing stage first\n" +
+            "  Meter:  --meter <id>                install a signing meter with this id; without it the\n" +
+            "                                      station reports no MeterInfo at all\n" +
+            "  Faults: --clock-skew <seconds>      run the controller's clock this far ahead (negative:\n" +
+            "                                      behind). The meter keeps the system's time.\n" +
             "\n" +
             "The car is the other program: WWCP_ISO15118_EVCC.";
     }

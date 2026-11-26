@@ -199,6 +199,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // and nothing borrowed from the station. Read back off the rational it just sent, so the
             // counter counts exactly what the wire carried.
             Meter.Sample(PresentActivePowerW);
+
+            // After the sample, so the station's reading is paired with the vehicle's count of the
+            // same iteration.
+            if (response.MeterInfo is { } meterInfo)
+                NoteStationReading(meterInfo.MeterID, meterInfo.ChargedEnergyReadingWh,
+                                   meterInfo.MeterSignature is not null, meterInfo.MeterTimestamp);
         }
 
         protected override Task RunPostChargeSequenceAsync(CancellationToken ct) => Task.CompletedTask;   // AC: not applicable

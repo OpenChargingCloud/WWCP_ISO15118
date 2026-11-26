@@ -420,6 +420,55 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 MeterInfoResponses++;
         }
 
+        /// <summary>
+        /// The station's clock against this vehicle's, read off the header <c>TimeStamp</c> of every
+        /// response — so the first sample exists after <c>SessionSetupRes</c>, before anything is
+        /// authorised. See <see cref="Metering.ClockComparison"/> for what it resolves and what not.
+        /// </summary>
+        public Metering.ClockComparison StationClock { get; } = new();
+
+        /// <summary>
+        /// The meter's clock against this vehicle's, read off <c>MeterInfo.MeterTimestamp</c>.
+        /// </summary>
+        /// <remarks>
+        /// A different clock from <see cref="StationClock"/>, in a different device, and the one a
+        /// tariff period is decided by. A reading may be older than the response that carries it, so
+        /// this clock looking somewhat behind is expected; looking ahead is not.
+        /// </remarks>
+        public Metering.ClockComparison MeterClock { get; } = new();
+
+        private readonly List<Metering.StationReading> _stationReadings = [];
+
+        /// <summary>Every meter reading the station reported, each paired with what the vehicle's own
+        /// <see cref="Meter"/> had counted at the same iteration.</summary>
+        public IReadOnlyList<Metering.StationReading> StationReadings => _stationReadings;
+
+        /// <summary>Called for each reading as it arrives, for whoever watches the session live.</summary>
+        public Action<Metering.StationReading>? OnStationReading { get; set; }
+
+        /// <summary>Called for each comparison of the station's clock as it is made.</summary>
+        public Action<Metering.ClockSample>? OnStationClock { get; set; }
+
+        private DateTimeOffset _lastSent, _lastReceived;
+
+        /// <summary>
+        /// Record the station's meter reading from a charge-loop response. Called by the AC and DC
+        /// loops <b>after</b> they sampled <see cref="Meter"/>, so the pair describes one iteration.
+        /// </summary>
+        protected void NoteStationReading(String meterId, UInt64 stationWh, Boolean signed, UInt64? meterTimestamp)
+        {
+
+            var meterTime = meterTimestamp is { } stamp
+                                ? MeterClock.Note(_lastSent, _lastReceived, stamp)?.Peer
+                                : null;
+
+            var reading   = new Metering.StationReading(Meter.Samples, meterId, stationWh, Meter.Energy, signed, meterTime);
+
+            _stationReadings.Add(reading);
+            OnStationReading?.Invoke(reading);
+
+        }
+
         /// <summary>How many service renegotiations this session ran ([V2G20-1477]).</summary>
         public Int32 Renegotiations { get; private set; }
 
@@ -986,7 +1035,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 }
             }
 
-            var elapsed = clock.GetUtcNow() - start;
+            var received = clock.GetUtcNow();
+            var elapsed  = received - start;
 
             // Kept as well: a clock the read budget cannot see (a ManualTimeProvider in the timing tests)
             // still has to be able to fail an over-long exchange.
@@ -995,8 +1045,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             RefuseOnFailure(message);
 
+            // The station's clock, off the header every -20 response carries: kept as the latest
+            // stamp for whoever has to speak in SECC time, and compared with this vehicle's own.
+            _lastSent     = start;
+            _lastReceived = received;
+
             if (TimeStampOf(message) is { } seccTime)
+            {
+
                 SeccTimeStamp = seccTime;
+
+                if (StationClock.Note(start, received, seccTime) is { } clockSample)
+                    OnStationClock?.Invoke(clockSample);
+
+            }
 
             Exchanges++;
             BytesOnWire += V2GTPCodec.HeaderSize + reqLen;

@@ -22,6 +22,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
 using org.GraphDefined.Vanaheimr.Hermod.Ethernet;
 
 using cloud.charging.open.protocols.ISO15118.NetworkInterfaces;
@@ -130,14 +131,14 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                                   "nothing to pin against a foreign PKI, and no --trust-roots given. Dev tool only.");
 
             using var listener = bcTls is not null
-                                     ? new TcpV2GListener(new IPEndPoint(IPAddress.IPv6Any, args.ListenPort), bcTls)
-                                     : new TcpV2GListener(new IPEndPoint(IPAddress.IPv6Any, args.ListenPort), dotnetTls);
+                                     ? new TcpV2GListener(new IPEndPoint(IPAddress.IPv6Any, args.ListenPort.ToInt32()), bcTls)
+                                     : new TcpV2GListener(new IPEndPoint(IPAddress.IPv6Any, args.ListenPort.ToInt32()), dotnetTls);
 
             Console.WriteLine($"SECC listening on {listener.LocalEndpoint} " +
                               $"(protocol {(args.OfferBoth ? "both (-20 preferred)" : V2GInterface.Name(args.Protocol))}, " +
                               $"{V2GInterface.Name(args.Mode)}, TLS {args.TlsStack})...");
 
-            await using var sdp = args.UseSdp ? await StartSdpAsync(args, listener.LocalEndpoint.Port) : null;
+            await using var sdp = args.UseSdp ? await StartSdpAsync(args, IPPort.Parse(listener.LocalEndpoint.Port)) : null;
 
             // Pause/resume: a session that ends with ChargingSession.Pause hands back what the next
             // connection needs to rejoin it — keep accepting connections and offer that, so the EV can come
@@ -328,7 +329,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
 
         private static async Task RunSlacAsync(SeccOptions args)
         {
-            await using var transport = new UdpSlacTransport(V2GInterface.RandomMac(), new IPEndPoint(IPAddress.Any, args.SlacListenPort));
+            await using var transport = new UdpSlacTransport(V2GInterface.RandomMac(), new IPEndPoint(IPAddress.Any, args.SlacListenPort.ToInt32()));
             await using var slac = new SlacEvseStage(transport,
                 new EvseSlacOptions { EvseId = new byte[17], Nid = RandomNumberGenerator.GetBytes(7), Nmk = RandomNumberGenerator.GetBytes(16) });
             await slac.StartAsync();
@@ -363,7 +364,7 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             => new()
             {
                 Interface           = iface,
-                SeccPort            = (ushort) tcpPort,
+                SeccPort            = tcpPort,
                 AcceptedVersions    = new HashSet<SDP_Version> { SDP_Version.ISO_15118_2, SDP_Version.ISO_15118_20 },
                 OfferedSecurity     = noTls ? SDP_Security.NoTLS : SDP_Security.TLS,
                 RejectNoTlsRequests = !noTls,

@@ -15,6 +15,8 @@
  * limitations under the License.
  */
 
+using IPPort = org.GraphDefined.Vanaheimr.Hermod.IPPort;
+
 using cloud.charging.open.protocols.ISO15118.StateMachines;
 using cloud.charging.open.protocols.ISO15118.SharedCC;
 

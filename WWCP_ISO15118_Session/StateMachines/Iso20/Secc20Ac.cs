@@ -132,7 +132,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 // Service renegotiation is requested via the (otherwise absent) EVSEStatus ([V2G20-1477]).
                 EVSEStatus: SignalRenegotiationOnce()
                     ? new Ac20.EVSEStatusType(NotificationMaxDelay: 0, Ac20.EvseNotification.ServiceRenegotiation)
-                    : null,
+                    // [V2G20-1083]: the reading below is the one the vehicle is asked to sign.
+                    : AskForMeteringConfirmation()
+                        ? new Ac20.EVSEStatusType(MeteringConfirmationMaxDelay, Ac20.EvseNotification.MeteringConfirmation)
+                        : null,
                 MeterInfo: MeterReading() is { } m
                     ? new Ac20.MeterInfoType(m.Id, m.Wh, null, null, null, m.Signature, null, m.Timestamp)
                     : null, Receipt: null, EVSETargetFrequency: null,

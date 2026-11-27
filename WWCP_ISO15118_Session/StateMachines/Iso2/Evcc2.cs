@@ -163,6 +163,50 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// </remarks>
         public EvMeter Meter { get; init; } = new();
 
+        /// <summary>
+        /// The meter's clock against this vehicle's, read off <c>MeterInfo.TMeter</c>.
+        /// </summary>
+        /// <remarks>
+        /// ISO 15118-2 has no header timestamp, so this is the only clock of the station's a -2 vehicle
+        /// ever sees, and only once a <c>MeterInfo</c> arrives. The comparison is taken when the
+        /// response has been read, with no round trip to halve — a reading can be older than the
+        /// response that carries it, so somewhat behind is expected and ahead is not.
+        /// </remarks>
+        public ClockComparison MeterClock { get; } = new();
+
+        private readonly List<StationReading> _stationReadings = [];
+
+        /// <summary>Every meter reading the station reported, each paired with what the vehicle's own
+        /// <see cref="Meter"/> had counted at the same iteration.</summary>
+        public IReadOnlyList<StationReading> StationReadings => _stationReadings;
+
+        /// <summary>Called for each reading as it arrives, for whoever watches the session live.</summary>
+        public Action<StationReading>? OnStationReading { get; set; }
+
+        /// <summary>
+        /// Record the station's meter reading, <b>after</b> <see cref="Meter"/> was sampled for the
+        /// same iteration. A <c>MeterInfo</c> without a reading is an identifier and nothing to compare.
+        /// </summary>
+        private void NoteStationReading(MeterInfoType? meterInfo)
+        {
+
+            if (meterInfo?.MeterReading is not { } stationWh)
+                return;
+
+            var now       = clock.GetUtcNow();
+
+            var meterTime = meterInfo.TMeter is >= 0 and { } stamp
+                                ? MeterClock.Note(now, now, (UInt64) stamp)?.Peer
+                                : null;
+
+            var reading   = new StationReading(Meter.Samples, meterInfo.MeterID, stationWh, Meter.Energy,
+                                               meterInfo.SigMeterReading is not null, meterTime);
+
+            _stationReadings.Add(reading);
+            OnStationReading?.Invoke(reading);
+
+        }
+
         /// <summary>How to end the session: <c>Terminate</c> (default) or <c>Pause</c> — after a pause the
         /// caller reconnects and resumes via <see cref="ResumeSessionId"/> ([V2G2-740]).</summary>
         public ChargingSession StopMode { get; set; } = ChargingSession.Terminate;
@@ -418,6 +462,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     // echo of the very number it exists to be compared against.
                     Meter.Sample((double) demand.EVTargetVoltage.ToDecimal(),
                                  (double) demand.EVTargetCurrent.ToDecimal());
+                    NoteStationReading(cd.MeterInfo);
 
                     if (cd.ReceiptRequired == true && cd.MeterInfo is not null)
                         await SendMeteringReceipt(cd.MeterInfo, cd.SAScheduleTupleID, ct);
@@ -431,6 +476,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     // committed to in PowerDeliveryReq — which it derived itself from the tuple it
                     // chose, and which the station validated against its own PMax.
                     Meter.Sample(CommittedPowerW());
+                    NoteStationReading(cs.MeterInfo);
 
                     if (cs.ReceiptRequired == true && cs.MeterInfo is not null)
                         await SendMeteringReceipt(cs.MeterInfo, cs.SAScheduleTupleID, ct);

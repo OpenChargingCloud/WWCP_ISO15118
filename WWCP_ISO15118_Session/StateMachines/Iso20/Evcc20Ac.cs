@@ -199,6 +199,18 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // and nothing borrowed from the station. Read back off the rational it just sent, so the
             // counter counts exactly what the wire carried.
             Meter.Sample(PresentActivePowerW);
+
+            // After the sample, so the station's reading is paired with the vehicle's count of the
+            // same iteration.
+            if (response.MeterInfo is { } meterInfo)
+                NoteStationReading(meterInfo.MeterID, meterInfo.ChargedEnergyReadingWh,
+                                   meterInfo.MeterSignature is not null, meterInfo.MeterTimestamp);
+
+            // [V2G20-1083]: the station asks the vehicle to sign what this response carried.
+            if (response.EVSEStatus?.EVSENotification == Ac20.EvseNotification.MeteringConfirmation)
+                await ConfirmMeteringAsync(response.MeterInfo is { } reading ? MeteringConfirmation.ToCommon(reading) : null,
+                                           response.Receipt   is { } receipt ? MeteringConfirmation.ToCommon(receipt) : null,
+                                           ct);
         }
 
         protected override Task RunPostChargeSequenceAsync(CancellationToken ct) => Task.CompletedTask;   // AC: not applicable

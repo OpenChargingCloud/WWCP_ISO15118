@@ -206,6 +206,36 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             return TransportSecurity.Unknown;
         }
 
+        // One key for as long as the station runs: a meter that signed every session with a fresh key
+        // would be a meter nobody could ever come to trust.
+        private static readonly Lazy<System.Security.Cryptography.ECDsa> MeterKey =
+            new(() => System.Security.Cryptography.ECDsa.Create(System.Security.Cryptography.ECCurve.NamedCurves.nistP256));
+
+        /// <summary>
+        /// The meter of one session, or null where the station has none (<c>--meter</c>).
+        /// </summary>
+        /// <remarks>
+        /// A fresh register per session, because what <c>MeterInfo</c> carries here is the energy of the
+        /// current session ([V2G20-902]) and the car compares it with its own count of that session. The
+        /// meter keeps the system's time whatever <c>--clock-skew</c> says: it is a different device from
+        /// the controller, and that the two can disagree is what the switch is for.
+        /// </remarks>
+        private static Metering.SigningMeter? MeterOf(SeccOptions args)
+            => args.MeterId is { } id
+                   ? new Metering.SigningMeter(id, MeterKey.Value, TimeProvider.System)
+                   : null;
+
+        /// <summary>The controller's clock: the system's, or one that is off by <c>--clock-skew</c>.</summary>
+        private static TimeProvider ClockOf(SeccOptions args)
+            => args.ClockSkewSeconds == 0
+                   ? TimeProvider.System
+                   : new SkewedClock(TimeSpan.FromSeconds(args.ClockSkewSeconds));
+
+        private sealed class SkewedClock(TimeSpan skew) : TimeProvider
+        {
+            public override DateTimeOffset GetUtcNow() => System.GetUtcNow() + skew;
+        }
+
         /// <summary>Runs one session; returns the session id when it ended <b>paused</b> (offer it to the
         /// next session as the resume id), else <c>null</c>.</summary>
         private static async Task<ResumableSession?> RunSessionAsync(Stream stream, SeccOptions args,
@@ -213,8 +243,9 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
         {
             if (args.Protocol == ProtocolVariant.Iso15118_2)
             {
-                var secc2 = new Secc2(args.Mode, TimeSpan.FromSeconds(60), TimeProvider.System)
+                var secc2 = new Secc2(args.Mode, TimeSpan.FromSeconds(60), ClockOf(args))
                 {
+                    InstalledMeter = MeterOf(args),
                     ContractChainValidator = trust,
                     ResumeSessionId = resume?.SessionId,
                     RequestRenegotiation = args.Renegotiate,
@@ -245,15 +276,17 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             {
                 Secc20Base secc = (args.Mode, args.Mcs) switch
                 {
-                    (PowerMode.Dc, true ) => new Secc20Mcs(TimeSpan.FromSeconds(60), TimeProvider.System),
-                    (PowerMode.Dc, false) => new Secc20Dc (TimeSpan.FromSeconds(60), TimeProvider.System),
-                    _                     => new Secc20Ac (TimeSpan.FromSeconds(60), TimeProvider.System),
+                    (PowerMode.Dc, true ) => new Secc20Mcs(TimeSpan.FromSeconds(60), ClockOf(args)) { InstalledMeter = MeterOf(args) },
+                    (PowerMode.Dc, false) => new Secc20Dc (TimeSpan.FromSeconds(60), ClockOf(args)) { InstalledMeter = MeterOf(args) },
+                    _                     => new Secc20Ac (TimeSpan.FromSeconds(60), ClockOf(args)) { InstalledMeter = MeterOf(args) },
                 };
                 secc.ContractChainValidator = trust;
                 secc.PreferDynamicControlMode = args.PreferDynamic;
                 secc.OfferPlugAndCharge       = !args.NoPnc;
                 secc.OfferResume(resume);
                 secc.RequestRenegotiation = args.Renegotiate;
+                secc.MeteringConfirmationEvery        = args.MeteringConfirmationEvery;
+                secc.RequireValidMeteringConfirmation = args.RequireMeteringConfirmation;
                 if (args.TariffCertPath is not null)
                     secc.TariffSignKey = LoadTariffKey(args.TariffCertPath, args.TariffCertPass);
                 // finally: the PnC/cert-install verdicts are the run's evidence — print them even when the
@@ -325,7 +358,22 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                                   $"signature {(ci.SignatureOk ? "OK" : "FAIL")}{(ci.SignatureOk ? $" (grammar={ci.SignatureGrammar})" : "")}, " +
                                   $"contract issued ({(ci.EncryptedForOem ? "key wrapped for OEM key" : "OEM key not P-521 — blob undecryptable for EV")}); " +
                                   $"OEM chain {Describe(ci.Chain)}.");
+
+            // Asked, answered, and each answer's checks one by one, so a run says which of them failed.
+            if (secc.MeteringConfirmationsRequested > 0 || secc.MeteringConfirmations.Count > 0)
+            {
+                Console.WriteLine($"MeteringConfirmation: asked {secc.MeteringConfirmationsRequested}, " +
+                                  $"answered {secc.MeteringConfirmations.Count}, " +
+                                  $"unanswered in time {secc.MeteringConfirmationsMissed}.");
+                foreach (var check in secc.MeteringConfirmations)
+                    Console.WriteLine($"  {check.ChargedWh} Wh: session {Ok(check.SessionOk)}, reading {Ok(check.ReadingOk)}, " +
+                                      $"receipt {Ok(check.ReceiptOk)}, control mode {Ok(check.ControlModeOk)}, " +
+                                      $"digest {Ok(check.DigestOk)}, signature {Ok(check.SignatureOk)}" +
+                                      $"{(check.SignatureOk ? $" (grammar={check.Grammar})" : "")}; answered {check.ResponseCode}.");
+            }
         }
+
+        private static string Ok(bool ok) => ok ? "OK" : "FAIL";
 
         private static async Task RunSlacAsync(SeccOptions args)
         {

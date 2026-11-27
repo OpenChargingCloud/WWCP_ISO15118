@@ -265,6 +265,18 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // would not exist at all in Dynamic mode.
             Meter.Sample((double) Dc20Rational.ToDecimal(req.EVPresentVoltage),
                          (double) Dc20Rational.ToDecimal(response.EVSEPresentCurrent));
+
+            // After the sample, so the station's reading is paired with the vehicle's count of the
+            // same iteration.
+            if (response.MeterInfo is { } meterInfo)
+                NoteStationReading(meterInfo.MeterID, meterInfo.ChargedEnergyReadingWh,
+                                   meterInfo.MeterSignature is not null, meterInfo.MeterTimestamp);
+
+            // [V2G20-1083]: the station asks the vehicle to sign what this response carried.
+            if (response.EVSEStatus?.EVSENotification == Dc20.EvseNotification.MeteringConfirmation)
+                await ConfirmMeteringAsync(response.MeterInfo is { } reading ? MeteringConfirmation.ToCommon(reading) : null,
+                                           response.Receipt   is { } receipt ? MeteringConfirmation.ToCommon(receipt) : null,
+                                           ct);
         }
 
         protected override async Task RunPostChargeSequenceAsync(CancellationToken ct)

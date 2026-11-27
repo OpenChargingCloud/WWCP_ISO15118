@@ -153,6 +153,27 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <summary>How many signed MeteringReceiptReq this session sent (Contract only).</summary>
         public int MeteringReceiptsSent { get; private set; }
 
+        /// <summary>How many of those signed the previous <c>MeterInfo</c>, because the response that asked
+        /// for the receipt carried none (see <c>AnswerReceiptRequest</c>).</summary>
+        public int ReceiptsOverPreviousMeterInfo { get; private set; }
+
+        /// <summary>
+        /// Sign every <c>MeteringReceiptReq</c> over a <c>MeterReading</c> one higher than the one it
+        /// sends. <b>Off</b> by default, and an instrument, not behaviour any car should have.
+        /// </summary>
+        /// <remarks>
+        /// `[V2G2-904]` lets the SECC verify the receipt's signature, and a validly signed receipt cannot
+        /// tell a station that verifies from one that does not: both answer <c>OK</c>. A receipt whose
+        /// digest does not match its body can. It exists for the incoming half of
+        /// <c>docs/reports/everest-evsev2g-metering-chain.md</c> in the conformance suite, which says
+        /// EVerest's <c>EvseV2G</c> never reads the signature.
+        /// </remarks>
+        public bool TamperMeteringReceipt { get; set; }
+
+        /// <summary>The last <c>MeterInfo</c> the station sent in this session: what a receipt signs when
+        /// the response asking for it carries none.</summary>
+        private MeterInfoType? _lastMeterInfo;
+
         /// <summary>
         /// The vehicle's own energy counter — what this EV thinks it took, kept independently of what
         /// the station reports (<c>EVSimulatorApp/docs/CONCEPT.md</c> §4.2/§4.3).
@@ -464,8 +485,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                                  (double) demand.EVTargetCurrent.ToDecimal());
                     NoteStationReading(cd.MeterInfo);
 
-                    if (cd.ReceiptRequired == true && cd.MeterInfo is not null)
-                        await SendMeteringReceipt(cd.MeterInfo, cd.SAScheduleTupleID, ct);
+                    if (cd.ReceiptRequired == true)
+                        await AnswerReceiptRequest(cd.MeterInfo, cd.SAScheduleTupleID, "CurrentDemandRes", ct);
+                    else if (cd.MeterInfo is not null)
+                        _lastMeterInfo = cd.MeterInfo;
                 }
                 else
                 {
@@ -478,8 +501,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
                     Meter.Sample(CommittedPowerW());
                     NoteStationReading(cs.MeterInfo);
 
-                    if (cs.ReceiptRequired == true && cs.MeterInfo is not null)
-                        await SendMeteringReceipt(cs.MeterInfo, cs.SAScheduleTupleID, ct);
+                    if (cs.ReceiptRequired == true)
+                        await AnswerReceiptRequest(cs.MeterInfo, cs.SAScheduleTupleID, "ChargingStatusRes", ct);
+                    else if (cs.MeterInfo is not null)
+                        _lastMeterInfo = cs.MeterInfo;
                 }
 
                 // Told to stop the charging: acted on once this iteration is finished.
@@ -728,12 +753,70 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
         }
 
+        /// <summary>
+        /// Answer a status response that set <c>ReceiptRequired = true</c>: `[V2G2-790]` (DC) and
+        /// `[V2G2-408]` (AC) make the <c>MeteringReceiptReq</c> unconditional from then on.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>The receipt is owed even when the response carries no <c>MeterInfo</c>.</b> Neither
+        /// requirement conditions it on one, and a station may ask without sending a fresh record. EVerest
+        /// 2026.10.0 does exactly that: its <c>meter_info_is_used</c> flag is one-shot, so the third
+        /// <c>CurrentDemandRes</c> of a session asked for a receipt with nothing new to sign. Until
+        /// 2026-11-27 this car then skipped the receipt and went on to <c>PowerDeliveryReq</c>. Their
+        /// station, waiting for the receipt, answered <c>FAILED_SequenceError</c>, and the standard sides
+        /// with the station
+        /// (<c>docs/interop-runs/2026-11-27-everest-2026.10.0-findings-live/</c> in the conformance suite).
+        /// </para>
+        /// <para>
+        /// What the car signs then is the last <c>MeterInfo</c> it received in this session. That record
+        /// is the latest reading the station has stated, and `[V2G2-903]` asks the EVCC to sign the
+        /// receipt it sends, not a reading it never got.
+        /// </para>
+        /// <para>
+        /// Two cases are a session the car cannot continue correctly, and it says so rather than skipping:
+        /// no <c>MeterInfo</c> at all yet (the request has a mandatory <c>MeterInfo</c>, and there is no
+        /// record to put in it), and <c>ReceiptRequired = true</c> in an EIM session, which
+        /// `[V2G2-1024]` forbids and which leaves the car without a key to sign with.
+        /// </para>
+        /// </remarks>
+        private async Task AnswerReceiptRequest(MeterInfoType? fresh, byte? saScheduleTupleId, string response,
+                                                CancellationToken ct)
+        {
+
+            if (Pnc is null)
+                throw new SessionAborted(
+                    $"{response}: ReceiptRequired = true in an EIM session. [V2G2-1024] requires FALSE there, and "
+                  + "without a contract key this car has nothing to sign a MeteringReceiptReq with.");
+
+            var meterInfo = fresh ?? _lastMeterInfo
+                            ?? throw new SessionAborted(
+                                   $"{response}: ReceiptRequired = true, but the station has sent no MeterInfo in "
+                                 + "this session. [V2G2-790]/[V2G2-408] require a MeteringReceiptReq, whose MeterInfo "
+                                 + "is mandatory, and there is no record to sign.");
+
+            if (fresh is null)
+                ReceiptsOverPreviousMeterInfo++;
+
+            _lastMeterInfo = meterInfo;
+
+            await SendMeteringReceipt(meterInfo, saScheduleTupleId, ct);
+
+        }
+
         /// <summary>Signs and sends one MeteringReceiptReq for the SECC's MeterInfo, in the Josev form.</summary>
+        /// <remarks>With <see cref="TamperMeteringReceipt"/> the signature covers a different
+        /// <c>MeterReading</c> from the one sent, which only a station that checks it can notice.</remarks>
         private async Task SendMeteringReceipt(MeterInfoType meterInfo, byte? saScheduleTupleId, CancellationToken ct)
         {
             var receipt = new MeteringReceiptReqType("id2", _sid, saScheduleTupleId, meterInfo);
+
+            var signed  = TamperMeteringReceipt
+                              ? receipt with { MeterInfo = meterInfo with { MeterReading = (meterInfo.MeterReading ?? 0) + 1 } }
+                              : receipt;
+
             var fragment = new byte[1024];
-            if (!Iso2Codec.EncodeFragment_MeteringReceiptReq(receipt, fragment, out int n))
+            if (!Iso2Codec.EncodeFragment_MeteringReceiptReq(signed, fragment, out int n))
                 throw new InvalidOperationException("MeteringReceiptReq fragment encode failed.");
             var signature = XmlDsigInterop2.Sign("id2", fragment.AsSpan(0, n), Pnc!.ContractKey);
 

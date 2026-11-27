@@ -21,6 +21,7 @@ using System.Security.Cryptography.X509Certificates;
 using NUnit.Framework;
 
 using cloud.charging.open.protocols.ISO15118.Metering;
+using cloud.charging.open.protocols.ISO15118.Security;
 using cloud.charging.open.protocols.ISO15118.Session;
 using cloud.charging.open.protocols.ISO15118.Simulation;
 using cloud.charging.open.protocols.ISO15118.StateMachines.Iso20;
@@ -43,21 +44,40 @@ public class MeteringConfirmationTests
     /// <summary>A self-signed P-256 contract certificate, and the key the vehicle is given to sign with -
     /// its own, unless <paramref name="SignWith"/> says otherwise.</summary>
     private static PncEvccOptions Contract(ECDsa? SignWith = null)
+        => ContractIssuedBy(SelfSignedCa("CN=MO Sub-CA"), SignWith);
+
+    #endregion
+
+    #region (private static) SelfSignedCa(Subject) / ContractIssuedBy(Ca, SignWith) / Roots(Ca)
+
+    /// <summary>A self-signed CA certificate with its key, to issue a contract from or to trust as a root.</summary>
+    private static X509Certificate2 SelfSignedCa(String Subject)
+    {
+        using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var caRequest   = new CertificateRequest(Subject, caKey, HashAlgorithmName.SHA256);
+        caRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        return caRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(2));
+    }
+
+    /// <summary>A P-256 contract certificate issued by <paramref name="Ca"/>, which also stands in as its one
+    /// sub-CA certificate, since the schema wants at least one.</summary>
+    private static PncEvccOptions ContractIssuedBy(X509Certificate2 Ca, ECDsa? SignWith = null)
     {
 
-        // The schema wants at least one sub-CA certificate, so the leaf is issued by one.
-        using var caKey = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var caRequest   = new CertificateRequest("CN=MO Sub-CA", caKey, HashAlgorithmName.SHA256);
-        caRequest.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
-        using var ca    = caRequest.CreateSelfSigned(DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(2));
+        using (Ca)
+        {
+            var key         = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+            var request     = new CertificateRequest("CN=DEABCC12345678", key, HashAlgorithmName.SHA256);
+            using var leaf  = request.Create(Ca, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1), [1, 2, 3, 4]);
 
-        var key         = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request     = new CertificateRequest("CN=DEABCC12345678", key, HashAlgorithmName.SHA256);
-        using var leaf  = request.Create(ca, DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddYears(1), [1, 2, 3, 4]);
-
-        return new PncEvccOptions(leaf.RawData, [ca.RawData], SignWith ?? key);
+            return new PncEvccOptions(leaf.RawData, [Ca.RawData], SignWith ?? key);
+        }
 
     }
+
+    /// <summary>A chain validator that trusts exactly <paramref name="Ca"/>.</summary>
+    private static V2GChainValidator Roots(byte[] Ca)
+        => new ([X509CertificateLoader.LoadCertificate(Ca)]);
 
     #endregion
 
@@ -117,6 +137,8 @@ public class MeteringConfirmationTests
             {
                 Assert.That(check.Valid,                          Is.True, check.ToString());
                 Assert.That(check.Grammar,                        Is.EqualTo("xmldsig-standalone"));
+                // No roots, so the chain was never judged, and that does not count against it.
+                Assert.That(check.ContractChain,                  Is.EqualTo(ChainResult.NotConfigured));
                 Assert.That(check.ResponseCode,                   Is.EqualTo(ResponseCode.OK));
             }
 
@@ -303,6 +325,106 @@ public class MeteringConfirmationTests
             Assert.That(aborted!.Message,                                 Does.Contain("FAILED_MeteringSignatureNotValid"));
             Assert.That(station.MeteringConfirmations.Single().ResponseCode, Is.EqualTo(ResponseCode.FAILED_MeteringSignatureNotValid));
             Assert.That(station.IsDone,                                   Is.True);
+        });
+
+    }
+
+    #endregion
+
+    #region AContractTheStationTrustsConfirms()
+
+    [Test]
+    public async Task AContractTheStationTrustsConfirms()
+    {
+
+        var (vehicleEnd, stationEnd) = InMemoryStream.Pair();
+
+        var contract = ContractIssuedBy(SelfSignedCa("CN=MO Root"));
+        var station  = new Secc20Dc(TimeSpan.FromSeconds(60), TimeProvider.System) {
+                           InstalledMeter                   = Meter(),
+                           MeteringConfirmationEvery        = 1,
+                           RequireValidMeteringConfirmation = true,
+                           ContractChainValidator           = Roots(contract.SubCertificates[0])
+                       };
+        var vehicle  = new Evcc20Dc(vehicleEnd, TimeProvider.System, new NoDelay(), TimeSpan.FromSeconds(5)) {
+                           Pnc = contract
+                       };
+
+        await RunDc(station, vehicle, stationEnd);
+
+        Assert.Multiple(() => {
+            Assert.That(station.PnCAuth!.Chain.Ok,      Is.True, station.PnCAuth.Chain.Reason);
+            Assert.That(station.MeteringConfirmations,  Has.Count.EqualTo(2));
+            Assert.That(station.MeteringConfirmations,  Has.All.Matches<MeteringConfirmationCheck>(check => check.ContractChain.Ok &&
+                                                                                                            check.Valid            &&
+                                                                                                            check.ResponseCode == ResponseCode.OK));
+        });
+
+    }
+
+    #endregion
+
+    #region AContractWhoseChainWasRejectedDoesNotConfirm()
+
+    [Test]
+    public async Task AContractWhoseChainWasRejectedDoesNotConfirm()
+    {
+
+        var (vehicleEnd, stationEnd) = InMemoryStream.Pair();
+
+        using var otherRoot = SelfSignedCa("CN=Some Other Root");
+        var station = new Secc20Dc(TimeSpan.FromSeconds(60), TimeProvider.System) {
+                          InstalledMeter            = Meter(),
+                          MeteringConfirmationEvery = 1,
+                          ContractChainValidator    = Roots(otherRoot.RawData)
+                      };
+        var vehicle = new Evcc20Dc(vehicleEnd, TimeProvider.System, new NoDelay(), TimeSpan.FromSeconds(5)) {
+                          Pnc = Contract()
+                      };
+
+        await RunDc(station, vehicle, stationEnd);
+
+        // The vehicle holds the contract's key, so the signature verifies; the contract is one this station
+        // rejected at AuthorizationReq, so the confirmation does not hold. Recorded, and the session goes on.
+        Assert.Multiple(() => {
+            Assert.That(station.PnCAuth!.Chain.Ok,      Is.False);
+            Assert.That(station.MeteringConfirmations,  Is.Not.Empty);
+            Assert.That(station.MeteringConfirmations,  Has.All.Matches<MeteringConfirmationCheck>(check =>  check.SignatureOk        &&
+                                                                                                             check.DigestOk           &&
+                                                                                                            !check.ContractChainHolds &&
+                                                                                                            !check.Valid              &&
+                                                                                                             check.ResponseCode == ResponseCode.OK));
+        });
+
+    }
+
+    #endregion
+
+    #region AStationThatRequiresAValidConfirmationRefusesAnUntrustedContract()
+
+    [Test]
+    public async Task AStationThatRequiresAValidConfirmationRefusesAnUntrustedContract()
+    {
+
+        var (vehicleEnd, stationEnd) = InMemoryStream.Pair();
+
+        using var otherRoot = SelfSignedCa("CN=Some Other Root");
+        var station = new Secc20Dc(TimeSpan.FromSeconds(60), TimeProvider.System) {
+                          InstalledMeter                   = Meter(),
+                          MeteringConfirmationEvery        = 1,
+                          RequireValidMeteringConfirmation = true,
+                          ContractChainValidator           = Roots(otherRoot.RawData)
+                      };
+        var vehicle = new Evcc20Dc(vehicleEnd, TimeProvider.System, new NoDelay(), TimeSpan.FromSeconds(5)) {
+                          Pnc = Contract()
+                      };
+
+        var aborted = await Assert.ThrowsAsync<SessionAborted>(() => RunDc(station, vehicle, stationEnd));
+
+        Assert.Multiple(() => {
+            Assert.That(aborted!.Message,                                    Does.Contain("FAILED_MeteringSignatureNotValid"));
+            Assert.That(station.MeteringConfirmations.Single().SignatureOk,  Is.True);
+            Assert.That(station.MeteringConfirmations.Single().ResponseCode, Is.EqualTo(ResponseCode.FAILED_MeteringSignatureNotValid));
         });
 
     }

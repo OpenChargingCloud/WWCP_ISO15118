@@ -385,7 +385,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <summary>
         /// Answer a <c>MeteringConfirmationReq</c> from the side stream ([V2G20-1085]): check what the vehicle
         /// signed against what this station asked it to sign, and verify the signature with the contract
-        /// certificate the vehicle authorised with ([V2G20-904]).
+        /// certificate the vehicle authorised with ([V2G20-904]). With <see cref="ContractChainValidator"/>
+        /// set, a contract whose chain did not reach a root does not hold either
+        /// (<see cref="MeteringConfirmationCheck.ContractChainHolds"/>).
         /// </summary>
         /// <remarks>
         /// One not asked for is <c>FAILED_SequenceError</c>, and one under another session's id
@@ -450,8 +452,12 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             }
 
+            // The contract the signature is checked against was judged at AuthorizationReq; a confirmation is
+            // only as trustworthy as that verdict. Auth grants whatever it was, so it is weighed here.
+            var contractChain = PnCAuth?.Chain ?? ChainResult.NotConfigured;
+
             var check = new MeteringConfirmationCheck(sessionOk, readingOk, receiptOk, controlModeOk, digestOk, signatureOk, grammar,
-                                                      data.MeterInfo.ChargedEnergyReadingWh, ResponseCode.OK);
+                                                      contractChain, data.MeterInfo.ChargedEnergyReadingWh, ResponseCode.OK);
 
             if (!check.Valid && RequireValidMeteringConfirmation)
                 check = check with { ResponseCode = ResponseCode.FAILED_MeteringSignatureNotValid };

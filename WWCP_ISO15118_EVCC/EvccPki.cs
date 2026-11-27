@@ -49,9 +49,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         /// The peer check is the part worth understanding. With <paramref name="pkiDir"/> given we still pin
         /// the station's leaf from <c>secc.leaf.der</c> there; without it there is nothing to pin against —
         /// the station is a stranger — so the peer is accepted and the run says so. That is the honest
-        /// shape for a dev tool: a pin invented here would be a pin against nothing.
+        /// shape for a dev tool: a pin invented here would be a pin against nothing. Unless
+        /// <paramref name="chainChecked"/>: then the caller validates the station's chain against
+        /// <c>--trust-roots</c>, and the line says that instead of "accepting ANY".
         /// </remarks>
-        public static BcTlsOptions WithVehicleCertificate(string path, string? password, string? pkiDir)
+        public static BcTlsOptions WithVehicleCertificate(string path, string? password, string? pkiDir, bool chainChecked = false)
         {
             var own = Credentials.LoadForBouncyCastle(path, password, "--vehicle-cert");
 
@@ -64,9 +66,12 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             }
 
             Console.WriteLine(seccLeaf is not null
-                                  ? "Presenting your Vehicle chain; pinning the station's leaf from --pki-dir."
+                                  ? "Presenting your Vehicle chain; pinning the station's leaf from --pki-dir" +
+                                    (chainChecked ? " and validating its chain against --trust-roots." : ".")
+                            : chainChecked
+                                  ? "Presenting your Vehicle chain; validating the station's chain against --trust-roots (no leaf to pin without --pki-dir)."
                                   : "WARNING: presenting your Vehicle chain and accepting ANY station certificate — " +
-                                    "nothing to pin against without --pki-dir. Dev tool only.");
+                                    "nothing to pin against without --pki-dir, and no --trust-roots given. Dev tool only.");
 
             return new BcTlsOptions
             {

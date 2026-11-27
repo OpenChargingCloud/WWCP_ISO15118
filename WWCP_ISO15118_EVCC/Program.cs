@@ -308,7 +308,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     AlreadyChargedWh = resume?.DeliveredWh ?? 0,   // [V2G2-743], batteryless case only
                 };
                 if (args.ContractCertPath is not null)
-                    evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
+                    evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass, args.XmlDsig);
                 if (args.TariffCertPath is not null)
                     evcc.TariffVerifyKey = LoadTariffVerifyKey(args.TariffCertPath, args.TariffCertPass);
                 // Accepted for -2 and refused nowhere, but there is no -2 path that uses it: our Evcc2 has
@@ -350,9 +350,9 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                 if (args.DepartureIn is { } departure)
                     evcc.DepartureTime = (uint) Math.Max(1, Math.Round(departure.TotalSeconds));
                 if (args.ContractCertPath is not null)
-                    evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass);
+                    evcc.Pnc = LoadContractCredentials(args.ContractCertPath, args.ContractCertPass, args.XmlDsig);
                 if (args.OemCertPath is not null)
-                    evcc.CertInstallRequest = LoadOemCredentials(args.OemCertPath, args.OemCertPass);
+                    evcc.CertInstallRequest = LoadOemCredentials(args.OemCertPath, args.OemCertPass, args.XmlDsig);
                 if (args.TariffCertPath is not null)
                     evcc.TariffVerifyKey = LoadTariffVerifyKey(args.TariffCertPath, args.TariffCertPass);
                 evcc.ConfirmMetering = !args.NoMeteringConfirmation;
@@ -428,11 +428,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         // the shapes only a car has.
 
         /// <summary>The Plug &amp; Charge <b>contract</b> credentials: who pays.</summary>
-        private static PncEvccOptions LoadContractCredentials(string path, string? password)
+        private static PncEvccOptions LoadContractCredentials(string path, string? password, XmlDsigSuite suite)
         {
             var (leaf, subCerts, key, subject) = Credentials.LoadChain(path, password, "--contract-cert");
             Console.WriteLine($"PnC: contract cert {subject} (+{subCerts.Length} sub-CA(s)), key {key.KeySize}-bit EC.");
-            return new PncEvccOptions(leaf, subCerts, key);
+            return new PncEvccOptions(leaf, subCerts, key, suite);
         }
 
         /// <summary>
@@ -446,7 +446,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         /// station answers such a request with a well-formed response the car then cannot decrypt, so the
         /// curve is checked here where it can still be explained rather than at the failure.
         /// </remarks>
-        private static CertInstallEvccOptions LoadOemCredentials(string path, string? password)
+        private static CertInstallEvccOptions LoadOemCredentials(string path, string? password, XmlDsigSuite suite)
         {
             var (leaf, subCerts, key, subject) = Credentials.LoadChain(path, password, "--oem-cert", exportable: true);
 
@@ -462,7 +462,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             agreement.ImportECPrivateKey(key.ExportECPrivateKey(), out _);
 
             Console.WriteLine($"CertificateInstallation: OEM cert {subject} (+{subCerts.Length} sub-CA(s)), key {key.KeySize}-bit EC.");
-            return new CertInstallEvccOptions(leaf, subCerts, key, agreement);
+            return new CertInstallEvccOptions(leaf, subCerts, key, agreement, suite);
         }
 
         /// <summary>Loads the tariff <b>verification</b> key from a PKCS#12 — the leaf's ECDSA public key,

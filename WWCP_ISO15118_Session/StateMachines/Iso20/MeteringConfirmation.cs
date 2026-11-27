@@ -140,15 +140,17 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         #endregion
 
-        #region Sign(Header, Data, ContractKey)
+        #region Sign(Header, Data, ContractKey, Suite)
 
         /// <summary>
         /// The request, signed with the contract key in the form this vehicle signs its
-        /// <c>AuthorizationReq</c> with (<see cref="XmlDsigInteropSign"/>).
+        /// <c>AuthorizationReq</c> with (<see cref="XmlDsigInteropSign"/>), under the same
+        /// <paramref name="Suite"/>: <c>ecdsa-sha512</c> unless a Josev station is on the other end.
         /// </summary>
-        public static MeteringConfirmationReq Sign(MessageHeaderType Header, SignedMeteringDataType Data, ECDsa ContractKey)
+        public static MeteringConfirmationReq Sign(MessageHeaderType Header, SignedMeteringDataType Data, ECDsa ContractKey,
+                                                   XmlDsigSuite Suite)
 
-            => new (Header with { Signature = XmlDsigInteropSign.Sign(Data.Id, SignedOctets(Header, Data), ContractKey) },
+            => new (Header with { Signature = XmlDsigInteropSign.Sign(Data.Id, SignedOctets(Header, Data), ContractKey, Suite) },
                     Data);
 
         #endregion

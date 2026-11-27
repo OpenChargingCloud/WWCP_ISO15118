@@ -77,9 +77,9 @@ namespace cloud.charging.open.protocols.ISO15118.SharedCC
         }
 
         /// <summary>
-        /// A chain as the ISO 15118 messages carry one: the leaf's DER, its sub-CAs' DER in file order,
-        /// and the leaf's ECDSA private key. This is the shape both a contract chain and an OEM
-        /// provisioning chain need.
+        /// A chain as the ISO 15118 messages carry one: the leaf's DER, its sub-CAs' DER with the leaf's
+        /// issuer first (<see cref="OrderFromLeaf"/>), and the leaf's ECDSA private key. This is the shape
+        /// both a contract chain and an OEM provisioning chain need.
         /// </summary>
         /// <param name="exportable">
         /// Whether the private key must be exportable. A chain that only <em>signs</em> does not need it,
@@ -100,8 +100,39 @@ namespace cloud.charging.open.protocols.ISO15118.SharedCC
             var key = leaf.GetECDsaPrivateKey()
                 ?? throw new ArgumentException($"{flag}: the leaf's private key in '{path}' is not ECDSA.");
 
-            var subCertificates = all.Where(c => !ReferenceEquals(c, leaf)).Select(c => c.RawData).ToArray();
+            var subCertificates = OrderFromLeaf(leaf, all.Where(c => !ReferenceEquals(c, leaf)))
+                                      .Select(c => c.RawData).ToArray();
             return (leaf.RawData, subCertificates, key, leaf.Subject);
+        }
+
+        /// <summary>
+        /// The sub-CAs of <paramref name="leaf"/> in chain order: the leaf's issuer first, then that
+        /// certificate's issuer, and so on. Whatever does not continue the chain follows in the order given.
+        /// </summary>
+        /// <remarks>
+        /// A PKCS#12 bag does not keep the order its certificates were added in: <c>openssl pkcs12
+        /// -export -certfile</c> with Sub-CA2 before Sub-CA1 comes back from the loader as Sub-CA1, Sub-CA2.
+        /// A station that checks each sub-CA's <c>pathLenConstraint</c> against its position, as EVerest
+        /// 2026.10.0 does under Table B.9 of -20, then refuses the chain with
+        /// <c>WARNING_CertificateValidationError</c>. Issuer names decide the order, not the file.
+        /// </remarks>
+        public static IReadOnlyList<X509Certificate2> OrderFromLeaf(X509Certificate2 leaf, IEnumerable<X509Certificate2> others)
+        {
+            var pool    = others.ToList();
+            var ordered = new List<X509Certificate2>(pool.Count);
+            var current = leaf;
+
+            while (current.SubjectName.RawData.AsSpan().SequenceEqual(current.IssuerName.RawData) is false
+                   && pool.FindIndex(c => c.SubjectName.RawData.AsSpan().SequenceEqual(current.IssuerName.RawData)) is var i
+                   && i >= 0)
+            {
+                current = pool[i];
+                ordered.Add(current);
+                pool.RemoveAt(i);
+            }
+
+            ordered.AddRange(pool);
+            return ordered;
         }
 
         /// <summary>

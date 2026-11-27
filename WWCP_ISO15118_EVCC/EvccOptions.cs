@@ -45,7 +45,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         double? BatteryKWh, double? StartSoC, double? TargetSoC, double? TargetEnergyKWh,
         TimeSpan? MaxChargingTime, double? PowerKW,
         TimeSpan? DepartureIn, double? MinimumSoC, double? TaperFromSoC,
-        XmlDsigSuite XmlDsig)
+        XmlDsigSuite XmlDsig,
+        bool NoMeteringConfirmation = false)
     {
 
         /// <summary>
@@ -79,6 +80,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             TimeSpan? maxChargingTime = null, departureIn = null;
             double? minimumSoC = null, taperFromSoC = null;
             var xmldsig = XmlDsigSuite.Iso20;
+            bool noMeteringConfirmation = false;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -188,6 +190,11 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     case "--renegotiate":
                         renegotiate = true;
                         break;
+                    // A fault switch: stay silent when a -20 station asks for a MeteringConfirmation,
+                    // which [V2G20-1621] says a car shall answer. The default answers.
+                    case "--no-metering-confirmation":
+                        noMeteringConfirmation = true;
+                        break;
                     // The battery. Any one of these turns the charge loop from three iterations into a
                     // session that ends when the car is done; see EvBattery for why that is opt-in.
                     case "--battery":
@@ -250,7 +257,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                    pauseResume, endPaused, resumeSessionIdHex,
                                    renegotiate, tariffCertPath, tariffCertPass,
                                    batteryKWh, startSoC, targetSoC, targetEnergyKWh, maxChargingTime, powerKW,
-                                   departureIn, minimumSoC, taperFromSoC, xmldsig);
+                                   departureIn, minimumSoC, taperFromSoC, xmldsig,
+                                   noMeteringConfirmation);
         }
 
         private static double ParsePositive(string value, string flag, string unit)
@@ -399,7 +407,10 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "          --contract-cert <pfx> [--contract-cert-pass <pw>]\n" +
             "                                      the *contract* certificate — who pays. -2/-20 Plug &\n" +
             "                                      Charge: signs the authorization instead of paying\n" +
-            "                                      externally.\n" +
+            "                                      externally. -20: also signs the station's meter\n" +
+            "                                      reading when it asks for a MeteringConfirmation.\n" +
+            "          --no-metering-confirmation  -20 fault switch: stay silent when the station asks\n" +
+            "                                      for a MeteringConfirmation\n" +
             "          --oem-cert <pfx> [--oem-cert-pass <pw>]\n" +
             "                                      the *OEM provisioning* certificate — what the car was\n" +
             "                                      born with, and all it can prove before it holds a\n" +

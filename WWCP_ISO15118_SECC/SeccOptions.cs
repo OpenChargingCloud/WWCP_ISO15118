@@ -36,7 +36,9 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
         TlsStack TlsStack, bool UseSdp, string? Interface, bool SdpLoopback, bool PreferDynamic, bool NoPnc,
         bool UseSlac, IPPort SlacListenPort, string? PkiDir,
         string? ServerCertPath, string? ServerCertPass, bool RequireClientCert, string? TrustRootsPath,
-        bool Renegotiate, string? TariffCertPath, string? TariffCertPass)
+        bool Renegotiate, string? TariffCertPath, string? TariffCertPass,
+        string? MeterId = null, int ClockSkewSeconds = 0,
+        uint MeteringConfirmationEvery = 0, bool RequireMeteringConfirmation = false)
     {
 
         /// <summary>The IANA-registered V2G port, so a bare run needs no flag at all.</summary>
@@ -57,6 +59,10 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             bool preferDynamic = false, noPnc = false, requireClientCert = false, renegotiate = false;
             string? iface = null, pkiDir = null, serverCertPath = null, serverCertPass = null, trustRootsPath = null;
             string? tariffCertPath = null, tariffCertPass = null;
+            string? meterId = null;
+            int clockSkewSeconds = 0;
+            uint meteringConfirmationEvery = 0;
+            bool requireMeteringConfirmation = false;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -154,6 +160,30 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     case "--tariff-cert-pass":
                         tariffCertPass = args[++i];
                         break;
+                    // A station reports a meter reading only when it has a meter, and this one signs.
+                    // Without the flag there is no MeterInfo at all, whatever the car asks for.
+                    case "--meter":
+                        meterId = args[++i];
+                        break;
+                    // The first fault switch: a controller whose clock is wrong by this much. It moves
+                    // the header TimeStamp of every -20 response and nothing else — the meter keeps the
+                    // system's time, so the two clocks of one station can be seen to disagree.
+                    case "--clock-skew":
+                        if (!int.TryParse(args[++i], out clockSkewSeconds))
+                            throw new ArgumentException($"--clock-skew expects whole seconds, got '{args[i]}'.");
+                        break;
+                    // -20: ask a Plug & Charge car to sign the meter reading every n charge-loop responses
+                    // (EVSENotification MeteringConfirmation). Validate() refuses the combinations under
+                    // which it would never ask.
+                    case "--metering-confirmation":
+                        if (!uint.TryParse(args[++i], out meteringConfirmationEvery) || meteringConfirmationEvery == 0)
+                            throw new ArgumentException($"--metering-confirmation expects a count of charge-loop responses of 1 or more, got '{args[i]}'.");
+                        break;
+                    // Answer a confirmation that does not hold with FAILED_MeteringSignatureNotValid, which
+                    // ends the session, instead of recording it and answering OK.
+                    case "--require-metering-confirmation":
+                        requireMeteringConfirmation = true;
+                        break;
                     case "--help" or "-h":
                         throw new ArgumentException(Usage);
                     default:
@@ -166,11 +196,39 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                 backend = TlsStack.Dotnet;
 
             Validate(listenPort, backend, useSdp, iface, useSlac, slacListenPort, pkiDir, mcs, protocol, offerBoth, trustRootsPath, serverCertPath);
+            ValidateMeteringConfirmation(meteringConfirmationEvery, requireMeteringConfirmation, meterId, noPnc, protocol, offerBoth);
 
             return new SeccOptions(listenPort, protocol, offerBoth, mode, mcs, backend,
                                    useSdp, iface, sdpLoopback, preferDynamic, noPnc, useSlac, slacListenPort, pkiDir,
                                    serverCertPath, serverCertPass, requireClientCert, trustRootsPath,
-                                   renegotiate, tariffCertPath, tariffCertPass);
+                                   renegotiate, tariffCertPath, tariffCertPass,
+                                   meterId, clockSkewSeconds,
+                                   meteringConfirmationEvery, requireMeteringConfirmation);
+        }
+
+        /// <summary>
+        /// Refuses a metering-confirmation request the station could never act on, for the reason --mode mcs
+        /// against -2 is refused: a run that quietly asks for nothing would read as a car that never answered.
+        /// </summary>
+        private static void ValidateMeteringConfirmation(uint every, bool require, string? meterId, bool noPnc,
+                                                         ProtocolVariant protocol, bool offerBoth)
+        {
+            if (require && every == 0)
+                throw new ArgumentException("--require-metering-confirmation needs --metering-confirmation <n>.");
+
+            if (every == 0)
+                return;
+
+            // [V2G20-1083]: asking carries the reading, and without a meter there is none.
+            if (meterId is null)
+                throw new ArgumentException("--metering-confirmation needs --meter <id>: the request carries the meter reading.");
+
+            // [V2G20-2704]: the car signs with its contract key, so only a Plug & Charge session can be asked.
+            if (noPnc)
+                throw new ArgumentException("--metering-confirmation needs Plug & Charge; drop --no-pnc.");
+
+            if (protocol != ProtocolVariant.Iso15118_20 && !offerBoth)
+                throw new ArgumentException("--metering-confirmation is an ISO 15118-20 exchange; drop --protocol 2.");
         }
 
         private static void Validate(IPPort listenPort, TlsStack backend, bool useSdp, string? iface,
@@ -246,6 +304,16 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
             "                                      AbsolutePriceSchedule offer with this key\n" +
             "  Reneg:  --renegotiate               notify ReNegotiation/ServiceRenegotiation once mid-loop\n" +
             "  SLAC:   --slac --slac-listen <port> run a SLAC pairing stage first\n" +
+            "  Meter:  --meter <id>                install a signing meter with this id; without it the\n" +
+            "                                      station reports no MeterInfo at all\n" +
+            "          --metering-confirmation <n> -20: ask a Plug & Charge car to sign the meter reading\n" +
+            "                                      every n charge-loop responses (never the first); needs\n" +
+            "                                      --meter. The verdict is printed and the answer is OK.\n" +
+            "          --require-metering-confirmation\n" +
+            "                                      answer a confirmation that does not hold with\n" +
+            "                                      FAILED_MeteringSignatureNotValid, ending the session\n" +
+            "  Faults: --clock-skew <seconds>      run the controller's clock this far ahead (negative:\n" +
+            "                                      behind). The meter keeps the system's time.\n" +
             "\n" +
             "The car is the other program: WWCP_ISO15118_EVCC.";
     }

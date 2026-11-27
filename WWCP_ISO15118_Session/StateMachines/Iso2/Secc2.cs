@@ -1211,10 +1211,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             var measured = Deliver(DcVolts * servedAmps);
 
             var (receipt, withRecord) = DemandReceipt();
-            // A station with a real meter reports it every cycle, not only when it wants a receipt
-            // signed back: the signed reading is the point on its own (EVSimulatorApp/docs/CONCEPT.md §4.3), and
-            // MeterInfo is optional here. Without a meter installed, nothing changes.
-            bool reading = (receipt && withRecord) || InstalledMeter is not null;
+            bool reading = ReportsReading(receipt, withRecord);
             return new CurrentDemandResType(ResponseCode.OK, DcEvseStatus(Notification()),
                 EVSEPresentVoltage: Volt(DcVolts),
                 EVSEPresentCurrent: PhysicalValue.Of(PhysicalValue.Amount(servedAmps), UnitSymbol.A),
@@ -1235,12 +1232,25 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             // A Contract session gets ReceiptRequired + the MeterInfo the EV echoes back inside its
             // signed MeteringReceiptReq (a Josev EVCC only honours this over TLS).
             var (receipt, withRecord) = DemandReceipt();
-            bool reading = (receipt && withRecord) || InstalledMeter is not null;   // see CurrentDemand()
+            bool reading = ReportsReading(receipt, withRecord);
             return new ChargingStatusResType(ResponseCode.OK, "DE*ABC*E1", SAScheduleTupleID: _chosenTupleId,
                 EVSEMaxCurrent: null,
                 MeterInfo: reading ? measured : null, ReceiptRequired: receipt ? true : null,
                 AcEvseStatus(Notification()));
         }
+
+        /// <summary>Whether THIS status response carries a <c>MeterInfo</c>.</summary>
+        /// <remarks>
+        /// A receipt request decides it: the first one carries the record the car signs, and the one
+        /// <see cref="DemandReceiptWithoutMeterInfo"/> adds carries none, meter or not. Before 2026-11-28 an
+        /// installed meter overrode that, so the switch did nothing at a metered station - the very shape
+        /// it copies from EVerest. Any other response carries a reading exactly when a meter is
+        /// installed: a station with a real meter reports it every cycle, not only when it wants a receipt
+        /// signed back, because the signed reading is the point on its own (EVSimulatorApp/docs/CONCEPT.md
+        /// §4.3), and MeterInfo is optional here.
+        /// </remarks>
+        private bool ReportsReading(bool receipt, bool withRecord)
+            => receipt ? withRecord : InstalledMeter is not null;
 
         /// <summary>Whether THIS status response demands a receipt: exactly once per Contract session. A
         /// live Josev EVCC re-enters ChargingStatus after every MeteringReceiptRes and only counts down its

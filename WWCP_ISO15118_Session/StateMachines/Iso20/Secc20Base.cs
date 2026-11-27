@@ -307,6 +307,160 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             return true;
         }
 
+        /// <summary>
+        /// Ask a Plug &amp; Charge vehicle to confirm the meter reading every this many charge-loop responses -
+        /// the <c>EVSENotification</c> <c>MeteringConfirmation</c> of [V2G20-1083]. Zero, the default, never asks.
+        /// </summary>
+        /// <remarks>
+        /// Never in the first charge-loop response ([V2G20-1622]), never without a meter, since asking carries
+        /// the reading ([V2G20-1083]), and never in an EIM session ([V2G20-2704]): the vehicle signs with its
+        /// contract key, and EIM gave it none to sign with. While one request is outstanding no second one goes
+        /// out until it is answered or its <see cref="MeteringConfirmationMaxDelay"/> has passed ([V2G20-2105]).
+        /// </remarks>
+        public UInt32 MeteringConfirmationEvery { get; set; }
+
+        /// <summary>The <c>NotificationMaxDelay</c> sent with a metering-confirmation request, in seconds
+        /// ([V2G20-2105], [V2G20-1621]).</summary>
+        public UInt16 MeteringConfirmationMaxDelay { get; set; } = MeteringConfirmation.DefaultMaxDelaySeconds;
+
+        /// <summary>
+        /// Refuse a confirmation that does not hold - <c>FAILED_MeteringSignatureNotValid</c>, which ends the
+        /// session - instead of recording it and answering <c>OK</c>. [V2G20-1990] leaves it to the station
+        /// whether it requires a valid signature, and [V2G20-904] makes verifying one optional; false, the
+        /// default, keeps a live session going so the verdict is observable, as <see cref="PnCAuth"/> does.
+        /// </summary>
+        public Boolean RequireValidMeteringConfirmation { get; set; }
+
+        private readonly List<MeteringConfirmationCheck> _meteringConfirmations = [];
+
+        /// <summary>Every <c>MeteringConfirmationReq</c> this station received, and what it found in each.</summary>
+        public IReadOnlyList<MeteringConfirmationCheck> MeteringConfirmations => _meteringConfirmations;
+
+        /// <summary>How many charge-loop responses carried the <c>MeteringConfirmation</c> notification.</summary>
+        public Int32 MeteringConfirmationsRequested { get; private set; }
+
+        /// <summary>How many of those went unanswered within their <see cref="MeteringConfirmationMaxDelay"/>.</summary>
+        public Int32 MeteringConfirmationsMissed { get; private set; }
+
+        private UInt32 _chargeLoopResponses;
+        private (MeterInfoType Reading, DateTimeOffset AskedAt)? _meteringConfirmationAsked;
+        private byte[]? _contractCertificate;
+        private uint? _selectedScheduleTupleId;
+
+        /// <summary>
+        /// For the DC/AC charge-loop hooks, called once per response after <see cref="Deliver"/>: whether this
+        /// response is to carry the <c>MeteringConfirmation</c> notification. See
+        /// <see cref="MeteringConfirmationEvery"/> for when it does.
+        /// </summary>
+        protected bool AskForMeteringConfirmation()
+        {
+
+            _chargeLoopResponses++;
+
+            if (MeteringConfirmationEvery == 0 || PnCAuth is null || _lastReading is not { } reading)
+                return false;
+
+            if (_chargeLoopResponses < 2 || _chargeLoopResponses % MeteringConfirmationEvery != 0)
+                return false;
+
+            var now = clock.GetUtcNow();
+
+            if (_meteringConfirmationAsked is { } outstanding)
+            {
+
+                if (now - outstanding.AskedAt < TimeSpan.FromSeconds(MeteringConfirmationMaxDelay))
+                    return false;
+
+                MeteringConfirmationsMissed++;
+
+            }
+
+            _meteringConfirmationAsked = (new MeterInfoType(reading.Id, reading.Wh, null, null, null, reading.Signature, null, reading.Timestamp),
+                                          now);
+            MeteringConfirmationsRequested++;
+            return true;
+
+        }
+
+        /// <summary>
+        /// Answer a <c>MeteringConfirmationReq</c> from the side stream ([V2G20-1085]): check what the vehicle
+        /// signed against what this station asked it to sign, and verify the signature with the contract
+        /// certificate the vehicle authorised with ([V2G20-904]).
+        /// </summary>
+        /// <remarks>
+        /// One not asked for is <c>FAILED_SequenceError</c>, and one under another session's id
+        /// <c>FAILED_UnknownSession</c>: both are terminal, as every FAILED response is in -20. One that does
+        /// not hold is recorded and answered <c>OK</c>, unless <see cref="RequireValidMeteringConfirmation"/>.
+        /// </remarks>
+        private MeteringConfirmationRes ConfirmMetering(MeteringConfirmationReq req)
+        {
+
+            var header = SessionCtx.ToCommonHeader();
+
+            if (!req.Header.SessionID.AsSpan().SequenceEqual(SessionId))
+            {
+                UnknownSessionAt = nameof(MeteringConfirmationReq);
+                UnknownSessionRefusals++;
+                return new (header, ResponseCode.FAILED_UnknownSession);
+            }
+
+            if (_meteringConfirmationAsked is not { } asked || _contractCertificate is null)
+            {
+                SequenceErrorAt = nameof(MeteringConfirmationReq);
+                SequenceErrorRefusals++;
+                return new (header, ResponseCode.FAILED_SequenceError);
+            }
+
+            _meteringConfirmationAsked = null;
+
+            var data          = req.SignedMeteringData;
+
+            var sessionOk     = data.SessionID.AsSpan().SequenceEqual(SessionId);
+            var readingOk     = MeteringConfirmation.SameReading(data.MeterInfo, asked.Reading);
+            var receiptOk     = data.Receipt is null;   // this station sends none
+            var controlModeOk = EvControlModeIsDynamic == true
+                                    ? data.Dynamic_SMDTControlMode is not null && data.Scheduled_SMDTControlMode is null
+                                    : data.Scheduled_SMDTControlMode is { } scheduled && data.Dynamic_SMDTControlMode is null &&
+                                      (_selectedScheduleTupleId is null || scheduled.SelectedScheduleTupleID == _selectedScheduleTupleId);
+
+            bool   digestOk    = false;
+            bool   signatureOk = false;
+            string grammar     = "none";
+
+            if (req.Header.Signature is { } sig &&
+                sig.SignedInfo.Reference.Count == 1 &&
+                sig.SignedInfo.Reference[0] is { } reference &&
+                reference.URI == "#" + data.Id)
+            {
+
+                digestOk = HashOf(reference.DigestMethod.Algorithm, MeteringConfirmation.SignedOctets(req.Header, data))
+                               .AsSpan().SequenceEqual(reference.DigestValue);
+
+                try
+                {
+                    using var contract = X509CertificateLoader.LoadCertificate(_contractCertificate);
+                    using var key      = contract.GetECDsaPublicKey();
+                    if (key is not null)
+                        (signatureOk, grammar) = VerifySignedInfo(sig, key);
+                }
+                catch (CryptographicException)
+                {
+                    // A contract certificate that does not load verifies nothing.
+                }
+
+            }
+
+            var check = new MeteringConfirmationCheck(sessionOk, readingOk, receiptOk, controlModeOk, digestOk, signatureOk, grammar,
+                                                      data.MeterInfo.ChargedEnergyReadingWh, ResponseCode.OK);
+
+            if (!check.Valid && RequireValidMeteringConfirmation)
+                check = check with { ResponseCode = ResponseCode.FAILED_MeteringSignatureNotValid };
+
+            _meteringConfirmations.Add(check);
+            return new (header, check.ResponseCode);
+
+        }
+
         /// <summary>Advertise the Dynamic (ControlMode=2) parameter set ahead of Scheduled in ServiceDetailRes.
         /// Both modes are always offered ([V2G20-2656]: the SECC shall support Scheduled and Dynamic); the order
         /// only decides which one an EV that simply takes the first offered set (e.g. Josev) actually runs —
@@ -735,12 +889,13 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 var readBudget = CurrentSequenceTimeout;
                 MessageSet set;
                 object message;
+                ushort payloadType;
                 using (var readCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
                 {
                     readCts.CancelAfter(readBudget);
                     try
                     {
-                        (set, message) = await ReadFrame20Async(stream, readCts.Token).ConfigureAwait(false);
+                        (set, message, payloadType) = await ReadFrame20Async(stream, readCts.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException) when (readCts.IsCancellationRequested && !ct.IsCancellationRequested)
                     {
@@ -757,6 +912,16 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 {
                     SilenceEndedAfter = await WaitForPeerToEndSessionAsync(stream, silence, ct).ConfigureAwait(false);
                     return;
+                }
+
+                if (payloadType == MeteringConfirmation.PayloadType)
+                {
+                    var sideReply = HandleSideStream(message);
+                    int length    = sideReply.TryEncode(buf, out int encoded)
+                                        ? encoded
+                                        : throw new InvalidOperationException("MeteringConfirmationRes: EXI encode failed.");
+                    await V2GTPStream.WriteRawFrameAsync(stream, payloadType, buf.AsMemory(0, length), ct).ConfigureAwait(false);
+                    continue;
                 }
 
                 var (replySet, reply) = Handle(set, message);
@@ -833,17 +998,48 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// Inside a -20 session a 0x8001 frame can only be such a mis-framed message, so decode it as
         /// CommonMessages.
         /// </summary>
-        private static async Task<(MessageSet Set, object Message)> ReadFrame20Async(Stream stream, CancellationToken ct)
+        /// <remarks>
+        /// The side stream of <see cref="MeteringConfirmation.PayloadType"/> carries CommonMessages documents
+        /// too, and the dispatcher does not route it, so it is decoded here as well and its payload type
+        /// handed back: the answer has to go out on the same one ([V2G20-1085]).
+        /// </remarks>
+        private static async Task<(MessageSet Set, object Message, ushort PayloadType)> ReadFrame20Async(Stream stream, CancellationToken ct)
         {
             var (frame, payloadType) = await V2GTPStream.ReadRawFrameAsync(stream, ct).ConfigureAwait(false);
 
-            if (payloadType == V2GTPCodec.PayloadType_DinIso2Main)   // 0x8001 — see doc comment
+            if (payloadType == V2GTPCodec.PayloadType_DinIso2Main ||       // 0x8001 — see doc comment
+                payloadType == MeteringConfirmation.PayloadType)
                 return (MessageSet.Iso20CommonMessages,
-                        CommonMessagesCodec.DecodeAny(frame.AsSpan(V2GTPCodec.HeaderSize), out _));
+                        CommonMessagesCodec.DecodeAny(frame.AsSpan(V2GTPCodec.HeaderSize), out _),
+                        payloadType);
 
             if (!V2GTPDispatcher.TryDecode(frame, out var set, out var message, out var error))
                 throw new InvalidDataException($"V2GTP frame: {error}");
-            return (set, message!);
+            return (set, message!, payloadType);
+        }
+
+        /// <summary>
+        /// One request from the side stream, answered there: a <c>MeteringConfirmationReq</c>, and nothing
+        /// else, since nothing else belongs on <see cref="MeteringConfirmation.PayloadType"/>. Kept out of
+        /// <see cref="Handle"/> and its phase machine - [V2G20-1041] gives the side stream timers of its own -
+        /// but a FAILED answer ends the session all the same.
+        /// </summary>
+        private MeteringConfirmationRes HandleSideStream(object message)
+        {
+            var response = message is MeteringConfirmationReq request
+                               ? ConfirmMetering(request)
+                               : new MeteringConfirmationRes(SessionCtx.ToCommonHeader(), ResponseCode.FAILED_SequenceError);
+
+            if (message is not MeteringConfirmationReq)
+            {
+                SequenceErrorAt = message.GetType().Name;
+                SequenceErrorRefusals++;
+            }
+
+            if (response.ResponseCode >= ResponseCode.FAILED)
+                Phase = Phase20.Done;
+
+            return response;
         }
 
         /// <summary>Encodes a reply of any of the three message sets this project drives — implemented per concrete subclass since only it knows which DC/AC types it produces.</summary>
@@ -1044,7 +1240,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // ECDSA signature over the contract leaf). We record the outcome rather than aborting, so a live
             // interop session completes and the verdict is observable; EIM carries no signature.
             if (req.PnC_AReqAuthorizationMode is { } pnc)
-                PnCAuth = VerifyPnc(req, pnc);
+            {
+                PnCAuth              = VerifyPnc(req, pnc);
+                _contractCertificate = pnc.ContractCertificateChain.Certificate;
+            }
             return new(SessionCtx.ToCommonHeader(), ResponseCode.OK, Processing.Finished);
         }
 
@@ -1080,25 +1279,32 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     chain = ContractChainValidator.Validate(contract, pnc.ContractCertificateChain.SubCertificates?.Certificate);
                 using var ecdsa = contract.GetECDsaPublicKey();
                 if (ecdsa is not null)
-                {
-                    var hashName = HashNameFor(sig.SignedInfo.SignatureMethod.Algorithm);
-
-                    // 1. Our production grammar: SignedInfo as a fragment of the full CommonMessages schema set
-                    //    (byte-exact vs cbV2G). This is what our own EVCC signs.
-                    if (ecdsa.VerifyData(V2GSignature.SignedInfoFragment(sig.SignedInfo), sig.SignatureValue.Value,
-                                         hashName, DSASignatureFormat.IeeeP1363FixedFieldConcatenation))
-                        (signatureOk, grammar) = (true, "iso20-commonmessages");
-
-                    // 2. Interop fallback: SignedInfo over the standalone xmldsig grammar (what Josev's stack
-                    //    signs — see XmlDsigInteropVerify). Verify-only; we never sign this form.
-                    else if (XmlDsigInteropVerify.VerifyStandaloneXmldsig(sig.SignedInfo, sig.SignatureValue.Value, ecdsa, hashName))
-                        (signatureOk, grammar) = (true, "xmldsig-standalone");
-                }
+                    (signatureOk, grammar) = VerifySignedInfo(sig, ecdsa);
             }
             catch (Exception ex) { subject = $"cert-error: {ex.Message}"; }
 
             return new PnCAuthResult(challengeOk, digestOk, signatureOk, subject,
                                      sig.SignedInfo.SignatureMethod.Algorithm, grammar, chain);
+        }
+
+        /// <summary>Whether a header signature's SignedInfo verifies against <paramref name="key"/>, and over
+        /// which of the two encodings this station accepts.</summary>
+        private static (bool Ok, string Grammar) VerifySignedInfo(SignatureType sig, ECDsa key)
+        {
+            var hashName = HashNameFor(sig.SignedInfo.SignatureMethod.Algorithm);
+
+            // 1. Our production grammar: SignedInfo as a fragment of the full CommonMessages schema set
+            //    (byte-exact vs cbV2G).
+            if (key.VerifyData(V2GSignature.SignedInfoFragment(sig.SignedInfo), sig.SignatureValue.Value,
+                               hashName, DSASignatureFormat.IeeeP1363FixedFieldConcatenation))
+                return (true, "iso20-commonmessages");
+
+            // 2. Interop fallback: SignedInfo over the standalone xmldsig grammar (what Josev's stack signs,
+            //    and what our own EVCC signs with a P-256 contract key — see XmlDsigInteropVerify).
+            if (XmlDsigInteropVerify.VerifyStandaloneXmldsig(sig.SignedInfo, sig.SignatureValue.Value, key, hashName))
+                return (true, "xmldsig-standalone");
+
+            return (false, "none");
         }
 
         private static byte[] HashOf(string algorithmUri, ReadOnlySpan<byte> data) =>
@@ -1534,8 +1740,16 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             return null;
         }
 
-        private PowerDeliveryRes PowerDelivery(PowerDeliveryReq req) =>
-            new(SessionCtx.ToCommonHeader(), ResponseCode.OK, EVSEStatus: null);
+        private PowerDeliveryRes PowerDelivery(PowerDeliveryReq req)
+        {
+
+            // The tuple a later MeteringConfirmationReq has to name ([V2G20-776]).
+            if (req.ChargeProgress == ChargeProgress.Start)
+                _selectedScheduleTupleId = req.EVPowerProfile?.Scheduled_EVPPTControlMode?.SelectedScheduleTupleID;
+
+            return new(SessionCtx.ToCommonHeader(), ResponseCode.OK, EVSEStatus: null);
+
+        }
 
         private SessionStopRes SessionStop(SessionStopReq req) =>
             new(SessionCtx.ToCommonHeader(), ResponseCode.OK);

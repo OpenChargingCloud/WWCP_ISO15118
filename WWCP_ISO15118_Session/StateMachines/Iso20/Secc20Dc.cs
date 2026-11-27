@@ -230,7 +230,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     ? new Dc20.EVSEStatusType(NotificationMaxDelay: 0, Dc20.EvseNotification.Terminate)
                     : SignalRenegotiationOnce()
                         ? new Dc20.EVSEStatusType(NotificationMaxDelay: 0, Dc20.EvseNotification.ServiceRenegotiation)
-                        : null,
+                        // [V2G20-1083]: the reading below is the one the vehicle is asked to sign.
+                        : AskForMeteringConfirmation()
+                            ? new Dc20.EVSEStatusType(MeteringConfirmationMaxDelay, Dc20.EvseNotification.MeteringConfirmation)
+                            : null,
                 MeterInfo: MeterReading() is { } m
                     ? new Dc20.MeterInfoType(m.Id, m.Wh, null, null, null, m.Signature, null, m.Timestamp)
                     : null, Receipt: null,

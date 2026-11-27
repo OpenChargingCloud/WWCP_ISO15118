@@ -511,6 +511,87 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public Boolean TerminatedByStation { get; private set; }
 
         /// <summary>
+        /// Whether this vehicle answers a station's <c>MeteringConfirmation</c> notification with a signed
+        /// <c>MeteringConfirmationReq</c> - which [V2G20-1621] says it shall. True by default; false is the
+        /// fault switch for a station that has to cope with a vehicle that stays silent.
+        /// </summary>
+        public Boolean ConfirmMetering { get; set; } = true;
+
+        private readonly List<MeteringConfirmationSent> _meteringConfirmations = [];
+
+        /// <summary>Every <c>MeteringConfirmationReq</c> this vehicle signed and sent, with the station's answer.</summary>
+        public IReadOnlyList<MeteringConfirmationSent> MeteringConfirmations => _meteringConfirmations;
+
+        /// <summary>
+        /// How often a station asked for a metering confirmation this vehicle could not give: without a
+        /// contract key, because the session was authorised by EIM ([V2G20-2704] says a station shall not
+        /// ask then), or without the <c>MeterInfo</c> [V2G20-1083] makes part of asking.
+        /// </summary>
+        public Int32 MeteringConfirmationsImpossible { get; private set; }
+
+        /// <summary>Called for each confirmation once the station has answered it.</summary>
+        public Action<MeteringConfirmationSent>? OnMeteringConfirmation { get; set; }
+
+        /// <summary>The schedule tuple PowerDelivery(Start) selected, or null in Dynamic control mode.</summary>
+        private UInt32? _selectedScheduleTupleId;
+
+        /// <summary>
+        /// Answer a station's <c>MeteringConfirmation</c> notification: sign what the charge-loop response
+        /// just carried and send it on the side stream. Called by the AC and DC loops, which see the
+        /// reading in their own generated types and translate it (<see cref="MeteringConfirmation.ToCommon(Dc20.MeterInfoType)"/>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Sent at once, after the iteration that asked, and before the next charge-loop request - well inside
+        /// any <c>NotificationMaxDelay</c>. What is signed is what the response carried: the SessionID, the
+        /// reading, the receipt if there was one ([V2G20-2236]) and the schedule tuple this vehicle selected
+        /// ([V2G20-776]). The signature acknowledges receipt; it does not say the reading is right, and the
+        /// note under [V2G20-1808] is explicit that it does not.
+        /// </para>
+        /// <para>
+        /// The station's answer is a response like any other: a <c>FAILED</c> one ends the session through
+        /// <see cref="RefuseOnFailure"/>, which is what [V2G20-1990]'s <c>FAILED_MeteringSignatureNotValid</c>
+        /// means a station that insists on a valid confirmation to do.
+        /// </para>
+        /// </remarks>
+        protected async Task ConfirmMeteringAsync(MeterInfoType? Reading, ReceiptType? Receipt, CancellationToken ct)
+        {
+
+            if (!ConfirmMetering)
+                return;
+
+            if (Reading is null || Pnc is not { } pnc || AuthorizationMode != "pnc-signed")
+            {
+                MeteringConfirmationsImpossible++;
+                return;
+            }
+
+            var data     = new SignedMeteringDataType(MeteringConfirmation.ReferenceId,
+                                                      SessionCtx.SessionId,
+                                                      Reading,
+                                                      Receipt,
+                                                      Dynamic_SMDTControlMode:   _selectedScheduleTupleId is null ? new Dynamic_SMDTControlModeType() : null,
+                                                      Scheduled_SMDTControlMode: _selectedScheduleTupleId is { } tuple ? new Scheduled_SMDTControlModeType(tuple) : null);
+
+            var request  = MeteringConfirmation.Sign(SessionCtx.ToCommonHeader(), data, pnc.ContractKey);
+
+            var (_, message) = await ExchangeRaw(MessageSet.Iso20CommonMessages,
+                                                 dest => request.TryEncode(dest, out int n) ? n : throw EncodeFailed(),
+                                                 ct,
+                                                 SideStream: MeteringConfirmation.PayloadType);
+
+            if (message is not MeteringConfirmationRes response)
+                throw new SessionAborted($"expected a MeteringConfirmationRes on the side stream, got {message.GetType().Name}.");
+
+            var sent = new MeteringConfirmationSent(Reading.MeterID, Reading.ChargedEnergyReadingWh, Meter.Energy,
+                                                    Receipt is not null, response.ResponseCode);
+
+            _meteringConfirmations.Add(sent);
+            OnMeteringConfirmation?.Invoke(sent);
+
+        }
+
+        /// <summary>
         /// A battery that fills up, and the goal that ends the charge loop. Null — the default — keeps the
         /// fixed three iterations every recorded interop run was taken with.
         /// </summary>
@@ -798,6 +879,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // (ISO 15118-20 §7.9.2.4). A live Josev run rejected the earlier absent profile (our SECC didn't),
             // and EVerest 2026.10.0 one anchored at 1970 — see Iso20EvPowerProfile.
             var evPowerProfile = BuildEvPowerProfile(scheduleRes);
+            _selectedScheduleTupleId = evPowerProfile.Scheduled_EVPPTControlMode?.SelectedScheduleTupleID;
             await Exchange<PowerDeliveryRes>(MessageSet.Iso20CommonMessages,
                 dest => new PowerDeliveryReq(SessionCtx.ToCommonHeader(), Processing.Finished, ChargeProgress.Start, evPowerProfile, null)
                     .TryEncode(dest, out int n) ? n : throw EncodeFailed(), ct);
@@ -1007,13 +1089,21 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         /// <param name="budget">The <c>V2G_EVCC_Msg_Timeout</c> this exchange is governed by, or null for
         /// the ordinary one. See <see cref="ChargeLoopMsgTimeout"/> for which messages deviate and why.</param>
+        /// <param name="SideStream">The V2GTP payload type of a side-stream exchange ([V2G20-1084]), or null
+        /// for the main stream. A side-stream request carries a CommonMessages document, and its answer has to
+        /// come back on the same payload type ([V2G20-1085]).</param>
         protected async Task<(MessageSet Set, object Message)> ExchangeRaw(MessageSet expectedSet, Func<byte[], int> encode,
-                                                                           CancellationToken ct, TimeSpan? budget = null)
+                                                                           CancellationToken ct, TimeSpan? budget = null,
+                                                                           UInt16? SideStream = null)
         {
             int reqLen = encode(_buf);
             var start = clock.GetUtcNow();
             var wait  = budget ?? perMessageTimeout;
-            await V2GTPStream.WriteFrameAsync(stream, expectedSet, _buf.AsMemory(0, reqLen), ct).ConfigureAwait(false);
+
+            if (SideStream is { } sideStream)
+                await V2GTPStream.WriteRawFrameAsync(stream, sideStream, _buf.AsMemory(0, reqLen), ct).ConfigureAwait(false);
+            else
+                await V2GTPStream.WriteFrameAsync(stream, expectedSet, _buf.AsMemory(0, reqLen), ct).ConfigureAwait(false);
 
             // Bound the read itself rather than measuring afterwards. Until 2026-08-11 this awaited
             // ReadFrameAsync with no budget and *then* compared the elapsed time, so the timeout caught an
@@ -1027,7 +1117,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 readCts.CancelAfter(wait);
                 try
                 {
-                    (set, message) = await V2GTPStream.ReadFrameAsync(stream, readCts.Token).ConfigureAwait(false);
+                    (set, message) = SideStream is { } answeredOn
+                                         ? await ReadSideStreamFrameAsync(answeredOn, readCts.Token).ConfigureAwait(false)
+                                         : await V2GTPStream.ReadFrameAsync(stream, readCts.Token).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (readCts.IsCancellationRequested && !ct.IsCancellationRequested)
                 {
@@ -1063,6 +1155,24 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             Exchanges++;
             BytesOnWire += V2GTPCodec.HeaderSize + reqLen;
             return (set, message);
+        }
+
+        /// <summary>
+        /// One answer on a side stream: a CommonMessages document framed with <paramref name="PayloadType"/>.
+        /// The dispatcher does not route side-stream payload types, so this decodes them itself; an answer on
+        /// any other payload type is the station answering on the wrong stream, and ends the session.
+        /// </summary>
+        private async Task<(MessageSet Set, object Message)> ReadSideStreamFrameAsync(UInt16 PayloadType, CancellationToken ct)
+        {
+
+            var (frame, payloadType) = await V2GTPStream.ReadRawFrameAsync(stream, ct).ConfigureAwait(false);
+
+            if (payloadType != PayloadType)
+                throw new SessionAborted($"the station answered a side-stream request (payload type 0x{PayloadType:x4}) on payload type 0x{payloadType:x4}.");
+
+            return (MessageSet.Iso20CommonMessages,
+                    CommonMessagesCodec.DecodeAny(frame.AsSpan(V2GTPCodec.HeaderSize), out _));
+
         }
 
 

@@ -206,7 +206,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     // against a station whose PKI is not ours, where the car brings its own identity and
                     // there is nothing to pin the peer against beyond what the caller trusts.
                     var bc = args.VehicleCertPath is not null
-                                 ? EvccPki.WithVehicleCertificate(args.VehicleCertPath, args.VehicleCertPass, args.PkiDir)
+                                 ? EvccPki.WithVehicleCertificate(args.VehicleCertPath, args.VehicleCertPass, args.PkiDir, chainChecked: trust is not null)
                                  : EvccPki.Load(args.PkiDir!);
                     // Trust roots and pinning are not alternatives: pinning says "this exact station",
                     // chaining says "a station some V2G root vouches for". Whichever is configured runs,

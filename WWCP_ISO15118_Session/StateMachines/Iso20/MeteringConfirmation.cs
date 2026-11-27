@@ -17,6 +17,8 @@
 
 using System.Security.Cryptography;
 
+using cloud.charging.open.protocols.ISO15118.Security;
+
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages;
 using cloud.charging.open.protocols.ISO15118_20.CommonMessages.Generated;
 
@@ -55,6 +57,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
     /// <param name="SignatureOk">The SignedInfo verifies against the contract certificate presented at
     /// AuthorizationReq ([V2G20-904], [V2G20-1808]).</param>
     /// <param name="Grammar">Which SignedInfo encoding verified, as <see cref="PnCAuthResult.SignatureGrammar"/>.</param>
+    /// <param name="ContractChain">How the chain of that contract certificate fared at AuthorizationReq, as
+    /// <see cref="PnCAuthResult.Chain"/>: <c>ChainResult.NotConfigured</c> when the station has no roots.</param>
     /// <param name="ChargedWh">The reading that was confirmed.</param>
     /// <param name="ResponseCode">What this station answered.</param>
     public sealed record MeteringConfirmationCheck(Boolean       SessionOk,
@@ -64,13 +68,27 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                                                    Boolean       DigestOk,
                                                    Boolean       SignatureOk,
                                                    String        Grammar,
+                                                   ChainResult   ContractChain,
                                                    UInt64        ChargedWh,
                                                    ResponseCode  ResponseCode)
     {
 
+        /// <summary>
+        /// Whether the signing contract is one this station may rely on: its chain reached a configured root,
+        /// or the station was given none to check against.
+        /// </summary>
+        /// <remarks>
+        /// A good signature only shows that the vehicle holds the key of the certificate it presented. Without
+        /// this, a station could reject a contract's chain at AuthorizationReq and then accept confirmations
+        /// that contract signed. A station with no roots never judged the chain, so it is left out rather than
+        /// counted as a failure.
+        /// </remarks>
+        public Boolean ContractChainHolds
+            => ContractChain.Ok || ContractChain == ChainResult.NotConfigured;
+
         /// <summary>Whether every check held.</summary>
         public Boolean Valid
-            => SessionOk && ReadingOk && ReceiptOk && ControlModeOk && DigestOk && SignatureOk;
+            => SessionOk && ReadingOk && ReceiptOk && ControlModeOk && DigestOk && SignatureOk && ContractChainHolds;
 
     }
 

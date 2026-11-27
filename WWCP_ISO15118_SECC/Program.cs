@@ -369,7 +369,9 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                     Console.WriteLine($"  {check.ChargedWh} Wh: session {Ok(check.SessionOk)}, reading {Ok(check.ReadingOk)}, " +
                                       $"receipt {Ok(check.ReceiptOk)}, control mode {Ok(check.ControlModeOk)}, " +
                                       $"digest {Ok(check.DigestOk)}, signature {Ok(check.SignatureOk)}" +
-                                      $"{(check.SignatureOk ? $" (grammar={check.Grammar})" : "")}; answered {check.ResponseCode}.");
+                                      $"{(check.SignatureOk ? $" (grammar={check.Grammar})" : "")}, " +
+                                      $"contract chain {(check.ContractChain.Ok ? "OK" : check.ContractChainHolds ? "not checked" : "REJECTED")}; " +
+                                      $"answered {check.ResponseCode}.");
             }
         }
 

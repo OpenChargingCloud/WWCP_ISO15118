@@ -355,9 +355,18 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     evcc.CertInstallRequest = LoadOemCredentials(args.OemCertPath, args.OemCertPass);
                 if (args.TariffCertPath is not null)
                     evcc.TariffVerifyKey = LoadTariffVerifyKey(args.TariffCertPath, args.TariffCertPass);
+                evcc.ConfirmMetering = !args.NoMeteringConfirmation;
                 await evcc.RunAsync();
                 Console.WriteLine($"  {evcc.Exchanges} exchanges, {evcc.BytesOnWire} bytes on the wire (request side), " +
                                   $"auth: {evcc.AuthorizationMode}, session setup: {evcc.SessionSetupCode}.");
+                if (evcc.MeteringConfirmations.Count > 0)
+                    Console.WriteLine($"  MeteringConfirmation: signed {evcc.MeteringConfirmations.Count}, last " +
+                                      $"{evcc.MeteringConfirmations[^1].ChargedWh} Wh at {evcc.MeteringConfirmations[^1].MeterId} " +
+                                      $"(this vehicle counted {evcc.MeteringConfirmations[^1].VehicleWh:0} Wh); answers: " +
+                                      String.Join(", ", evcc.MeteringConfirmations.Select(sent => sent.ResponseCode)) + ".");
+                if (evcc.MeteringConfirmationsImpossible > 0)
+                    Console.WriteLine($"  MeteringConfirmation: asked {evcc.MeteringConfirmationsImpossible} time(s) without a contract " +
+                                      "key or without a reading - nothing this vehicle could sign.");
                 if (evcc.Battery is { } b20 && evcc.BatteryStop is { } s20)
                     Console.WriteLine("  " + b20.Describe(s20));
                 if (evcc.InstalledContractCertificate is not null)

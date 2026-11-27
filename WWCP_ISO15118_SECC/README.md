@@ -30,6 +30,7 @@ Everything the session layer implements, on the station side:
 | **Signed tariffs** | `--tariff-cert` signs the `-2` SalesTariff / `-20` AbsolutePriceSchedule offer |
 | **Pause / resume** | keeps accepting after a paused session, and for `-20` verifies that the car coming back is the car that left |
 | **Renegotiation** | `--renegotiate` notifies once mid-loop |
+| **Signed meter readings** | `--meter <id>` installs a signing meter; `-20` `--metering-confirmation <n>` asks a Plug & Charge car to sign the reading every n charge-loop responses, and prints what each confirmation's session, reading, digest and signature came to. `--require-metering-confirmation` refuses one that does not hold |
 | **TLS** | two backends — see [Which TLS backend](#which-tls-backend-and-why-it-is-not-a-preference) below, because on Windows and macOS this is not a matter of taste |
 | **SDP and SLAC** | `--sdp` advertises the endpoint on a link; `--slac` runs a pairing stage first |
 

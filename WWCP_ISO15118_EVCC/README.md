@@ -39,6 +39,7 @@ Everything the session layer implements, on the car's side:
 | **Signed tariffs** | `--tariff-cert` verifies the station's signed SalesTariff / AbsolutePriceSchedule and reports digest and ECDSA separately |
 | **Pause / resume** | `--pause-resume` pauses after the charge loop, reconnects and rejoins — and says so when the station refuses |
 | **Renegotiation** | `--renegotiate` sends `PowerDelivery(Renegotiate)` after the first cycle |
+| **MeteringConfirmation** | with `--contract-cert`, signs the meter reading whenever a `-20` station asks, on the side stream; `--no-metering-confirmation` stays silent instead |
 | **TLS** | two backends — see [Which TLS backend](#which-tls-backend-and-why-it-is-not-a-preference), because on Windows and macOS this is not a matter of taste |
 | **SDP and SLAC** | `--sdp` finds the station on the link; `--slac` runs a pairing stage first |
 

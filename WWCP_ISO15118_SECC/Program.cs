@@ -285,6 +285,8 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                 secc.OfferPlugAndCharge       = !args.NoPnc;
                 secc.OfferResume(resume);
                 secc.RequestRenegotiation = args.Renegotiate;
+                secc.MeteringConfirmationEvery        = args.MeteringConfirmationEvery;
+                secc.RequireValidMeteringConfirmation = args.RequireMeteringConfirmation;
                 if (args.TariffCertPath is not null)
                     secc.TariffSignKey = LoadTariffKey(args.TariffCertPath, args.TariffCertPass);
                 // finally: the PnC/cert-install verdicts are the run's evidence — print them even when the
@@ -356,7 +358,22 @@ namespace cloud.charging.open.protocols.ISO15118.SECC
                                   $"signature {(ci.SignatureOk ? "OK" : "FAIL")}{(ci.SignatureOk ? $" (grammar={ci.SignatureGrammar})" : "")}, " +
                                   $"contract issued ({(ci.EncryptedForOem ? "key wrapped for OEM key" : "OEM key not P-521 — blob undecryptable for EV")}); " +
                                   $"OEM chain {Describe(ci.Chain)}.");
+
+            // Asked, answered, and each answer's checks one by one, so a run says which of them failed.
+            if (secc.MeteringConfirmationsRequested > 0 || secc.MeteringConfirmations.Count > 0)
+            {
+                Console.WriteLine($"MeteringConfirmation: asked {secc.MeteringConfirmationsRequested}, " +
+                                  $"answered {secc.MeteringConfirmations.Count}, " +
+                                  $"unanswered in time {secc.MeteringConfirmationsMissed}.");
+                foreach (var check in secc.MeteringConfirmations)
+                    Console.WriteLine($"  {check.ChargedWh} Wh: session {Ok(check.SessionOk)}, reading {Ok(check.ReadingOk)}, " +
+                                      $"receipt {Ok(check.ReceiptOk)}, control mode {Ok(check.ControlModeOk)}, " +
+                                      $"digest {Ok(check.DigestOk)}, signature {Ok(check.SignatureOk)}" +
+                                      $"{(check.SignatureOk ? $" (grammar={check.Grammar})" : "")}; answered {check.ResponseCode}.");
+            }
         }
+
+        private static string Ok(bool ok) => ok ? "OK" : "FAIL";
 
         private static async Task RunSlacAsync(SeccOptions args)
         {

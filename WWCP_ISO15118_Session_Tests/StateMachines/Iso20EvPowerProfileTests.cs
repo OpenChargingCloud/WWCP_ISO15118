@@ -143,7 +143,7 @@ namespace cloud.charging.open.protocols.ISO15118.Session.Tests.StateMachines
         [Test]
         public void ASchedulethatHasEnded_LeavesOneZeroEntry()
         {
-            // Our own SECC's offer until it is fixed: anchored at 0, so it ended in 1970.
+            // Our own SECC's offer until 2026-11-27: anchored at 0, so it ended in 1970.
             var offer   = Offer(0, Slot(3600, new RationalNumberType(0, 100)));
             var profile = Iso20EvPowerProfile.Build(offer, Now, dynamic: false);
             var entries = profile.EVPowerProfileEntries.EVPowerProfileEntry;

@@ -1334,24 +1334,33 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                         MinimumSOC: null, TargetSOC: null, AbsolutePriceSchedule: null, PriceLevelSchedule: null),
                     Scheduled_SEResControlMode: null);
 
-            var powerSchedule = new PowerScheduleType(TimeAnchor: 0, AvailableEnergy: null, PowerTolerance: null,
+            // Every anchor below is "now" in SECC time ([V2G20-1529]), and SECC time is the TimeStamp this
+            // very response carries ([V2G20-1536]). Until 2026-11-27 they were all 0, which is 1970: by
+            // [V2G20-1811] a schedule that ended then offers zero power at any present time, and a car that
+            // honours [V2G20-1559] can only answer it with a zero profile. The units differ by table, not
+            // by choice: a PowerSchedule's TimeAnchor is in milliseconds (Table 112), a PriceLevelSchedule's
+            // and an AbsolutePriceSchedule's in microseconds (Tables 156, 143). [V2G20-2163] wants the price
+            // anchor at the present or in the near past, which the present satisfies.
+            var header = SessionCtx.ToCommonHeader();
+            var nowS   = header.TimeStamp;
+
+            var powerSchedule = new PowerScheduleType(TimeAnchor: nowS * 1_000, AvailableEnergy: null, PowerTolerance: null,
                 new PowerScheduleEntryListType(new[] { new PowerScheduleEntryType(Duration: 3600, Power: new RationalNumberType(0, 100), null, null) }));
 
             // A ChargingSchedule must carry a price schedule (either PriceLevel or AbsolutePrice) — a live
             // Josev EVCC rejects the tuple otherwise. Default: PriceLevelSchedule, the compact form (one
             // flat level). With a TariffSignKey: the rich, digitally signed AbsolutePriceSchedule instead.
             ChargingScheduleType chargingSchedule;
-            var header = SessionCtx.ToCommonHeader();
             if (TariffSignKey is null)
             {
-                var priceLevelSchedule = new PriceLevelScheduleType(Id: null, TimeAnchor: 0, PriceScheduleID: 1,
+                var priceLevelSchedule = new PriceLevelScheduleType(Id: null, TimeAnchor: nowS * 1_000_000, PriceScheduleID: 1,
                     PriceScheduleDescription: null, NumberOfPriceLevels: 1,
                     new PriceLevelScheduleEntryListType(new[] { new PriceLevelScheduleEntryType(Duration: 3600, PriceLevel: 0) }));
                 chargingSchedule = new ChargingScheduleType(powerSchedule, AbsolutePriceSchedule: null, priceLevelSchedule);
             }
             else
             {
-                var priceSchedule = AbsolutePriceSchedule();
+                var priceSchedule = AbsolutePriceSchedule(timeAnchorMicroseconds: nowS * 1_000_000);
                 chargingSchedule = new ChargingScheduleType(powerSchedule, priceSchedule, PriceLevelSchedule: null);
                 header = header with { Signature = SignPriceSchedule(priceSchedule) };
             }
@@ -1368,8 +1377,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <summary>The rich -20 tariff: energy fees per power band (≤ 11 kW cheap, above pricier), stepping
         /// up after 30 min — the -20 analogue of the -2 SalesTariff offer. Fees are EUR/kWh scaled 10^-2
         /// (0.25 → RationalNumber(-2, 25)).</summary>
-        private static AbsolutePriceScheduleType AbsolutePriceSchedule() =>
-            new(Id: "absolutePriceSchedule1", TimeAnchor: 0, PriceScheduleID: 1,
+        private static AbsolutePriceScheduleType AbsolutePriceSchedule(ulong timeAnchorMicroseconds) =>
+            new(Id: "absolutePriceSchedule1", TimeAnchor: timeAnchorMicroseconds, PriceScheduleID: 1,
                 PriceScheduleDescription: "off-peak first",
                 Currency: "EUR", Language: "en",
                 PriceAlgorithm: "urn:iso:std:iso:15118:-20:PriceAlgorithm:1-Power",

@@ -65,6 +65,12 @@ well-formed response it cannot decrypt — the program warns rather than letting
 decryption failure. And it is accepted for `-2` but does nothing there: this EVCC implements
 CertificateInstallation only for `-20`, and says so on the run rather than dropping the flag quietly.
 
+Both `-20` signatures, the contract's and the OEM's, declare `ecdsa-sha512` over a SHA-512 digest, as
+`[V2G20-2473]` and `[V2G20-2475]` ask. `--xmldsig josev` switches them to `ecdsa-sha256`, the only
+form a Josev station verifies. The curve is not checked here. A station that holds `-20` to its
+certificate profile refuses a P-256 contract with `WARNING_CertificateValidationError`, and this car
+then stops rather than carrying on unauthorized (`[V2G20-1583]`).
+
 ## Which TLS backend, and why it is not a preference
 
 `--tls` / `--tls-backend dotnet` uses .NET's `SslStream`, which is fast and native. It also cannot

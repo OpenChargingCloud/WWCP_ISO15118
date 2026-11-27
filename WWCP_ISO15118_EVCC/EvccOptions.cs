@@ -17,6 +17,7 @@
 
 using org.GraphDefined.Vanaheimr.Hermod;
 using cloud.charging.open.protocols.ISO15118.StateMachines;
+using cloud.charging.open.protocols.ISO15118.StateMachines.Iso20;
 using cloud.charging.open.protocols.ISO15118.SharedCC;
 using cloud.charging.open.protocols.ISO15118.Transport;
 
@@ -43,7 +44,8 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
         bool Renegotiate, string? TariffCertPath, string? TariffCertPass,
         double? BatteryKWh, double? StartSoC, double? TargetSoC, double? TargetEnergyKWh,
         TimeSpan? MaxChargingTime, double? PowerKW,
-        TimeSpan? DepartureIn, double? MinimumSoC, double? TaperFromSoC)
+        TimeSpan? DepartureIn, double? MinimumSoC, double? TaperFromSoC,
+        XmlDsigSuite XmlDsig)
     {
 
         /// <summary>
@@ -76,6 +78,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             double? batteryKWh = null, startSoC = null, targetSoC = null, targetEnergyKWh = null, powerKW = null;
             TimeSpan? maxChargingTime = null, departureIn = null;
             double? minimumSoC = null, taperFromSoC = null;
+            var xmldsig = XmlDsigSuite.Iso20;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -163,6 +166,16 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                     case "--contract-cert-pass":
                         contractCertPass = args[++i];
                         break;
+                    // The algorithms a -20 header signature declares. -20's own ecdsa-sha512 unless the
+                    // station is Josev's, which verifies ecdsa-sha256 and nothing else. -2 has one form.
+                    case "--xmldsig":
+                        xmldsig = args[++i] switch
+                        {
+                            "iso20" => XmlDsigSuite.Iso20,
+                            "josev" => XmlDsigSuite.JosevSha256,
+                            var v   => throw new ArgumentException($"--xmldsig expects iso20 or josev, got '{v}'."),
+                        };
+                        break;
                     case "--pause-resume":
                         pauseResume = true;
                         break;
@@ -237,7 +250,7 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
                                    pauseResume, endPaused, resumeSessionIdHex,
                                    renegotiate, tariffCertPath, tariffCertPass,
                                    batteryKWh, startSoC, targetSoC, targetEnergyKWh, maxChargingTime, powerKW,
-                                   departureIn, minimumSoC, taperFromSoC);
+                                   departureIn, minimumSoC, taperFromSoC, xmldsig);
         }
 
         private static double ParsePositive(string value, string flag, string unit)
@@ -393,6 +406,9 @@ namespace cloud.charging.open.protocols.ISO15118.EVCC
             "                                      contract. -20: requests CertificateInstallation and\n" +
             "                                      unwraps the issued contract key (needs a P-521 key).\n" +
             "                                      Accepted for -2, where nothing uses it yet.\n" +
+            "          --xmldsig iso20|josev       what a -20 signature declares (default: iso20, which is\n" +
+            "                                      ecdsa-sha512 over a SHA-512 digest). josev is\n" +
+            "                                      ecdsa-sha256, the only form a Josev station verifies.\n" +
             "  Battery: any one of these turns the charge loop from three iterations into a session that\n" +
             "           ends when the car is done. One iteration is one simulated minute, so a full charge\n" +
             "           is hundreds of exchanges — give --max-charging-time when driving a live station.\n" +

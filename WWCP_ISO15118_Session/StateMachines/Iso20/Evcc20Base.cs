@@ -633,9 +633,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             var encodeAuthReq = BuildAuthorizationReqEncoder(authSetup);
             var authGuard = new OngoingGuard(clock, OngoingTimeout, "Authorization");
-            while ((await Exchange<AuthorizationRes>(MessageSet.Iso20CommonMessages, encodeAuthReq, ct))
-                   .EVSEProcessing != Processing.Finished)
+            while (true)
             {
+                var authRes = await Exchange<AuthorizationRes>(MessageSet.Iso20CommonMessages, encodeAuthReq, ct);
+                StopOnAuthorizationWarning(authRes);
+
+                if (authRes.EVSEProcessing == Processing.Finished)
+                    break;
+
                 authGuard.Tick();
                 await pollDelay.Wait(PollInterval, ct);
             }
@@ -823,9 +828,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         /// <summary>
         /// Runs the contract-provisioning exchange (ISO 15118-20 CertificateInstallation): sends the signed
-        /// OEM provisioning chain (Id "id1", Josev-interop signature form over the chain's EXI fragment —
-        /// the same shape a live Josev EVCC produces), then verifies the response's CPS signature over the
-        /// <c>SignedInstallationData</c> fragment and ECDH-unwraps the issued contract private key.
+        /// OEM provisioning chain (Id "id1", signed over the chain's EXI fragment by
+        /// <see cref="XmlDsigInteropSign"/> in <see cref="CertInstallEvccOptions.Suite"/>), then verifies the
+        /// response's CPS signature over the <c>SignedInstallationData</c> fragment and ECDH-unwraps the
+        /// issued contract private key.
         /// </summary>
         private async Task RunCertificateInstallationAsync(CertInstallEvccOptions oem, CancellationToken ct)
         {
@@ -835,7 +841,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             var fragment = new byte[8192];
             if (!CommonMessagesCodec.EncodeFragment_OEMProvisioningCertificateChain(chain, fragment, out int fragmentLength))
                 throw EncodeFailed();
-            var signature = XmlDsigInteropSign.Sign("id1", fragment.AsSpan(0, fragmentLength), oem.OemSignKey);
+            var signature = XmlDsigInteropSign.Sign("id1", fragment.AsSpan(0, fragmentLength), oem.OemSignKey, oem.Suite);
 
             var res = await Exchange<CertificateInstallationRes>(MessageSet.Iso20CommonMessages,
                 dest => new CertificateInstallationReq(SessionCtx.ToCommonHeader() with { Signature = signature },
@@ -866,8 +872,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// loop reuses. Plug &amp; Charge — when <see cref="Pnc"/> is set AND the SECC both offers PnC and sent
         /// a GenChallenge — builds and signs the request <b>once</b> (the challenge does not change across
         /// polls): challenge echo + contract chain in <c>PnC_AReqAuthorizationMode</c> (Id "id1"), and the
-        /// header signature over its EXI fragment in Josev's interop form (<see cref="XmlDsigInteropSign"/>).
-        /// Everything else falls back to EIM.
+        /// header signature over its EXI fragment by <see cref="XmlDsigInteropSign"/>, in
+        /// <see cref="PncEvccOptions.Suite"/>. Everything else falls back to EIM.
         /// </summary>
         private Func<byte[], int> BuildAuthorizationReqEncoder(AuthorizationSetupRes authSetup)
         {
@@ -882,7 +888,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 var fragment = new byte[8192];
                 if (!CommonMessagesCodec.EncodeFragment_PnC_AReqAuthorizationMode(pncMode, fragment, out int fragmentLength))
                     throw EncodeFailed();
-                var signature = XmlDsigInteropSign.Sign("id1", fragment.AsSpan(0, fragmentLength), pnc.ContractKey);
+                var signature = XmlDsigInteropSign.Sign("id1", fragment.AsSpan(0, fragmentLength), pnc.ContractKey, pnc.Suite);
 
                 AuthorizationMode = "pnc-signed";
                 return dest => new AuthorizationReq(SessionCtx.ToCommonHeader() with { Signature = signature },
@@ -1005,6 +1011,39 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
 
         /// <summary>
+        /// Ends the session when the station answers <c>AuthorizationRes</c> with a <c>WARNING_*</c> code.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Found live.</b> Until 2026-11-27 a <c>WARNING</c> went through <see cref="RefuseOnFailure"/>
+        /// as something to continue past, which is right for most messages and wrong for this one.
+        /// EVerest 2026.10.0 answered our P-256 contract with <c>WARNING_CertificateValidationError</c>
+        /// ([V2G20-2215]) and <c>EVSEProcessing = Finished</c>. Our car read <c>Finished</c>, sent
+        /// <c>ServiceDiscoveryReq</c>, and got <c>FAILED_SequenceError</c>
+        /// (<c>ISO15118ConformanceTests/docs/interop-runs/2026-11-26-everest-2026.10.0-forward/</c>).
+        /// </para>
+        /// <para>
+        /// [V2G20-2201] leaves the reaction to a WARNING to each message. For <c>AuthorizationRes</c>,
+        /// [V2G20-1583] lists the car's options: authorize again (another contract, or the other of PnC
+        /// and EIM if it was offered), install a contract, or stop the V2G communication. Moving on to
+        /// <c>ServiceDiscovery</c> is not one of them, and a station that has not authorized the car stays
+        /// in Authorization. Our own SECC does the same (<c>Secc20Base.AuthStep</c>).
+        /// </para>
+        /// <para>
+        /// This car takes the last option: it has one credential and does not switch methods on its own,
+        /// and a test that asked for Plug &amp; Charge must not charge by EIM and call that a pass. The
+        /// message names the code, which is what a live run is read by.
+        /// </para>
+        /// </remarks>
+        private static void StopOnAuthorizationWarning(AuthorizationRes res)
+        {
+            if (res.ResponseCode is >= ResponseCode.WARNING_AuthorizationSelectionInvalid and < ResponseCode.FAILED)
+                throw new SessionAborted(
+                    $"the station answered AuthorizationRes with {res.ResponseCode}: not authorized, so this car "
+                  + "stops instead of continuing to ServiceDiscovery ([V2G20-1583]).");
+        }
+
+        /// <summary>
         /// Ends the session when the station answers with a code from the <c>FAILED</c> family.
         /// </summary>
         /// <remarks>
@@ -1024,8 +1063,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// <para>
         /// <b>The three families.</b> <c>OK*</c> continues, <c>WARNING*</c> continues — a warning is
         /// explicitly the code for "something is off and the session goes on" — and <c>FAILED*</c>
-        /// terminates. The comparison is <c>&gt;= FAILED</c> because the enumeration is ordered by family
-        /// in the schema (OK 0–4, WARNING 5–20, FAILED 21 and up), which
+        /// terminates. The exception is <c>AuthorizationRes</c>, where a warning means "not authorized":
+        /// see <see cref="StopOnAuthorizationWarning"/>. The comparison is <c>&gt;= FAILED</c> because the
+        /// enumeration is ordered by family in the schema (OK 0–4, WARNING 5–20, FAILED 21 and up), which
         /// <c>Evcc20FailureHandlingTests.TheResponseCodeFamiliesAreContiguousAndOrdered</c> pins so a
         /// regenerated enum cannot quietly move the boundary.
         /// </para>

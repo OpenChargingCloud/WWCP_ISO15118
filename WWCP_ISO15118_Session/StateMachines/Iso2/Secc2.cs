@@ -171,6 +171,21 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// <c>PowerDeliveryReq(Renegotiate)</c> and re-runs ChargeParameterDiscovery ([V2G2-841]).</summary>
         public bool RequestRenegotiation { get; set; }
 
+        /// <summary>
+        /// Contract sessions only: after the one receipt this station asks for, ask for a <b>second</b> one
+        /// in the next status response, which then carries <b>no</b> <c>MeterInfo</c>. <b>Off</b> by default.
+        /// </summary>
+        /// <remarks>
+        /// An instrument that copies a counterparty, not behaviour of ours. EVerest's <c>EvseV2G</c> sends
+        /// <c>MeterInfo</c> only once per meter update (its <c>meter_info_is_used</c> flag is one-shot),
+        /// while <c>ReceiptRequired</c> stays <c>true</c>. So a car meets a receipt request with nothing
+        /// new to sign, and `[V2G2-790]` still requires the receipt. This switch puts that case into a
+        /// loopback, where the car's answer can be checked.
+        /// </remarks>
+        public bool DemandReceiptWithoutMeterInfo { get; set; }
+
+        private bool _receiptWithoutMeterInfoDemanded;
+
         /// <summary>How many renegotiation cycles this session ran (EV-initiated or SECC-requested).</summary>
         public int Renegotiations { get; private set; }
 
@@ -1195,11 +1210,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
             // volts x amps it reports below, so the number it signs is the number it announces.
             var measured = Deliver(DcVolts * servedAmps);
 
-            bool receipt = DemandReceipt();
+            var (receipt, withRecord) = DemandReceipt();
             // A station with a real meter reports it every cycle, not only when it wants a receipt
             // signed back: the signed reading is the point on its own (EVSimulatorApp/docs/CONCEPT.md §4.3), and
             // MeterInfo is optional here. Without a meter installed, nothing changes.
-            bool reading = receipt || InstalledMeter is not null;
+            bool reading = (receipt && withRecord) || InstalledMeter is not null;
             return new CurrentDemandResType(ResponseCode.OK, DcEvseStatus(Notification()),
                 EVSEPresentVoltage: Volt(DcVolts),
                 EVSEPresentCurrent: PhysicalValue.Of(PhysicalValue.Amount(servedAmps), UnitSymbol.A),
@@ -1219,8 +1234,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
 
             // A Contract session gets ReceiptRequired + the MeterInfo the EV echoes back inside its
             // signed MeteringReceiptReq (a Josev EVCC only honours this over TLS).
-            bool receipt = DemandReceipt();
-            bool reading = receipt || InstalledMeter is not null;   // see CurrentDemand()
+            var (receipt, withRecord) = DemandReceipt();
+            bool reading = (receipt && withRecord) || InstalledMeter is not null;   // see CurrentDemand()
             return new ChargingStatusResType(ResponseCode.OK, "DE*ABC*E1", SAScheduleTupleID: _chosenTupleId,
                 EVSEMaxCurrent: null,
                 MeterInfo: reading ? measured : null, ReceiptRequired: receipt ? true : null,
@@ -1231,11 +1246,22 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso2
         /// live Josev EVCC re-enters ChargingStatus after every MeteringReceiptRes and only counts down its
         /// charge-loop cycles on receipt-free responses — demanding one every cycle loops the session
         /// forever (found live 2026-07-22: 1789 receipts before we pulled the plug).</summary>
-        private bool DemandReceipt()
+        /// <remarks>With <see cref="DemandReceiptWithoutMeterInfo"/>, the response after it asks once
+        /// more, and that second request carries no record (<c>WithRecord = false</c>).</remarks>
+        private (bool Receipt, bool WithRecord) DemandReceipt()
         {
-            if (!_contract || _receiptRequested) return false;
-            _receiptRequested = true;
-            return true;
+            if (!_contract) return (false, false);
+            if (!_receiptRequested)
+            {
+                _receiptRequested = true;
+                return (true, true);
+            }
+            if (DemandReceiptWithoutMeterInfo && !_receiptWithoutMeterInfoDemanded)
+            {
+                _receiptWithoutMeterInfoDemanded = true;
+                return (true, false);
+            }
+            return (false, false);
         }
 
         /// <summary>Whether THIS status response carries <c>EVSENotification.ReNegotiation</c>: exactly once

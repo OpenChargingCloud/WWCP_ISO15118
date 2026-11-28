@@ -224,11 +224,25 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// comparison between them shows a difference that means nothing. Each set calls this from
         /// its own charge-loop response, where it knows the power it is announcing.
         /// </remarks>
+        /// <para>
+        /// <b>Negative watts are energy going back</b>, from the vehicle to the station (`[V2G20-1035]`),
+        /// and land in the meter's discharge register rather than being subtracted from the charge one:
+        /// -20 reports the two directions as two rising registers. Until 2026-11-28 a negative figure was
+        /// cast to an unsigned one here, which no session reached because this station never discharged.
+        /// </para>
         protected void Deliver(double watts)
         {
-            var wattHours = Metering.ChargeLoopSample.WattHoursRounded(watts);
-            _deliveredWh += wattHours;
-            InstalledMeter?.Add(wattHours);
+            var wattHours = Metering.ChargeLoopSample.RegisterWattHours(watts);
+            if (wattHours >= 0)
+            {
+                _deliveredWh += (ulong) wattHours;
+                InstalledMeter?.Add((ulong) wattHours);
+            }
+            else
+            {
+                _dischargedWh += (ulong) -wattHours;
+                InstalledMeter?.AddDischarged((ulong) -wattHours);
+            }
 
             // Read and signed exactly once per iteration, so the wire and the backend record carry
             // one signature over one reading rather than two legitimate signatures over the same
@@ -238,7 +252,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             _backend?.Sample(_lastReading?.Wh ?? _deliveredWh,
                              (long) (_lastReading?.Timestamp ?? (ulong) clock.GetUtcNow().ToUnixTimeSeconds()),
                              _lastReading is { } r ? Convert.ToHexString(r.Signature).ToLowerInvariant() : null,
-                             MeterPublicKeyHex());
+                             MeterPublicKeyHex(),
+                             _lastReading?.DischargedWh ?? (BidirectionalServiceSelected ? (ulong?) _dischargedWh : null));
         }
 
         /// <summary>Where this station reports to, when it reports anywhere. See <c>Secc2.Backend</c>.</summary>
@@ -246,7 +261,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         private ISessionBackend? _backend;
         private ulong _deliveredWh;
-        private (string Id, ulong Wh, ulong Timestamp, byte[] Signature)? _lastReading;
+        private ulong _dischargedWh;
+        private (string Id, ulong Wh, ulong? DischargedWh, ulong Timestamp, byte[] Signature)? _lastReading;
 
         private string? MeterPublicKeyHex()
         {
@@ -259,7 +275,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         /// <summary>The reading this iteration took, or null without a meter. Built by
         /// <see cref="Deliver"/>, never here, so one iteration yields exactly one signature.</summary>
-        protected (string Id, ulong Wh, ulong Timestamp, byte[] Signature)? MeterReading() => _lastReading;
+        protected (string Id, ulong Wh, ulong? DischargedWh, ulong Timestamp, byte[] Signature)? MeterReading() => _lastReading;
 
         /// <summary>Whether the last charge-loop request set <c>MeterInfoRequested</c> — `[V2G20-1081]`,
         /// the EV asking to be told the meter reading.</summary>
@@ -272,13 +288,24 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// </remarks>
         public Boolean MeterInfoRequestedByEv { get; protected set; }
 
-        private (string Id, ulong Wh, ulong Timestamp, byte[] Signature)? MeasureNow()
+        /// <remarks>In a bidirectional session the reading carries both registers and the meter signs both
+        /// (layout 2 of <see cref="Metering.MeterSigningPayload"/>), from the first iteration on and whether
+        /// or not anything has been discharged yet: a bidirectional meter has two registers, and a reading
+        /// that showed the second only once it moved would sign a different layout mid-session.</remarks>
+        private (string Id, ulong Wh, ulong? DischargedWh, ulong Timestamp, byte[] Signature)? MeasureNow()
         {
             if (InstalledMeter is null)
                 return null;
 
+            if (BidirectionalServiceSelected)
+            {
+                var (charged, discharged, at) = InstalledMeter.ReadBoth();
+                return (InstalledMeter.MeterId, charged, discharged, (ulong) at,
+                        InstalledMeter.Sign(20, SessionId, charged, discharged, at));
+            }
+
             var (wh, timestamp) = InstalledMeter.Read();
-            return (InstalledMeter.MeterId, wh, (ulong) timestamp,
+            return (InstalledMeter.MeterId, wh, null, (ulong) timestamp,
                     InstalledMeter.Sign(20, SessionId, wh, timestamp));
         }
 
@@ -375,7 +402,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             }
 
-            _meteringConfirmationAsked = (new MeterInfoType(reading.Id, reading.Wh, null, null, null, reading.Signature, null, reading.Timestamp),
+            _meteringConfirmationAsked = (new MeterInfoType(reading.Id, reading.Wh, reading.DischargedWh, null, null, reading.Signature, null, reading.Timestamp),
                                           now);
             MeteringConfirmationsRequested++;
             return true;

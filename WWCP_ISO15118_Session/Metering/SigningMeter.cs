@@ -76,15 +76,35 @@ public sealed class SigningMeter
     /// <summary>Advances the meter. A simulator needs the reading to move for the demo to mean anything.</summary>
     public void Add(ulong wattHours) => energyWh += wattHours;
 
+    /// <summary>Advances the meter's <b>discharge</b> register: energy that went from the vehicle to the
+    /// station. A second register rather than a signed one, because -20 reports the two directions in
+    /// two fields, <c>ChargedEnergyReadingWh</c> and <c>BPT_DischargedEnergyReadingWh</c>, both
+    /// unsigned and both only ever rising.</summary>
+    public void AddDischarged(ulong wattHours) => dischargedWh += wattHours;
+
+    /// <summary>Watt-hours discharged so far.</summary>
+    private ulong dischargedWh;
+
     /// <summary>The current reading and the moment it was taken.</summary>
     public (ulong Wh, long Timestamp) Read() => (energyWh, clock.GetUtcNow().ToUnixTimeSeconds());
+
+    /// <summary>Both registers and the moment they were read: what a bidirectional session reports.</summary>
+    public (ulong ChargedWh, ulong DischargedWh, long Timestamp) ReadBoth()
+        => (energyWh, dischargedWh, clock.GetUtcNow().ToUnixTimeSeconds());
 
     /// <summary>
     /// Signs a reading for one session, returning the 64 raw bytes the field takes.
     /// </summary>
     public byte[] Sign(int protocol, ReadOnlySpan<byte> sessionId, ulong reading, long? timestamp)
+        => Sign(protocol, sessionId, reading, discharged: null, timestamp);
+
+    /// <summary>
+    /// Signs a reading for one session, over both registers when <paramref name="discharged"/> is
+    /// present (layout 2 of <see cref="MeterSigningPayload"/>), else over the charged one alone.
+    /// </summary>
+    public byte[] Sign(int protocol, ReadOnlySpan<byte> sessionId, ulong reading, ulong? discharged, long? timestamp)
     {
-        var payload = MeterSigningPayload.Build(protocol, sessionId, MeterId, reading, timestamp);
+        var payload = MeterSigningPayload.Build(protocol, sessionId, MeterId, reading, discharged, timestamp);
 
         // IeeeP1363 is the raw r‖s form. The default here is DER, which would be 70-ish bytes and
         // would not fit the field at all — see the class remarks.
@@ -95,11 +115,16 @@ public sealed class SigningMeter
     /// <summary>Verifies a signed reading — the vehicle's half, and what the app will do.</summary>
     public static bool Verify(ECDsa publicKey, int protocol, ReadOnlySpan<byte> sessionId,
                               string meterId, ulong reading, long? timestamp, byte[] signature)
+        => Verify(publicKey, protocol, sessionId, meterId, reading, discharged: null, timestamp, signature);
+
+    /// <summary>Verifies a signed reading, in layout 2 when the reading carries a discharge register.</summary>
+    public static bool Verify(ECDsa publicKey, int protocol, ReadOnlySpan<byte> sessionId,
+                              string meterId, ulong reading, ulong? discharged, long? timestamp, byte[] signature)
     {
         if (signature.Length != 64)
             return false;
 
-        var payload = MeterSigningPayload.Build(protocol, sessionId, meterId, reading, timestamp);
+        var payload = MeterSigningPayload.Build(protocol, sessionId, meterId, reading, discharged, timestamp);
         return publicKey.VerifyData(payload, signature, HashAlgorithmName.SHA256,
                                     DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
     }

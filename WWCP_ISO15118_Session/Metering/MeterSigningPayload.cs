@@ -66,10 +66,36 @@ namespace cloud.charging.open.protocols.ISO15118.Metering;
 /// the same octets: with plain concatenation, meter <c>"A1"</c> reading 23 and meter <c>"A"</c>
 /// reading 123 could collide.
 /// </para>
+///
+/// ## Layout 2, for a bidirectional meter (since 2026-11-28)
+///
+/// <code>
+/// "V2G-METER-2\0"      12 bytes, domain separator
+/// protocol              1 byte   20 (-2 has no discharge register)
+/// sessionId             8 bytes
+/// meterIdLength         1 byte
+/// meterId               n bytes  UTF-8
+/// reading               8 bytes  big-endian, Wh charged (ChargedEnergyReadingWh)
+/// discharged            8 bytes  big-endian, Wh discharged (BPT_DischargedEnergyReadingWh)
+/// timestamp             8 bytes  big-endian, unix seconds; 0 when absent
+/// </code>
+///
+/// <para>
+/// Used exactly when the reading carries <c>BPT_DischargedEnergyReadingWh</c>, which a station with a
+/// meter sends in every reading of a bidirectional session. Layout 1 stays what it was for everything
+/// else, so no signature made before stops verifying. The separator differs, so a layout-1 signature
+/// can never be read as a layout-2 one or the other way round: a verifier picks the layout by whether
+/// the discharge register is present, and a reading with the register stripped no longer verifies.
+/// Signing both registers is the point. A discharged figure beside a signature over the charged one
+/// alone would be an unsigned number that looks signed, and the discharge direction is the one in
+/// which the driver is the seller.
+/// </para>
 /// </remarks>
 public static class MeterSigningPayload
 {
     private static ReadOnlySpan<byte> DomainSeparator => "V2G-METER-1\0"u8;
+
+    private static ReadOnlySpan<byte> DomainSeparatorBidirectional => "V2G-METER-2\0"u8;
 
     /// <summary>The maximum id length the layout can express.</summary>
     public const int MaxMeterIdBytes = 255;
@@ -81,20 +107,33 @@ public static class MeterSigningPayload
     /// <param name="timestamp">Unix seconds, or null — <c>TMeter</c> (-2) or <c>MeterTimestamp</c> (-20).</param>
     public static byte[] Build(int protocol, ReadOnlySpan<byte> sessionId, string meterId,
                                ulong reading, long? timestamp)
+        => Build(protocol, sessionId, meterId, reading, discharged: null, timestamp);
+
+    /// <summary>Builds the octets to sign or verify, in layout 2 when <paramref name="discharged"/> is
+    /// present and in layout 1 otherwise.</summary>
+    /// <param name="discharged">Energy discharged in Wh, <c>BPT_DischargedEnergyReadingWh</c>: present
+    /// exactly when the reading carries it. Only -20 has the register.</param>
+    public static byte[] Build(int protocol, ReadOnlySpan<byte> sessionId, string meterId,
+                               ulong reading, ulong? discharged, long? timestamp)
     {
         if (protocol is not (2 or 20))
             throw new ArgumentOutOfRangeException(nameof(protocol), protocol, "protocol must be 2 or 20");
+
+        if (discharged is not null && protocol != 20)
+            throw new ArgumentException("only -20 has a discharged-energy register", nameof(discharged));
 
         var id = Encoding.UTF8.GetBytes(meterId);
         if (id.Length > MaxMeterIdBytes)
             throw new ArgumentException($"meter id is {id.Length} bytes; the layout allows {MaxMeterIdBytes}",
                                         nameof(meterId));
 
-        var payload = new byte[DomainSeparator.Length + 1 + sessionId.Length + 1 + id.Length + 8 + 8];
+        var separator = discharged is null ? DomainSeparator : DomainSeparatorBidirectional;
+        var payload   = new byte[separator.Length + 1 + sessionId.Length + 1 + id.Length + 8
+                                 + (discharged is null ? 0 : 8) + 8];
         var at = 0;
 
-        DomainSeparator.CopyTo(payload.AsSpan(at));
-        at += DomainSeparator.Length;
+        separator.CopyTo(payload.AsSpan(at));
+        at += separator.Length;
 
         payload[at++] = (byte) protocol;
 
@@ -107,6 +146,12 @@ public static class MeterSigningPayload
 
         BinaryPrimitives.WriteUInt64BigEndian(payload.AsSpan(at), reading);
         at += 8;
+
+        if (discharged is { } exported)
+        {
+            BinaryPrimitives.WriteUInt64BigEndian(payload.AsSpan(at), exported);
+            at += 8;
+        }
 
         // Absent is encoded as 0 rather than omitted, so the payload length never depends on which
         // optional fields happen to be present — one fewer way for two readings to share octets.

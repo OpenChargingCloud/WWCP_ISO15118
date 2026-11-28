@@ -50,10 +50,15 @@ namespace cloud.charging.open.protocols.ISO15118.Session
         /// record exists to enable.
         /// </param>
         /// <param name="meterPublicKey">The meter's public key, so the record can be checked without it.</param>
+        /// <param name="dischargedWattHours">The meter's discharge register, present exactly in a
+        /// bidirectional session: energy that went from the vehicle to the station, not a delta. When
+        /// present, <paramref name="signature"/> covers both registers (layout 2 of
+        /// <c>MeterSigningPayload</c>).</param>
         void Sample(ulong wattHours,
                     long unixSeconds,
                     string? signature = null,
-                    string? meterPublicKey = null);
+                    string? meterPublicKey = null,
+                    ulong? dischargedWattHours = null);
 
     }
 

@@ -144,17 +144,32 @@ public sealed class ClockComparison
 /// <param name="VehicleWh">The vehicle's own count at the same iteration (<see cref="EvMeter"/>).</param>
 /// <param name="Signed">Whether the reading carried the meter's signature. Present, not verified.</param>
 /// <param name="MeterTime">The meter's own timestamp, when it sent one.</param>
+/// <param name="DischargedWh">The meter's discharge register, <c>BPT_DischargedEnergyReadingWh</c>, when the
+/// reading carries one: energy from the vehicle to the station in a bidirectional session. Null for a
+/// charge-only reading, which is every -2 one.</param>
 /// <remarks>
+/// <para>
 /// Paired <b>at the reading</b>: the vehicle's figure is taken after it counted the same iteration the
 /// station's response answered. Comparing a station's early reading with the vehicle's final total
 /// would show a difference with nothing wrong in it.
+/// </para>
+/// <para>
+/// <b>Compared net in a bidirectional session.</b> The vehicle keeps one signed total, which goes down
+/// when it gives energy back, and the station keeps two rising registers. So the figure the vehicle's
+/// count is held to is charged minus discharged, <see cref="StationNetWh"/>. Until 2026-11-28 it was the
+/// charged register alone, and a discharge session showed a difference of everything it gave back.
+/// </para>
 /// </remarks>
 public sealed record StationReading(int Sample, string MeterId, ulong StationWh, double VehicleWh,
-                                    bool Signed, DateTimeOffset? MeterTime)
+                                    bool Signed, DateTimeOffset? MeterTime, ulong? DischargedWh = null)
 {
 
-    /// <summary>Station minus vehicle, in watt-hours.</summary>
-    public double DifferenceWh => StationWh - VehicleWh;
+    /// <summary>The station's net figure in watt-hours: charged minus discharged, or the charged register
+    /// alone when the reading has no discharge register. Negative when more went back than came in.</summary>
+    public double StationNetWh => (double) StationWh - (DischargedWh ?? 0);
+
+    /// <summary>Station minus vehicle, in watt-hours, on the net figure.</summary>
+    public double DifferenceWh => StationNetWh - VehicleWh;
 
     /// <summary>The difference relative to the vehicle's count, or null while that is zero.</summary>
     public double? RelativeDifference => VehicleWh != 0 ? DifferenceWh / VehicleWh : null;

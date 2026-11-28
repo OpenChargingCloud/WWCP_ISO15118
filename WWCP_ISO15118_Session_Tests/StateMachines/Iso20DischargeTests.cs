@@ -87,6 +87,7 @@ public class Iso20DischargeTests
             Assert.That(discharged,                      Is.GreaterThan(0UL), "the meter's discharge register did not move");
             Assert.That(vehicle.Meter.Energy,            Is.EqualTo((double) charged - discharged),
                         "the vehicle's count and the meter's two registers disagree");
+            AssertTheVehicleAgreesAtEveryReading(vehicle);
         });
 
     }
@@ -152,7 +153,35 @@ public class Iso20DischargeTests
             Assert.That(discharged,                      Is.GreaterThan(0UL), "the vehicle never followed the ask");
             Assert.That(vehicle.Meter.Energy,            Is.EqualTo((double) charged - discharged),
                         "the vehicle's count and the meter's two registers disagree");
+            AssertTheVehicleAgreesAtEveryReading(vehicle);
         });
+
+    }
+
+    #endregion
+
+    #region (private static) AssertTheVehicleAgreesAtEveryReading(Vehicle)
+
+    /// <summary>
+    /// The vehicle's own comparison, reading by reading: its count against the station's net figure.
+    /// </summary>
+    /// <remarks>Until 2026-11-28 <see cref="StationReading"/> held the count against the charged register
+    /// alone, so every reading of a discharge session showed a difference of what had gone back.</remarks>
+    private static void AssertTheVehicleAgreesAtEveryReading(Evcc20Base Vehicle)
+    {
+
+        Assert.That(Vehicle.StationReadings, Is.Not.Empty, "the vehicle paired no station reading at all");
+
+        foreach (var reading in Vehicle.StationReadings)
+        {
+            Assert.That(reading.DischargedWh, Is.Not.Null,
+                        $"sample {reading.Sample}: a bidirectional reading without its discharge register");
+            Assert.That(reading.DifferenceWh, Is.Zero,
+                        $"sample {reading.Sample}: station {reading.StationWh} in, {reading.DischargedWh} back, "
+                      + $"vehicle {reading.VehicleWh}");
+        }
+
+        Assert.That(Vehicle.StationReadings[^1].DischargedWh, Is.GreaterThan(0UL));
 
     }
 

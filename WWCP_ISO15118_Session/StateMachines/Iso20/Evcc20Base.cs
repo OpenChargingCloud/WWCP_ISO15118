@@ -455,14 +455,18 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// Record the station's meter reading from a charge-loop response. Called by the AC and DC
         /// loops <b>after</b> they sampled <see cref="Meter"/>, so the pair describes one iteration.
         /// </summary>
-        protected void NoteStationReading(String meterId, UInt64 stationWh, Boolean signed, UInt64? meterTimestamp)
+        /// <remarks>In a bidirectional session the reading carries the discharge register too, and the
+        /// pair is compared net (<see cref="Metering.StationReading.StationNetWh"/>).</remarks>
+        protected void NoteStationReading(String meterId, UInt64 stationWh, Boolean signed, UInt64? meterTimestamp,
+                                          UInt64? dischargedWh = null)
         {
 
             var meterTime = meterTimestamp is { } stamp
                                 ? MeterClock.Note(_lastSent, _lastReceived, stamp)?.Peer
                                 : null;
 
-            var reading   = new Metering.StationReading(Meter.Samples, meterId, stationWh, Meter.Energy, signed, meterTime);
+            var reading   = new Metering.StationReading(Meter.Samples, meterId, stationWh, Meter.Energy, signed, meterTime,
+                                                         dischargedWh);
 
             _stationReadings.Add(reading);
             OnStationReading?.Invoke(reading);

@@ -39,8 +39,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 ? new Ac20.BPT_AC_CPDReqEnergyTransferModeType(
                       EVMaximumChargePower: Rat(2_200, 1), EVMaximumChargePower_L2: null, EVMaximumChargePower_L3: null,
                       EVMinimumChargePower: Rat(0), EVMinimumChargePower_L2: null, EVMinimumChargePower_L3: null,
-                      EVMaximumDischargePower: Rat(2_200, 1), EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
-                      EVMinimumDischargePower: Rat(0), EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null)
+                      EVMaximumDischargePower: Discharging(Rat(2_200, 1)), EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
+                      EVMinimumDischargePower: Discharging(Rat(0)), EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null)
                 : new Ac20.AC_CPDReqEnergyTransferModeType(
                       EVMaximumChargePower: Rat(2_200, 1), EVMaximumChargePower_L2: null, EVMaximumChargePower_L3: null,
                       EVMinimumChargePower: Rat(0), EVMinimumChargePower_L2: null, EVMinimumChargePower_L3: null);
@@ -168,9 +168,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVPresentActivePower_L2:  null, EVPresentActivePower_L3: null,
                       EVPresentReactivePower:   Rat(0),
                       EVPresentReactivePower_L2: null, EVPresentReactivePower_L3: null,
-                      EVMaximumDischargePower:  LoopMaxChargePower,   // the charge request mirrored
+                      EVMaximumDischargePower:  Discharging(LoopMaxChargePower),   // the charge request mirrored
                       EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
-                      EVMinimumDischargePower:  Rat(1,  3),
+                      EVMinimumDischargePower:  Discharging(Rat(1,  3)),
                       EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null,
                       EVMaximumV2XEnergyRequest: null, EVMinimumV2XEnergyRequest: null),
 
@@ -197,9 +197,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVMinimumEnergyRequest: ScheduledMinimumEnergy,
                       EVMaximumChargePower: ScheduledMaxChargePower, null, null, null, null, null,
                       EVPresentActivePower: PresentActivePower, null, null, null, null, null,
-                      EVMaximumDischargePower: Rat(2_200, 1),   // 22 kW: what the car can give back, hardware
+                      EVMaximumDischargePower: Discharging(Rat(2_200, 1)),   // 22 kW: what the car can give back, hardware
                       EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
-                      EVMinimumDischargePower: Rat(0),
+                      EVMinimumDischargePower: Discharging(Rat(0)),
                       EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null),
 
                 _ => new Ac20.Scheduled_AC_CLReqControlModeType(
@@ -262,6 +262,14 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         }
 
         private static Ac20.RationalNumberType Rat(short value, sbyte exponent = 0) => new(exponent, value);
+
+        /// <summary>A limit on energy flowing from the vehicle, as it goes on the wire: negative.</summary>
+        /// <remarks>`[V2G20-1213]` sets parameters used for discharging negative, for AC and DC BPT alike,
+        /// under the `[V2G20-1035]` rule that negative is the direction from the vehicle; every comparison
+        /// between limits in the standard is written on absolute values. EVerest 2026.10.0's EV and station
+        /// send theirs that way. A magnitude already given negative stays negative.</remarks>
+        private static Ac20.RationalNumberType Discharging(Ac20.RationalNumberType magnitude)
+            => magnitude with { Value = (short) -Math.Abs(magnitude.Value) };
 
         /// <summary>Watts as an AC rational; the arithmetic (and its saturation) is
         /// <see cref="Evcc20Base.ScaledRational"/>, shared with the DC side.</summary>

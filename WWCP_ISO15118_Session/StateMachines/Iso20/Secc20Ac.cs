@@ -97,8 +97,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     EVSEMinimumChargePower: Rat(0), EVSEMinimumChargePower_L2: null, EVSEMinimumChargePower_L3: null,
                     EVSENominalFrequency: Rat(50), MaximumPowerAsymmetry: null, EVSEPowerRampLimitation: null,
                     EVSEPresentActivePower: null, EVSEPresentActivePower_L2: null, EVSEPresentActivePower_L3: null,
-                    EVSEMaximumDischargePower: Rat(2_200, exponent: 1), EVSEMaximumDischargePower_L2: null, EVSEMaximumDischargePower_L3: null,
-                    EVSEMinimumDischargePower: Rat(0), EVSEMinimumDischargePower_L2: null, EVSEMinimumDischargePower_L3: null)
+                    EVSEMaximumDischargePower: Discharging(Rat(2_200, exponent: 1)), EVSEMaximumDischargePower_L2: null, EVSEMaximumDischargePower_L3: null,
+                    EVSEMinimumDischargePower: Discharging(Rat(0)), EVSEMinimumDischargePower_L2: null, EVSEMinimumDischargePower_L3: null)
                 : new Ac20.AC_CPDResEnergyTransferModeType(
                     EVSEMaximumChargePower: Rat(2_200, exponent: 1), EVSEMaximumChargePower_L2: null, EVSEMaximumChargePower_L3: null,
                     EVSEMinimumChargePower: Rat(0), EVSEMinimumChargePower_L2: null, EVSEMinimumChargePower_L3: null,
@@ -221,9 +221,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         private static Ac20.RationalNumberType Rat(short value, sbyte exponent = 0) => new(exponent, value);
 
+        /// <summary>A limit on energy flowing to the station, as it goes on the wire: negative
+        /// (`[V2G20-1213]`; see <c>Evcc20Ac.Discharging</c>).</summary>
+        private static Ac20.RationalNumberType Discharging(Ac20.RationalNumberType magnitude)
+            => magnitude with { Value = (short) -Math.Abs(magnitude.Value) };
+
         /// <summary>The negative <c>EVSETargetActivePower</c> that asks for <see cref="DischargePowerW"/>, or
         /// null when this station is not discharging. Held inside the outlet's power and the vehicle's own
-        /// <c>EVMaximumDischargePower</c>, whose sign the field practice leaves positive, hence its size.</summary>
+        /// <c>EVMaximumDischargePower</c>, taken by its size: `[V2G20-1213]` makes it negative, and EVerest's
+        /// EV sends it so, while Josev's and eVDriveFlow's cars send it positive.</summary>
         private Ac20.RationalNumberType? DischargeTarget(Ac20.BPT_Dynamic_AC_CLReqControlModeType request)
         {
             if (DischargePowerW is not { } asked)

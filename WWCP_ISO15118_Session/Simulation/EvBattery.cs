@@ -100,7 +100,9 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
         /// <summary>What the pack holds now, in watt-hours.</summary>
         public double EnergyWh { get; private set; }
 
-        /// <summary>What has gone in since the session started, in watt-hours.</summary>
+        /// <summary>What has gone in since the session started, net of what went back out, in watt-hours.
+        /// Negative once a discharging session has taken more than it gave, but never below what the pack
+        /// held at the start.</summary>
         public double DeliveredWh { get; private set; }
 
         /// <summary>The state of charge now, in percent.</summary>
@@ -260,11 +262,26 @@ namespace cloud.charging.open.protocols.ISO15118.Simulation
             else
             {
                 // Negative is a bidirectional session exporting: the pack goes down, and down to empty.
+                // Counted as what the pack released, like the charging side above, and not as what the
+                // station asked for: against EVerest's exporting station a pack starting at 30 kWh ended
+                // at 0 % having "delivered" -38.86 kWh, energy it never held.
                 var released = Math.Min(-wattHours, EnergyWh);
                 EnergyWh    -= released;
-                DeliveredWh += wattHours;
+                DeliveredWh -= released;
             }
         }
+
+        /// <summary>
+        /// Whether the pack has anything left to give back. A bidirectional car states its discharge limits
+        /// as zero once this is false, so the station has nothing it may take.
+        /// </summary>
+        /// <remarks>
+        /// The same 0.5 Wh tolerance as <see cref="ChargeStop.Full"/> at the other end: the meter counts
+        /// whole watt-hours, so a pack emptied by it lands next to zero and never exactly on it. Not a
+        /// stop condition. An empty pack in a bidirectional session can still be charged, and ending the
+        /// session is the station's call.
+        /// </remarks>
+        public bool CanDischarge => EnergyWh > 0.5;
 
         /// <summary>
         /// Whether a goal has been met, and which. Evaluated in the order a driver would care about:

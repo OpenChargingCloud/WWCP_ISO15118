@@ -66,12 +66,20 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// before there were batteries and what every recorded run was taken at.
         /// </summary>
         /// <remarks>
+        /// <para>
         /// This is the honest place for it, and it is also the whole of AC's control model: the station
         /// offers an envelope and the <em>car</em> decides what to draw inside it, which is why AC needs no
         /// setpoint field for the EV to be steerable. <see cref="Secc20Ac"/> meters what this says.
+        /// </para>
+        /// <para>
+        /// A discharge target is followed only while the pack has something to give. Once it is empty the
+        /// car's own discharge limits are zero, so it holds the station's ask to those and draws nothing:
+        /// 0 W, neither the export it cannot give nor the charge nobody asked for. Read here rather than
+        /// when the target arrives, so it sees the pack after this iteration has been counted.
+        /// </para>
         /// </remarks>
         private Ac20.RationalNumberType PresentActivePower
-            => _dischargeTarget
+            => (_dischargeTarget is { } asked ? (OffersDischarge ? asked : Rat(0)) : null)
                ?? (Battery is { RequestedPowerW: > 0 } b
                        ? Watts(Math.Min(MaxActivePowerW, b.RequestedPowerW * b.PowerFactor))
                        : Rat(2_200, 1));   // 22 kW, and this exact encoding — the corpus recorded it
@@ -168,9 +176,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVPresentActivePower_L2:  null, EVPresentActivePower_L3: null,
                       EVPresentReactivePower:   Rat(0),
                       EVPresentReactivePower_L2: null, EVPresentReactivePower_L3: null,
-                      EVMaximumDischargePower:  Discharging(LoopMaxChargePower),   // the charge request mirrored
+                      // The charge request mirrored while the pack has something to give, zero once
+                      // it is empty (see Evcc20Base.OffersDischarge).
+                      EVMaximumDischargePower:  Discharging(OffersDischarge ? LoopMaxChargePower : Rat(0)),
                       EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
-                      EVMinimumDischargePower:  Discharging(Rat(1,  3)),
+                      EVMinimumDischargePower:  Discharging(OffersDischarge ? Rat(1, 3)          : Rat(0)),
                       EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null,
                       EVMaximumV2XEnergyRequest: null, EVMinimumV2XEnergyRequest: null),
 
@@ -197,7 +207,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVMinimumEnergyRequest: ScheduledMinimumEnergy,
                       EVMaximumChargePower: ScheduledMaxChargePower, null, null, null, null, null,
                       EVPresentActivePower: PresentActivePower, null, null, null, null, null,
-                      EVMaximumDischargePower: Discharging(Rat(2_200, 1)),   // 22 kW: what the car can give back, hardware
+                      // 22 kW: what the car can give back, hardware, and nothing once the pack is empty.
+                      EVMaximumDischargePower: Discharging(OffersDischarge ? Rat(2_200, 1) : Rat(0)),
                       EVMaximumDischargePower_L2: null, EVMaximumDischargePower_L3: null,
                       EVMinimumDischargePower: Discharging(Rat(0)),
                       EVMinimumDischargePower_L2: null, EVMinimumDischargePower_L3: null),

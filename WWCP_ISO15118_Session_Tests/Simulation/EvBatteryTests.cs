@@ -64,4 +64,36 @@ public class EvBatteryTests
 
     }
 
+    /// <summary>
+    /// Asked for more than it holds, a pack gives what it has and counts that, the mirror of a full pack
+    /// that counts only what it took. It counted the whole ask until 2026-11-28, and so "delivered"
+    /// -38.86 kWh from 30 kWh against EVerest's exporting station.
+    /// </summary>
+    [Test]
+    public void ItGivesBackNoMoreThanItHolds()
+    {
+
+        var battery = new EvBattery(1.0, 50);
+
+        battery.Add(-300);
+        var halfway = battery.CanDischarge;
+
+        battery.Add(-300);
+
+        Assert.Multiple(() => {
+            Assert.That(halfway,              Is.True);
+            Assert.That(battery.EnergyWh,     Is.Zero);
+            Assert.That(battery.DeliveredWh,  Is.EqualTo(-500), "it counted what it never held");
+            Assert.That(battery.CanDischarge, Is.False);
+        });
+
+        battery.Add(300);
+
+        Assert.Multiple(() => {
+            Assert.That(battery.DeliveredWh,  Is.EqualTo(-200));
+            Assert.That(battery.CanDischarge, Is.True, "a recharged pack has something to give again");
+        });
+
+    }
+
 }

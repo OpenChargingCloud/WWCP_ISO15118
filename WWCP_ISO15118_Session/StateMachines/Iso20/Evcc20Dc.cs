@@ -270,7 +270,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // same iteration.
             if (response.MeterInfo is { } meterInfo)
                 NoteStationReading(meterInfo.MeterID, meterInfo.ChargedEnergyReadingWh,
-                                   meterInfo.MeterSignature is not null, meterInfo.MeterTimestamp);
+                                   meterInfo.MeterSignature is not null, meterInfo.MeterTimestamp,
+                                   meterInfo.BPT_DischargedEnergyReadingWh);
 
             // [V2G20-1083]: the station asks the vehicle to sign what this response carried.
             if (response.EVSEStatus?.EVSENotification == Dc20.EvseNotification.MeteringConfirmation)

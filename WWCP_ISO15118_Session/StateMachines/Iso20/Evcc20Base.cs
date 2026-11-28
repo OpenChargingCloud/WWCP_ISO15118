@@ -662,6 +662,18 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         protected (double Target, double Maximum, double Minimum)? EnergyRequestWh
             => Battery is { } b ? (b.EnergyNeededWh, b.EnergyAcceptableWh, b.MinimumNeededWh) : null;
 
+        /// <summary>
+        /// Whether the car offers anything to a discharging station in this iteration: true without a pack,
+        /// which keeps the limits every recorded run carries, and false once the pack is empty.
+        /// </summary>
+        /// <remarks>
+        /// Read by the charge-loop requests only. Discovery declares the hardware, so its discharge
+        /// envelope stays what the car can give back at all. The loop limits are what it can give back
+        /// now, and an empty pack can give nothing. Without this the DC car kept stating −125 A at 0 %
+        /// against EVerest's exporting station, so nothing ended the export.
+        /// </remarks>
+        protected bool OffersDischarge => Battery is not { } b || b.CanDischarge;
+
         /// <summary>The state of charge the car is heading for, as -20's signed-byte percentage, or null
         /// when no target was named.</summary>
         protected sbyte? DeclaredTargetSoCPercent

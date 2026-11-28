@@ -160,6 +160,103 @@ public class Iso20DischargeTests
 
     #endregion
 
+    #region ADcVehicleStopsGivingAtEmpty()
+
+    /// <summary>
+    /// A pack the station could drain twice over: the vehicle gives what it holds, then states zero as
+    /// its discharge limits, and the station, which holds a discharge to those, takes nothing more.
+    /// </summary>
+    /// <remarks>
+    /// Found 2026-11-28 against EVerest's exporting station. A pack starting at 30 kWh ended at 0 % having
+    /// "delivered" −38.86 kWh: the car kept stating −125 A at empty, and its battery counted every
+    /// watt-hour the station asked for, whether the pack held it or not. 90 A at 400 V is 600 Wh a loop,
+    /// so the 1 200 Wh here is empty after exactly two loops, and the four after it are the test.
+    /// </remarks>
+    [Test]
+    public async Task ADcVehicleStopsGivingAtEmpty()
+    {
+
+        var (vehicleEnd, stationEnd) = InMemoryStream.Pair();
+        var meter   = Meter();
+        var pack    = new EvBattery(2.4, 50) { MaxIterations = 6 };
+        var station = new Secc20Dc(TimeSpan.FromSeconds(60), TimeProvider.System) {
+                          InstalledMeter     = meter,
+                          DischargeCurrent_A = 90
+                      };
+        var vehicle = new Evcc20Dc(vehicleEnd, TimeProvider.System, new NoDelay(), TimeSpan.FromSeconds(5)) {
+                          PreferBidirectionalService = true,
+                          PreferDynamicControlMode   = true,
+                          Battery                    = pack
+                      };
+
+        await Run(station, vehicle, stationEnd);
+
+        var (charged, discharged, _) = meter.ReadBoth();
+
+        Assert.Multiple(() => {
+            Assert.That(pack.Iterations,      Is.EqualTo(6), "the loop ended before the empty loops it is about");
+            Assert.That(pack.SoC,             Is.Zero);
+            Assert.That(pack.DeliveredWh,     Is.EqualTo(-1_200), "the pack counted what it never held");
+            Assert.That(discharged,           Is.EqualTo(1_200UL), "the station took more than the pack held");
+            Assert.That(charged,              Is.Zero);
+            Assert.That(vehicle.Meter.Energy, Is.EqualTo(pack.DeliveredWh),
+                        "the vehicle metered energy its pack did not give");
+            AssertTheVehicleAgreesAtEveryReading(vehicle);
+        });
+
+    }
+
+    #endregion
+
+    #region AnAcVehicleStopsFollowingAtEmpty()
+
+    /// <summary>
+    /// The AC side of the same: the vehicle follows the station's ask while the pack has something to
+    /// give, and holds it at 0 W once it is empty, whatever the last ask was.
+    /// </summary>
+    /// <remarks>
+    /// 12 kW is 200 Wh a loop. The first loop charges, because no ask has arrived yet (600 → 800 Wh). Four
+    /// loops of giving back empty the pack. After that our station, holding its ask to the vehicle's
+    /// zero, asks for 0 W, and the vehicle draws its own 12 kW, as it does for any target that is not
+    /// negative. So the pack swings between empty and 200 Wh and never goes below. What the test holds
+    /// is that the meter and the pack never disagree: a vehicle that followed an ask with nothing in the
+    /// pack would meter energy the pack never gave.
+    /// </remarks>
+    [Test]
+    public async Task AnAcVehicleStopsFollowingAtEmpty()
+    {
+
+        var (vehicleEnd, stationEnd) = InMemoryStream.Pair();
+        var meter   = Meter();
+        var pack    = new EvBattery(1.2, 50) { RequestedPowerW = 12_000, MaxIterations = 10 };
+        var station = new Secc20Ac(TimeSpan.FromSeconds(60), TimeProvider.System) {
+                          InstalledMeter  = meter,
+                          DischargePowerW = 12_000
+                      };
+        var vehicle = new Evcc20Ac(vehicleEnd, TimeProvider.System, new NoDelay(), TimeSpan.FromSeconds(5)) {
+                          PreferBidirectionalService = true,
+                          PreferDynamicControlMode   = true,
+                          Battery                    = pack
+                      };
+
+        await Run(station, vehicle, stationEnd);
+
+        var (charged, discharged, _) = meter.ReadBoth();
+
+        Assert.Multiple(() => {
+            Assert.That(pack.Iterations,      Is.EqualTo(10));
+            Assert.That(pack.DeliveredWh,     Is.GreaterThanOrEqualTo(-600), "the pack counted what it never held");
+            Assert.That(discharged,           Is.GreaterThan(600UL), "the session never drained the pack");
+            Assert.That(vehicle.Meter.Energy, Is.EqualTo(pack.DeliveredWh),
+                        "the vehicle metered energy its pack did not give");
+            Assert.That(vehicle.Meter.Energy, Is.EqualTo((double) charged - discharged));
+            AssertTheVehicleAgreesAtEveryReading(vehicle);
+        });
+
+    }
+
+    #endregion
+
     #region (private static) AssertTheVehicleAgreesAtEveryReading(Vehicle)
 
     /// <summary>

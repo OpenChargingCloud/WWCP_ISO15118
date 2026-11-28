@@ -202,9 +202,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVMaximumChargeCurrent:    LoopMaxCurrent,
                       EVMaximumVoltage:          MaxVoltage,
                       EVMinimumVoltage:          Rat(200),
-                      EVMaximumDischargePower:   Discharging(LoopMaxPower),  // the charge request mirrored
-                      EVMinimumDischargePower:   Discharging(Rat(1,  3)),    //  1 kW
-                      EVMaximumDischargeCurrent: Discharging(LoopMaxCurrent),
+                      // The charge request mirrored while the pack has something to give, zero once
+                      // it is empty (see Evcc20Base.OffersDischarge).
+                      EVMaximumDischargePower:   Discharging(OffersDischarge ? LoopMaxPower   : Rat(0)),
+                      EVMinimumDischargePower:   Discharging(OffersDischarge ? Rat(1, 3)      : Rat(0)),   //  1 kW
+                      EVMaximumDischargeCurrent: Discharging(OffersDischarge ? LoopMaxCurrent : Rat(0)),
                       EVMaximumV2XEnergyRequest: null, EVMinimumV2XEnergyRequest: null),
 
                 (true, false) => new Dc20.Dynamic_DC_CLReqControlModeType(
@@ -228,9 +230,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVMinimumEnergyRequest: ScheduledMinimumEnergy,
                       EVTargetCurrent: LoopTargetCurrent, EVTargetVoltage: Rat(LoopNominalVolts),
                       null, null, null, null, null,
-                      EVMaximumDischargePower:   Discharging(MaxPower),
+                      EVMaximumDischargePower:   Discharging(OffersDischarge ? MaxPower   : Rat(0)),
                       EVMinimumDischargePower:   Discharging(Rat(0)),
-                      EVMaximumDischargeCurrent: Discharging(MaxCurrent)),
+                      EVMaximumDischargeCurrent: Discharging(OffersDischarge ? MaxCurrent : Rat(0))),
 
                 _ => new Dc20.Scheduled_DC_CLReqControlModeType(
                       EVTargetEnergyRequest:  ScheduledTargetEnergy,

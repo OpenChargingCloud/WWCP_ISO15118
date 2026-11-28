@@ -171,8 +171,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
                     EVSEMaximumChargeCurrent: MaxCurrent, EVSEMinimumChargeCurrent: Rat(0),
                     EVSEMaximumVoltage: MaxVoltage, EVSEMinimumVoltage: MinVoltage, EVSEPowerRampLimitation: null,
-                    EVSEMaximumDischargePower: MaxPower, EVSEMinimumDischargePower: Rat(0),
-                    EVSEMaximumDischargeCurrent: MaxCurrent, EVSEMinimumDischargeCurrent: Rat(0))
+                    EVSEMaximumDischargePower: Discharging(MaxPower), EVSEMinimumDischargePower: Discharging(Rat(0)),
+                    EVSEMaximumDischargeCurrent: Discharging(MaxCurrent), EVSEMinimumDischargeCurrent: Discharging(Rat(0)))
                 : new Dc20.DC_CPDResEnergyTransferModeType(
                     EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
                     EVSEMaximumChargeCurrent: MaxCurrent, EVSEMinimumChargeCurrent: Rat(0),
@@ -211,8 +211,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                     DepartureTime: null, MinimumSOC: null, TargetSOC: null, AckMaxDelay: null,
                     EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
                     EVSEMaximumChargeCurrent: Amperes(AllowedCurrent_A), EVSEMaximumVoltage: MaxVoltage,
-                    EVSEMaximumDischargePower: MaxPower, EVSEMinimumDischargePower: Rat(0),
-                    EVSEMaximumDischargeCurrent: Amperes(AllowedCurrent_A), EVSEMinimumVoltage: MinVoltage),
+                    EVSEMaximumDischargePower: Discharging(MaxPower), EVSEMinimumDischargePower: Discharging(Rat(0)),
+                    EVSEMaximumDischargeCurrent: Discharging(Amperes(AllowedCurrent_A)), EVSEMinimumVoltage: MinVoltage),
                 Dc20.Dynamic_DC_CLReqControlModeType => new Dc20.Dynamic_DC_CLResControlModeType(
                     DepartureTime: null, MinimumSOC: null, TargetSOC: null, AckMaxDelay: null,
                     EVSEMaximumChargePower: MaxPower, EVSEMinimumChargePower: Rat(0),
@@ -240,7 +240,8 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             var terminate   = TerminateRequested;
             // A discharge is held inside the vehicle's own limit as well as the station's: the EV states
             // its EVMaximumDischargeCurrent in every BPT Dynamic request, and taking more is the station
-            // overriding the battery.
+            // overriding the battery. Taken by its size: [V2G20-1213] makes it negative, and EVerest's EV
+            // sends it so, while Josev's and eVDriveFlow's cars send it positive.
             var bptDynamic  = req.CLReqControlMode as Dc20.BPT_Dynamic_DC_CLReqControlModeType;
             var discharging = DischargeCurrent_A is not null && bptDynamic is not null;
             var servedAmps  = terminate   ? 0d
@@ -347,6 +348,11 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         }
 
         private static Dc20.RationalNumberType Rat(short value, sbyte exponent = 0) => new(exponent, value);
+
+        /// <summary>A limit on energy flowing to the station, as it goes on the wire: negative
+        /// (`[V2G20-1213]`; see <c>Evcc20Dc.Discharging</c>).</summary>
+        private static Dc20.RationalNumberType Discharging(Dc20.RationalNumberType magnitude)
+            => magnitude with { Value = (short) -Math.Abs(magnitude.Value) };
 
         /// <summary>A current in whole amperes, as a rational number - the megawatt currents of MCS fit a short.
         /// Negative is a discharge, energy from the vehicle to the station (`[V2G20-1035]`).</summary>

@@ -141,14 +141,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // envelope mirrors the charge one — this vehicle is symmetric, which is the common case and keeps
             // the two halves from drifting apart as separate literals. Both arms read the virtual envelope
             // above, so an MCS truck that discharges declares megawatts in *both* directions rather than
-            // raising only the half it charges through.
+            // raising only the half it charges through. It mirrors in magnitude: on the wire the discharge
+            // half is negative (see Discharging below).
             Dc20.DC_CPDReqEnergyTransferModeType transferMode = BidirectionalService
                 ? new Dc20.BPT_DC_CPDReqEnergyTransferModeType(
                       EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
                       EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
                       EVMaximumVoltage: MaxVoltage, EVMinimumVoltage: MinVoltage, TargetSOC: DeclaredTargetSoC,
-                      EVMaximumDischargePower: MaxPower, EVMinimumDischargePower: Rat(0),
-                      EVMaximumDischargeCurrent: MaxCurrent, EVMinimumDischargeCurrent: Rat(0))
+                      EVMaximumDischargePower: Discharging(MaxPower), EVMinimumDischargePower: Discharging(Rat(0)),
+                      EVMaximumDischargeCurrent: Discharging(MaxCurrent), EVMinimumDischargeCurrent: Discharging(Rat(0)))
                 : new Dc20.DC_CPDReqEnergyTransferModeType(
                       EVMaximumChargePower: MaxPower, EVMinimumChargePower: Rat(0),
                       EVMaximumChargeCurrent: MaxCurrent, EVMinimumChargeCurrent: Rat(0),
@@ -201,9 +202,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVMaximumChargeCurrent:    LoopMaxCurrent,
                       EVMaximumVoltage:          MaxVoltage,
                       EVMinimumVoltage:          Rat(200),
-                      EVMaximumDischargePower:   LoopMaxPower,  // the charge request mirrored
-                      EVMinimumDischargePower:   Rat(1,  3),    //  1 kW
-                      EVMaximumDischargeCurrent: LoopMaxCurrent,
+                      EVMaximumDischargePower:   Discharging(LoopMaxPower),  // the charge request mirrored
+                      EVMinimumDischargePower:   Discharging(Rat(1,  3)),    //  1 kW
+                      EVMaximumDischargeCurrent: Discharging(LoopMaxCurrent),
                       EVMaximumV2XEnergyRequest: null, EVMinimumV2XEnergyRequest: null),
 
                 (true, false) => new Dc20.Dynamic_DC_CLReqControlModeType(
@@ -227,9 +228,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                       EVMinimumEnergyRequest: ScheduledMinimumEnergy,
                       EVTargetCurrent: LoopTargetCurrent, EVTargetVoltage: Rat(LoopNominalVolts),
                       null, null, null, null, null,
-                      EVMaximumDischargePower:   MaxPower,
-                      EVMinimumDischargePower:   Rat(0),
-                      EVMaximumDischargeCurrent: MaxCurrent),
+                      EVMaximumDischargePower:   Discharging(MaxPower),
+                      EVMinimumDischargePower:   Discharging(Rat(0)),
+                      EVMaximumDischargeCurrent: Discharging(MaxCurrent)),
 
                 _ => new Dc20.Scheduled_DC_CLReqControlModeType(
                       EVTargetEnergyRequest:  ScheduledTargetEnergy,
@@ -296,6 +297,15 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         }
 
         private static Dc20.RationalNumberType Rat(short value, sbyte exponent = 0) => new(exponent, value);
+
+        /// <summary>A limit on energy flowing from the vehicle, as it goes on the wire: negative.</summary>
+        /// <remarks>`[V2G20-1213]` sets parameters used for discharging negative, for AC and DC BPT alike,
+        /// under the `[V2G20-1035]` rule that negative is the direction from the vehicle; every comparison
+        /// between limits in the standard is written on absolute values. EVerest 2026.10.0's EV and station
+        /// send theirs that way. A magnitude already given negative stays negative.</remarks>
+        protected static Dc20.RationalNumberType Discharging(Dc20.RationalNumberType magnitude)
+            => magnitude with { Value = (short) -Math.Abs(magnitude.Value) };
+
         private static InvalidOperationException EncodeFailed() => new("EXI encode failed (buffer too small?).");
     }
 }

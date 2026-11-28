@@ -44,6 +44,28 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// Dynamic target below announce, and the ceiling on what it will meter.</summary>
         private const double MaxPowerW = 22_000;
 
+        /// <summary>
+        /// Ask the vehicle to discharge at this power, in watts, in every charge loop of a bidirectional
+        /// session in <b>Dynamic</b> control mode. Null (the default) offers charging, as this station always
+        /// did.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// AC has no setpoint the station serves, unlike DC's current: the vehicle's charger moves the
+        /// energy, so the station asks and the vehicle follows. In Dynamic mode the ask is
+        /// <c>EVSETargetActivePower</c>, negative for energy from the vehicle to the station
+        /// (`[V2G20-1035]`, `[V2G20-1213]`), and the vehicle shall adjust to it as fast as it can
+        /// (`[V2G20-1825]`). The station then meters what the vehicle reports in
+        /// <c>EVPresentActivePower</c>, as it does when charging, so a vehicle that ignored the ask would
+        /// be seen to.
+        /// </para>
+        /// <para>
+        /// Held inside this outlet's 22 kW and the vehicle's own <c>EVMaximumDischargePower</c>. Encoded in
+        /// tens of watts, so 11 kW goes out as −1 100 × 10¹.
+        /// </para>
+        /// </remarks>
+        public double? DischargePowerW { get; init; }
+
         /// <summary>Answers AC charge-parameter discovery in kind, and refuses a direction that contradicts
         /// the selected service — see <see cref="Secc20Dc.HandleChargeParameterDiscovery"/> for the rule, the
         /// live refusal it came from, and why the mode is still built in kind on a refusal. The same rule
@@ -92,9 +114,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
             => reqMode switch
             {
-                Ac20.BPT_Dynamic_AC_CLReqControlModeType => new Ac20.BPT_Dynamic_AC_CLResControlModeType(
+                Ac20.BPT_Dynamic_AC_CLReqControlModeType bpt => new Ac20.BPT_Dynamic_AC_CLResControlModeType(
                     DepartureTime: null, MinimumSOC: null, TargetSOC: null, AckMaxDelay: null,
-                    EVSETargetActivePower: Rat(2_200, exponent: 1), EVSETargetActivePower_L2: null, EVSETargetActivePower_L3: null,
+                    EVSETargetActivePower: DischargeTarget(bpt) ?? Rat(2_200, exponent: 1), EVSETargetActivePower_L2: null, EVSETargetActivePower_L3: null,
                     EVSETargetReactivePower: null, EVSETargetReactivePower_L2: null, EVSETargetReactivePower_L3: null,
                     EVSEPresentActivePower: null, EVSEPresentActivePower_L2: null, EVSEPresentActivePower_L3: null),
                 Ac20.Dynamic_AC_CLReqControlModeType => new Ac20.Dynamic_AC_CLResControlModeType(
@@ -126,7 +148,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                 Ac20.Dynamic_AC_CLReqControlModeType   d => (double) Ac20Rational.ToDecimal(d.EVPresentActivePower),
                 _                                        => MaxPowerW,
             };
-            Deliver(Math.Clamp(drawn, 0, MaxPowerW));
+            // A bidirectional session may report energy going back, and the outlet meters it into the
+            // discharge register; a charge-only one cannot, so a negative figure there still meters as 0.
+            Deliver(Math.Clamp(drawn, BidirectionalServiceSelected ? -MaxPowerW : 0, MaxPowerW));
 
             var res = new Ac20.AC_ChargeLoopRes(SessionCtx.ToAcHeader(), Ac20.ResponseCode.OK,
                 // Service renegotiation is requested via the (otherwise absent) EVSEStatus ([V2G20-1477]).
@@ -137,7 +161,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                         ? new Ac20.EVSEStatusType(MeteringConfirmationMaxDelay, Ac20.EvseNotification.MeteringConfirmation)
                         : null,
                 MeterInfo: MeterReading() is { } m
-                    ? new Ac20.MeterInfoType(m.Id, m.Wh, null, null, null, m.Signature, null, m.Timestamp)
+                    ? new Ac20.MeterInfoType(m.Id, m.Wh, m.DischargedWh, null, null, m.Signature, null, m.Timestamp)
                     : null, Receipt: null, EVSETargetFrequency: null,
                 CLResControlMode: clRes);
             return (MessageSet.Iso20AC, res);
@@ -196,5 +220,18 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         }
 
         private static Ac20.RationalNumberType Rat(short value, sbyte exponent = 0) => new(exponent, value);
+
+        /// <summary>The negative <c>EVSETargetActivePower</c> that asks for <see cref="DischargePowerW"/>, or
+        /// null when this station is not discharging. Held inside the outlet's power and the vehicle's own
+        /// <c>EVMaximumDischargePower</c>, whose sign the field practice leaves positive, hence its size.</summary>
+        private Ac20.RationalNumberType? DischargeTarget(Ac20.BPT_Dynamic_AC_CLReqControlModeType request)
+        {
+            if (DischargePowerW is not { } asked)
+                return null;
+
+            var watts = Math.Min(Math.Min(asked, MaxPowerW),
+                                 Math.Abs((double) Ac20Rational.ToDecimal(request.EVMaximumDischargePower)));
+            return Rat((short) -Math.Round(watts / 10), exponent: 1);
+        }
     }
 }

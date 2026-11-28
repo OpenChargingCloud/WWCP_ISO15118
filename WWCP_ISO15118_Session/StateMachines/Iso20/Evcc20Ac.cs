@@ -71,9 +71,43 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         /// setpoint field for the EV to be steerable. <see cref="Secc20Ac"/> meters what this says.
         /// </remarks>
         private Ac20.RationalNumberType PresentActivePower
-            => Battery is { RequestedPowerW: > 0 } b
-                   ? Watts(Math.Min(MaxActivePowerW, b.RequestedPowerW * b.PowerFactor))
-                   : Rat(2_200, 1);   // 22 kW, and this exact encoding — the corpus recorded it
+            => _dischargeTarget
+               ?? (Battery is { RequestedPowerW: > 0 } b
+                       ? Watts(Math.Min(MaxActivePowerW, b.RequestedPowerW * b.PowerFactor))
+                       : Rat(2_200, 1));   // 22 kW, and this exact encoding — the corpus recorded it
+
+        /// <summary>
+        /// What the station last asked this vehicle to give back, as the <c>EVSETargetActivePower</c> it
+        /// sent, or null while it is not asking.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// `[V2G20-1825]`: the vehicle adjusts to the setpoints the station sends, as fast as it can. A
+        /// negative target in a bidirectional session is the station asking for energy back, and this
+        /// vehicle then reports exactly that figure as its <c>EVPresentActivePower</c> from the next
+        /// iteration on, the rational passed through as received so the station meters what it asked for.
+        /// </para>
+        /// <para>
+        /// A positive target is left as it always was: this station's Dynamic target is its 22 kW offer,
+        /// and the vehicle draws what it wants inside it (see <see cref="Secc20Ac"/>). Following positive
+        /// targets too would be the stricter reading of `[V2G20-1825]`, and it would change what every
+        /// battery-driven AC Dynamic session sends; it is deliberately left out of this change.
+        /// </para>
+        /// </remarks>
+        private Ac20.RationalNumberType? _dischargeTarget;
+
+        /// <summary>The discharge the station asks for in <paramref name="response"/>, held inside this
+        /// vehicle's own 22 kW; null in a charge-only session, in Scheduled mode, or for a target ≥ 0.</summary>
+        private Ac20.RationalNumberType? DischargeTargetOf(Ac20.AC_ChargeLoopRes response)
+        {
+            if (!BidirectionalService || response.CLResControlMode is not Ac20.Dynamic_AC_CLResControlModeType dynamic)
+                return null;
+
+            var target = (double) Ac20Rational.ToDecimal(dynamic.EVSETargetActivePower);
+            return target >= 0            ? null
+                 : target >= -MaxActivePowerW ? dynamic.EVSETargetActivePower
+                 : Watts(-MaxActivePowerW);
+        }
 
         /// <summary>The same figure at the meter, read back off the rational rather than computed a second
         /// time: a vehicle whose counter and whose wire disagreed by a rounding step would be reporting one
@@ -199,6 +233,10 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             // and nothing borrowed from the station. Read back off the rational it just sent, so the
             // counter counts exactly what the wire carried.
             Meter.Sample(PresentActivePowerW);
+
+            // The station's ask for the next iteration. Taken only after this one is counted: the
+            // counter must count what this request said, not what the next one will.
+            _dischargeTarget = DischargeTargetOf(response);
 
             // After the sample, so the station's reading is paired with the vehicle's count of the
             // same iteration.

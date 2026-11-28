@@ -84,6 +84,26 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
         public void Terminate()
             => Volatile.Write(ref terminate, 1);
 
+        /// <summary>
+        /// Discharge the vehicle at this current, in amperes, in every charge loop of a bidirectional
+        /// session in <b>Dynamic</b> control mode. Null (the default) charges, as this station always did.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Dynamic mode because there the station sets the operating point and the vehicle states only its
+        /// limits; in Scheduled mode the vehicle names the setpoint itself. The served current goes out
+        /// negative in <c>EVSEPresentCurrent</c>: negative values are energy from the vehicle to the station
+        /// (`[V2G20-1034]`, `[V2G20-1035]`, and `[V2G20-1213]` for DC BPT). Capped by the current allowed
+        /// now, as charging is.
+        /// </para>
+        /// <para>
+        /// The energy lands in the meter's discharge register, so a metered session's readings carry
+        /// <c>BPT_DischargedEnergyReadingWh</c> and the meter signs both registers. Until 2026-11-28 no
+        /// session of this project had ever moved energy back.
+        /// </para>
+        /// </remarks>
+        public double? DischargeCurrent_A { get; init; }
+
         /// <summary>The most current this station can deliver at all, in amperes - what a limit is below.</summary>
         public double MaximumCurrent_A
             => (double) Dc20Rational.ToDecimal(MaxCurrent);
@@ -217,9 +237,17 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
             var wantedAmps = req.CLReqControlMode is Dc20.Scheduled_DC_CLReqControlModeType s
                                  ? (double) Dc20Rational.ToDecimal(s.EVTargetCurrent)
                                  : 120d;
-            var terminate  = TerminateRequested;
-            var servedAmps = terminate ? 0d : Math.Min(wantedAmps, AllowedCurrent_A);
-            var limited    = !terminate && servedAmps < wantedAmps;
+            var terminate   = TerminateRequested;
+            // A discharge is held inside the vehicle's own limit as well as the station's: the EV states
+            // its EVMaximumDischargeCurrent in every BPT Dynamic request, and taking more is the station
+            // overriding the battery.
+            var bptDynamic  = req.CLReqControlMode as Dc20.BPT_Dynamic_DC_CLReqControlModeType;
+            var discharging = DischargeCurrent_A is not null && bptDynamic is not null;
+            var servedAmps  = terminate   ? 0d
+                            : discharging ? -Math.Min(Math.Min(DischargeCurrent_A!.Value, AllowedCurrent_A),
+                                                      Math.Abs((double) Dc20Rational.ToDecimal(bptDynamic!.EVMaximumDischargeCurrent)))
+                                          : Math.Min(wantedAmps, AllowedCurrent_A);
+            var limited     = !terminate && !discharging && servedAmps < wantedAmps;
             Deliver(400d * servedAmps);   // the EVSEPresentVoltage x EVSEPresentCurrent announced below
 
             var res = new Dc20.DC_ChargeLoopRes(SessionCtx.ToDcHeader(), Dc20.ResponseCode.OK,
@@ -235,7 +263,7 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
                             ? new Dc20.EVSEStatusType(MeteringConfirmationMaxDelay, Dc20.EvseNotification.MeteringConfirmation)
                             : null,
                 MeterInfo: MeterReading() is { } m
-                    ? new Dc20.MeterInfoType(m.Id, m.Wh, null, null, null, m.Signature, null, m.Timestamp)
+                    ? new Dc20.MeterInfoType(m.Id, m.Wh, m.DischargedWh, null, null, m.Signature, null, m.Timestamp)
                     : null, Receipt: null,
                 EVSEPresentCurrent: Amperes(servedAmps), EVSEPresentVoltage: Rat(400),
                 EVSEPowerLimitAchieved: false, EVSECurrentLimitAchieved: limited, EVSEVoltageLimitAchieved: false,
@@ -320,8 +348,9 @@ namespace cloud.charging.open.protocols.ISO15118.StateMachines.Iso20
 
         private static Dc20.RationalNumberType Rat(short value, sbyte exponent = 0) => new(exponent, value);
 
-        /// <summary>A current in whole amperes, as a rational number - the megawatt currents of MCS fit a short.</summary>
+        /// <summary>A current in whole amperes, as a rational number - the megawatt currents of MCS fit a short.
+        /// Negative is a discharge, energy from the vehicle to the station (`[V2G20-1035]`).</summary>
         private static Dc20.RationalNumberType Amperes(double amperes)
-            => Rat((short) Math.Clamp(Math.Round(amperes), 0, short.MaxValue));
+            => Rat((short) Math.Clamp(Math.Round(amperes), -short.MaxValue, short.MaxValue));
     }
 }
